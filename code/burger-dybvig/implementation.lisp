@@ -240,10 +240,6 @@
 
 (defclass burger-dybvig-1-client () ())
 
-(defmethod quaviver:make-client ((name (eql :burger-dybvig-1)) &rest initargs &key)
-  (declare (ignore initargs))
-  (make-instance 'burger-dybvig-1-client))
-
 ;;; This is a trivial and inefficient implementation of
 ;;; the first algorithm in the Burger-Dybvig paper.  It is used
 ;;; for testing-purposes only.  It returns two values, a list
@@ -347,10 +343,6 @@
 
 (defclass burger-dybvig-2-client () ())
 
-(defmethod quaviver:make-client ((name (eql :burger-dybvig-2)) &rest initargs &key)
-  (declare (ignore initargs))
-  (make-instance 'burger-dybvig-2-client))
-
 ;;; This is a direct implementation of the second algorithm of the
 ;;; Burger & Dybvig paper.  It is not modeled after their Scheme code,
 ;;; but reimplements the algorithm they present in Common Lisp.
@@ -440,3 +432,11 @@
                (when (not (and (equal d1 d2)
                                (= k1 k2)))
                  (cl:format *trace-output* "no: ~s~%" x))))))
+
+(defmethod quaviver:make-client ((name (eql :burger-dybvig))
+                                 &rest initargs
+                                 &key (variation 2))
+  (declare (ignore initargs))
+  (ecase variation
+    (1 (make-instance 'burger-dybvig-1-client))
+    (2 (make-instance 'burger-dybvig-2-client))))
