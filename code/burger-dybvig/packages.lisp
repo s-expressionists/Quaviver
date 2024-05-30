@@ -1,3 +1,4 @@
 (cl:defpackage #:quaviver/burger-dybvig
   (:use #:common-lisp)
-  (:export))
+  (:export #:client-1
+           #:client-2))

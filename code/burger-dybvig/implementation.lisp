@@ -238,7 +238,7 @@
              (setf expt (* expt 10)))
     try))
 
-(defclass burger-dybvig-1-client () ())
+(defclass client-1 () ())
 
 ;;; This is a trivial and inefficient implementation of
 ;;; the first algorithm in the Burger-Dybvig paper.  It is used
@@ -246,7 +246,7 @@
 ;;; of numbers that represent the individual digits of the result,
 ;;; and the scale factor.
 
-(defmethod quaviver:float-to-digits ((client burger-dybvig-1-client) x)
+(defmethod quaviver:float-to-digits ((client client-1) x)
   (let* ((v (rational x))
          (v- (rational (predecessor x)))
          (v+ (rational (successor x)))
@@ -279,7 +279,7 @@
                       (loop-finish))
                      (t
                       (push d result) (incf value (* factor d)))))
-          finally (return (values (nreverse result) scale)))))
+          finally (return (values (nreverse result) scale (float-sign x))))))
 
 ;;; This function uses a very direct method to generate floating
 ;;; point digits.  It uses floating-point arithmetic, so it may
@@ -341,15 +341,15 @@
                   finally (return (nreverse result)))
             s)))
 
-(defclass burger-dybvig-2-client () ())
+(defclass client-2 () ())
 
 ;;; This is a direct implementation of the second algorithm of the
 ;;; Burger & Dybvig paper.  It is not modeled after their Scheme code,
 ;;; but reimplements the algorithm they present in Common Lisp.
-(defmethod quaviver:float-to-digits ((client burger-dybvig-2-client) x)
+(defmethod quaviver:float-to-digits ((client client-2) x)
   (if (zerop x)
-      (values #(0) -1)
-      (multiple-value-bind (f e)
+      (values #(0) -1 (float-sign x))
+      (multiple-value-bind (f e s)
           (integer-decode-float x)
         ;; adjust mantissa and exponent
         (when (< (float-precision x) (float-digits x))
@@ -411,7 +411,7 @@
                                            (1+ quotient)
                                            quotient)
                                        result)
-                   (return (values result k)))
+                   (return (values result k s)))
                  (vector-push-extend quotient result)
                  (go next))))))))
 
@@ -432,11 +432,3 @@
                (when (not (and (equal d1 d2)
                                (= k1 k2)))
                  (cl:format *trace-output* "no: ~s~%" x))))))
-
-(defmethod quaviver:make-client ((name (eql :burger-dybvig))
-                                 &rest initargs
-                                 &key (variation 2))
-  (declare (ignore initargs))
-  (ecase variation
-    (1 (make-instance 'burger-dybvig-1-client))
-    (2 (make-instance 'burger-dybvig-2-client))))
