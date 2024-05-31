@@ -40,6 +40,7 @@
   :version (:read-file-form "version.sexp")
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
   :depends-on ("ansi-test-harness"
                "invistra-extrinsic"
                "quaviver/burger-dybvig")
