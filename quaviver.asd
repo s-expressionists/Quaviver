@@ -10,7 +10,7 @@
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :depends-on ()
-  :components ((:module code
+  :components ((:module "code"
                 :serial t
                 :components ((:file "packages")
                              (:file "interface")))))
@@ -24,7 +24,7 @@
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :depends-on ("quaviver")
-  :components ((:module code
+  :components ((:module "code"
                 :pathname "code/burger-dybvig/"
                 :serial t
                 :components ((:file "packages")
