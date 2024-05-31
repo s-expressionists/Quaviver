@@ -419,16 +419,18 @@
 ;;; for all single floats.  Running this test may take a few days
 ;;; on a good 64-bit machine.
 (defun test-dybvig-2 (start)
-  (loop for x = start then (predecessor x)
+  (loop with client-1 = (make-instance 'client-1)
+        with client-2 = (make-instance 'client-2)
+        for x = start then (predecessor x)
         for i from 0
         until (= x 0)
         do (when (zerop (mod i 1000000))
              (cl:format *trace-output* "~s~%" x)
              (finish-output *trace-output*))
         do (multiple-value-bind (d1 k1)
-               (burger-dybvig-1 x)
+               (quaviver:float-to-digits client-1 x)
              (multiple-value-bind (d2 k2)
-                 (burger-dybvig-2 x)
-               (when (not (and (equal d1 d2)
+                 (quaviver:float-to-digits client-2 x)
+               (when (not (and (equal d1 (coerce d2 'list))
                                (= k1 k2)))
                  (cl:format *trace-output* "no: ~s~%" x))))))
