@@ -35,10 +35,10 @@
 ;;; 53-bit precision to be stored in a 52-bit field.  In other words,
 ;;; the relationship between m and M is that M = (m - 1/2) * 2^53, and
 ;;; thus m = M/2^53 + 1/2.  So for instance, a representation that has
-;;; a 1 followd by 51 0s (E = 2^51) represents an m of 2^51/2^53 + 1/2
+;;; a 1 followed by 51 0s (E = 2^51) represents an m of 2^51/2^53 + 1/2
 ;;; = 3/4.  For the normalized representation E = e + 1022.  All this
 ;;; gives that the smallest normalized positive number (2^-1022 which
-;;; is normalized to m = 1/2 and e = -2^1021) is reprsented with M = 0
+;;; is normalized to m = 1/2 and e = -2^1021) is represented with M = 0
 ;;; and E = 1.  The largest normalized positive number has M
 ;;; containing only 1s, so M = 2^52 - 1 so m is slightly less than 1
 ;;; and E = 2046 and therefore e = 1022.
@@ -54,7 +54,7 @@
 ;;; 2^52 * m, and thus m = M/2^52.  The exponent is e = E - 1022
 ;;;
 ;;; The Common Lisp function decode-float does *not* return m and e as
-;;; described above when the respresentation is denormalized.
+;;; described above when the representation is denormalized.
 ;;; Instead, it scales m and e so that 0.5 <= m < 1.0 always holds.
 ;;;
 ;;; Positive and negative 0 is represented with M = 0, and E = 0.
@@ -149,7 +149,7 @@
 ;;; As it turns out, we are out of luck.  No function like F exists in
 ;;; the Common Lisp standard.  The closest one is integer-decode-float
 ;;; but it is allowed by the standard to introduce some arbitrary
-;;; scaling between m and e, ans long as they are both integers and as
+;;; scaling between m and e, as long as they are both integers and as
 ;;; long as v = m * 2^e holds.  Interestingly, the special case cited
 ;;; above still works, i.e., computing v - 2^(e-1) works,
 ;;; independently of this scaling.  However, adding and subtracting 1
@@ -161,7 +161,7 @@
 ;;; special case for v- depends on the which floating-point
 ;;; representation we have.  We would like to avoid testing for all
 ;;; possible floating-point precisions, especially since
-;;; implementations might want to exted the format to others.  But if
+;;; implementations might want to extend the format to others.  But if
 ;;; we examine the procedure above for computing v- a little closer it
 ;;; can be summarized like this:
 ;;;
@@ -208,7 +208,7 @@
 
 ;;; This function goes through all single floats and checks that for a
 ;;; given float x, the successor of the predecessor x is x, as defined
-;;; by the two precedging functions.
+;;; by the two preceding functions.
 (defun test-all ()
   (loop for x = most-positive-single-float then y
         for y = (predecessor x)
@@ -222,7 +222,7 @@
 ;;; Given a rational r, return the smallest integer k such that
 ;;; r < 10^k.  We use the floating-point logarithmic function
 ;;; to find an approximate value of k, then we find the exact
-;;; one by a small search around the appriximation.
+;;; one by a small search around the approximation.
 (defun scale (r &optional high-ok)
   (let* ((try (1- (ceiling (log (max least-positive-long-float
                                      (min most-positive-long-float
@@ -415,7 +415,7 @@
                  (vector-push-extend quotient result)
                  (go next))))))))
 
-;;; Test that the two implemetations above give the same result
+;;; Test that the two implementations above give the same result
 ;;; for all single floats.  Running this test may take a few days
 ;;; on a good 64-bit machine.
 (defun test-dybvig-2 (start)
