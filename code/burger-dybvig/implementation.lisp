@@ -349,7 +349,7 @@
 (defmethod quaviver:float-to-digits ((client client-2) x)
   (if (zerop x)
       (values #(0) -1 (float-sign x))
-      (multiple-value-bind (f e s)
+      (multiple-value-bind (f e sign)
           (integer-decode-float x)
         ;; adjust mantissa and exponent
         (when (< (float-precision x) (float-digits x))
@@ -411,7 +411,7 @@
                                            (1+ quotient)
                                            quotient)
                                        result)
-                   (return (values result k s)))
+                   (return (values result k sign)))
                  (vector-push-extend quotient result)
                  (go next))))))))
 
