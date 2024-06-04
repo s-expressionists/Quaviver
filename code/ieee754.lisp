@@ -31,7 +31,7 @@
   #+cmu
   (kernel:single-float-bits value)
   #+ecl
-  (system::single-float-bits value)
+  (system:single-float-bits value)
   #+lispworks
   (let ((v (sys:make-typed-aref-vector 4)))
     (declare (optimize (speed 3) (float 0) (safety 0))
@@ -60,8 +60,8 @@
 ;;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L290
 (defmethod quaviver:float-to-bits ((client client) (value double-float))
   #+abcl
-  (let ((upper (system::double-float-high-bits value))
-        (lower (system::double-float-low-bits value)))
+  (let ((upper (system:double-float-high-bits value))
+        (lower (system:double-float-low-bits value)))
     (logior (ash upper 32) lower))
   #+allegro
   (multiple-value-bind (us3 us2 us1 us0) (excl:double-float-to-shorts value)
@@ -76,7 +76,7 @@
         (lower (kernel:double-float-low-bits value)))
     (logior (ash upper 32) lower))
   #+ecl
-  (system::double-float-bits value)
+  (system:double-float-bits value)
   #+lispworks
   (let ((v (sys:make-typed-aref-vector 8)))
     (declare (optimize (speed 3) (float 0) (safety 0))
