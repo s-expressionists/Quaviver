@@ -1,30 +1,24 @@
 ;;;; SPDX-FileCopyrightText: Copyright (c) 2024 s-expressionists
 ;;;; SPDX-License-Identifier: MIT AND BSD-3-Clause
 ;;;;
-;;;; %SINGLE-FLOAT-BITS, SINGLE-FLOAT-BITS, %DOUBLE-FLOAT-BITS and
-;;;; DOUBLE-FLOAT-BITS were ported, with slight modifications, from
-;;;; Nibbles [1], which is licensed under the BSD-3-Clause license.
+;;;; The implementations of QUAVIVER:FLOAT-TO-BITS were ported, with
+;;;; modifications, from Nibbles [1], which is licensed under the
+;;;; BSD-3-Clause license.
 ;;;; Any original code herein is licensed under the MIT license (Expat).
 ;;;;
 ;;;; [1]: https://github.com/sharplispers/nibbles
 
-(cl:defpackage #:quaviver/float-bits
+(cl:defpackage #:quaviver/ieee754
   (:use #:common-lisp)
-  (:export #:single-float-bits #:double-float-bits))
-(cl:in-package #:quaviver/float-bits)
+  (:export #:client))
+(cl:in-package #:quaviver/ieee754)
 
-(defun %single-float-bits (value)
-  (multiple-value-bind (significand exponent sign) (decode-float value)
-    (let ((sign-bit (if (plusp sign) 0 1))
-          (exponent-bits (if (zerop significand) 0 (+ exponent 127 -1)))
-          (significand-bits (floor (* #.(expt 2f0 24) significand))))
-      (when (<= exponent-bits 0)
-        (setf significand-bits (ash significand-bits (1- exponent-bits)))
-        (setf exponent-bits 0))
-      (logior (ash sign-bit 31) (ash exponent-bits 23) (ldb (byte 23 0) significand-bits)))))
+(defclass client () ())
 
-(declaim (inline single-float-bits))
-(defun single-float-bits (value)
+;;; Based on NIBBLES::IEEE-SINGLE-SET/BE [1].
+;;;
+;;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L93
+(defmethod quaviver:float-to-bits ((client client) (value single-float))
   #+abcl
   (system:single-float-bits value)
   #+allegro
@@ -39,7 +33,7 @@
   #+ecl
   (system::single-float-bits value)
   #+lispworks
-  (let* ((v (sys:make-typed-aref-vector 4)))
+  (let ((v (sys:make-typed-aref-vector 4)))
     (declare (optimize (speed 3) (float 0) (safety 0))
              (dynamic-extent v))
     (setf (sys:typed-aref 'single-float v 0) value)
@@ -49,20 +43,19 @@
   #+sbcl
   (sb-kernel:single-float-bits value)
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
-  (%single-float-bits value))
-
-(defun %double-float-bits (value)
   (multiple-value-bind (significand exponent sign) (decode-float value)
     (let ((sign-bit (if (plusp sign) 0 1))
-          (exponent-bits (if (zerop significand) 0 (+ exponent 1023 -1)))
-          (significand-bits (floor (* #.(expt 2d0 53) significand))))
+          (exponent-bits (if (zerop significand) 0 (+ exponent 127 -1)))
+          (significand-bits (floor (* #.(expt 2f0 24) significand))))
       (when (<= exponent-bits 0)
         (setf significand-bits (ash significand-bits (1- exponent-bits)))
         (setf exponent-bits 0))
-      (logior (ash sign-bit 63) (ash exponent-bits 52) (ldb (byte 52 0) significand-bits)))))
+      (logior (ash sign-bit 31) (ash exponent-bits 23) (ldb (byte 23 0) significand-bits)))))
 
-(declaim (inline double-float-bits))
-(defun double-float-bits (value)
+;;; Based on NIBBLES::IEEE-DOUBLE-SET/BE [1].
+;;;
+;;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L290
+(defmethod quaviver:float-to-bits ((client client) (value double-float))
   #+abcl
   (let ((upper (system::double-float-high-bits value))
         (lower (system::double-float-low-bits value)))
@@ -101,4 +94,11 @@
         (lower (sb-kernel:double-float-low-bits value)))
     (logior (ash upper 32) lower))
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
-  (%double-float-bits value))
+  (multiple-value-bind (significand exponent sign) (decode-float value)
+    (let ((sign-bit (if (plusp sign) 0 1))
+          (exponent-bits (if (zerop significand) 0 (+ exponent 1023 -1)))
+          (significand-bits (floor (* #.(expt 2d0 53) significand))))
+      (when (<= exponent-bits 0)
+        (setf significand-bits (ash significand-bits (1- exponent-bits)))
+        (setf exponent-bits 0))
+      (logior (ash sign-bit 63) (ash exponent-bits 52) (ldb (byte 52 0) significand-bits)))))
