@@ -1,4 +1,6 @@
 (defpackage #:quaviver
   (:use #:common-lisp)
-  (:export #:digits-to-float
+  (:export #:bits-to-float
+           #:float-to-bits
+           #:digits-to-float
            #:float-to-digits))
