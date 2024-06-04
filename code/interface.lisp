@@ -4,6 +4,6 @@
 
 (defgeneric float-to-bits (client value))
 
-(defgeneric digits-to-float (client result-type digits exponent))
+(defgeneric digits-to-float (client result-type digits exponent sign))
 
 (defgeneric float-to-digits (client value))
