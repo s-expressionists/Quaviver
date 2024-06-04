@@ -43,6 +43,9 @@
   #+sbcl
   (sb-kernel:single-float-bits value)
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
+  ;; Based on NIBBLES::SINGLE-FLOAT-BITS [1].
+  ;;
+  ;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L26
   (multiple-value-bind (significand exponent sign) (decode-float value)
     (let ((sign-bit (if (plusp sign) 0 1))
           (exponent-bits (if (zerop significand) 0 (+ exponent 127 -1)))
@@ -94,6 +97,9 @@
         (lower (sb-kernel:double-float-low-bits value)))
     (logior (ash upper 32) lower))
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
+  ;; Based on NIBBLES::DOUBLE-FLOAT-BITS [1].
+  ;;
+  ;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L37
   (multiple-value-bind (significand exponent sign) (decode-float value)
     (let ((sign-bit (if (plusp sign) 0 1))
           (exponent-bits (if (zerop significand) 0 (+ exponent 1023 -1)))
