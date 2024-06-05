@@ -8,9 +8,6 @@
 ;;;;
 ;;;; [1]: https://github.com/sharplispers/nibbles
 
-(cl:defpackage #:quaviver/ieee754
-  (:use #:common-lisp)
-  (:export #:client))
 (cl:in-package #:quaviver/ieee754)
 
 (defclass client () ())

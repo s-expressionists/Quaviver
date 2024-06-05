@@ -27,7 +27,10 @@
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
   :depends-on ("quaviver")
   :components ((:module "code"
-                :components ((:file "ieee754")))))
+                :pathname "code/ieee754/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "implementation")))))
 
 (defsystem "quaviver/burger-dybvig"
   :description "Burger Dybvig algorithm for Quaviver"
