@@ -1,9 +1,9 @@
 (cl:in-package #:quaviver)
 
-(defgeneric bits-to-float (client result-type bits))
+(defgeneric bits-float (client result-type bits))
 
-(defgeneric float-to-bits (client value))
+(defgeneric float-bits (client value))
 
-(defgeneric digits-to-float (client result-type digits exponent sign))
+(defgeneric digits-float (client result-type digits exponent sign))
 
-(defgeneric float-to-digits (client value))
+(defgeneric float-digits (client value))

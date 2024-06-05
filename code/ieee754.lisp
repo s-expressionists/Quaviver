@@ -1,9 +1,9 @@
 ;;;; SPDX-FileCopyrightText: Copyright (c) 2024 s-expressionists
 ;;;; SPDX-License-Identifier: MIT AND BSD-3-Clause
 ;;;;
-;;;; The implementations of QUAVIVER:BITS-TO-FLOAT and
-;;;; QUAVIVER:FLOAT-TO-BITS were ported, with modifications, from
-;;;; Nibbles [1], which is licensed under the BSD-3-Clause license.
+;;;; The implementations of QUAVIVER:BITS-FLOAT and QUAVIVER:FLOAT-BITS
+;;;; were ported, with modifications, from Nibbles [1], which is
+;;;; licensed under the BSD-3-Clause license.
 ;;;; Any original code herein is licensed under the MIT license (Expat).
 ;;;;
 ;;;; [1]: https://github.com/sharplispers/nibbles
@@ -18,7 +18,7 @@
 ;;; Based on NIBBLES::IEEE-SINGLE-REF/BE [1].
 ;;;
 ;;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L60
-(defmethod quaviver:bits-to-float
+(defmethod quaviver:bits-float
     ((client client) (result-type (eql 'single-float)) (bits integer))
   #+abcl
   (system:make-single-float bits)
@@ -60,7 +60,7 @@
 ;;; Based on NIBBLES::IEEE-DOUBLE-REF/BE [1].
 ;;;
 ;;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L231
-(defmethod quaviver:bits-to-float
+(defmethod quaviver:bits-float
     ((client client) (result-type (eql 'double-float)) (bits integer))
   #+abcl
   (system:make-double-float bits)
@@ -117,7 +117,7 @@
 ;;; Based on NIBBLES::IEEE-SINGLE-SET/BE [1].
 ;;;
 ;;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L93
-(defmethod quaviver:float-to-bits ((client client) (value single-float))
+(defmethod quaviver:float-bits ((client client) (value single-float))
   #+abcl
   (system:single-float-bits value)
   #+allegro
@@ -157,7 +157,7 @@
 ;;; Based on NIBBLES::IEEE-DOUBLE-SET/BE [1].
 ;;;
 ;;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L290
-(defmethod quaviver:float-to-bits ((client client) (value double-float))
+(defmethod quaviver:float-bits ((client client) (value double-float))
   #+abcl
   (let ((upper (system:double-float-high-bits value))
         (lower (system:double-float-low-bits value)))

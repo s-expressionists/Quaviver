@@ -246,7 +246,7 @@
 ;;; of numbers that represent the individual digits of the result,
 ;;; and the scale factor.
 
-(defmethod quaviver:float-to-digits ((client client-1) x)
+(defmethod quaviver:float-digits ((client client-1) x)
   (let* ((v (rational x))
          (v- (rational (predecessor x)))
          (v+ (rational (successor x)))
@@ -346,7 +346,7 @@
 ;;; This is a direct implementation of the second algorithm of the
 ;;; Burger & Dybvig paper.  It is not modeled after their Scheme code,
 ;;; but reimplements the algorithm they present in Common Lisp.
-(defmethod quaviver:float-to-digits ((client client-2) x)
+(defmethod quaviver:float-digits ((client client-2) x)
   (if (zerop x)
       (values #(0) -1 (float-sign x))
       (multiple-value-bind (f e sign)
@@ -428,9 +428,9 @@
              (cl:format *trace-output* "~s~%" x)
              (finish-output *trace-output*))
         do (multiple-value-bind (d1 k1)
-               (quaviver:float-to-digits client-1 x)
+               (quaviver:float-digits client-1 x)
              (multiple-value-bind (d2 k2)
-                 (quaviver:float-to-digits client-2 x)
+                 (quaviver:float-digits client-2 x)
                (when (not (and (equal d1 (coerce d2 'list))
                                (= k1 k2)))
                  (cl:format *trace-output* "no: ~s~%" x))))))
