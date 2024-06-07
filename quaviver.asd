@@ -48,6 +48,24 @@
                 :components ((:file "packages")
                              (:file "implementation")))))
 
+(asdf:defsystem "quaviver/burger-dybvig/unit-test"
+  :description "Unit testing suite for Quaviver/Burger Dybvig algorithm."
+  :author "Tarn W. Burton"
+  :license "MIT"
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ("quaviver/burger-dybvig"
+               "parachute")
+  :perform (asdf:test-op (op c)
+             (uiop:symbol-call :parachute :test :quaviver/burger-dybvig/unit-test))
+  :components ((:module code
+                :pathname "code/burger-dybvig/unit-test/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "test")))))
+
 (defsystem "quaviver/ansi-test"
   :description "ANSI Test system for Quaviver"
   :license "MIT"
@@ -68,3 +86,20 @@
                 :components ((:file "packages")
                              (:file "test")
                              (:static-file "expected-failures.sexp")))))
+
+(defsystem "quaviver/benchmark"
+  :description "Benchmark system for Quaviver"
+  :license "MIT"
+  :author ("Tarn W. Burton")
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ("the-cost-of-nothing"
+               "cl-spark"
+               "quaviver/burger-dybvig")
+  :components ((:module "code"
+                :pathname "code/benchmark/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "float-decimal")))))

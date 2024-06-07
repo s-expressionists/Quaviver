@@ -206,19 +206,6 @@
           (- x (scale-float (float 1 x) (- e 1 p)))
           (- x (scale-float (float 1 x) (- e p)))))))
 
-;;; This function goes through all single floats and checks that for a
-;;; given float x, the successor of the predecessor x is x, as defined
-;;; by the two preceding functions.
-(defun test-all ()
-  (loop for x = most-positive-single-float then y
-        for y = (predecessor x)
-        for i from 0
-        until (= y 0)
-        do (when (zerop (mod i 1000000))
-             (print x *trace-output*)
-             (finish-output *trace-output*))
-        do (assert (= x (successor y)))))
-
 ;;; Given a rational r, return the smallest integer k such that
 ;;; r < 10^k.  We use the floating-point logarithmic function
 ;;; to find an approximate value of k, then we find the exact
