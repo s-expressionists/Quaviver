@@ -200,8 +200,7 @@
   (let ((p (float-precision x)))
     (multiple-value-bind (m e)
         (decode-float x)
-      (declare (ignore m))
-      (if (and (= (decode-float x) 0.5)
+      (if (and (= m 0.5)
                (/= (- x (scale-float (float 1 x) (- e 1 p))) x))
           (- x (scale-float (float 1 x) (- e 1 p)))
           (- x (scale-float (float 1 x) (- e p)))))))
@@ -275,6 +274,8 @@
                   (vector-push-extend d result)
                   (incf value (* factor d))))))
 
+(defclass naive-client () ())
+
 ;;; This function uses a very direct method to generate floating
 ;;; point digits.  It uses floating-point arithmetic, so it may
 ;;; not be accurate, but it is an order of magnitude faster than
@@ -287,29 +288,33 @@
 ;;; an extension to the CL standard where a special variable
 ;;; is used to control whether fast printing should be used
 ;;; instead.
-(defun generate-digits-using-fp-arithmetic (x)
-  (let* ((v- (predecessor x))
-         (v+ (successor x))
-         (s (scale (/ (+ (rational x) (rational v+)) 2)))
-         (scale (expt 10 (1- s)))
-         (d- (- (/ (/ (- x v-) 2d0) scale)))
-         (d+ (/ (/ (- v+ x) 2d0) scale))
-         (scaled (/ x scale)))
-    (values (loop with result = '()
-                  do (let ((digit (floor scaled)))
-                       (cond ((< (- scaled digit) d+)
-                              (push digit result)
-                              (loop-finish))
-                             ((> (- scaled (1+ digit)) d-)
-                              (push (1+ digit) result)
-                              (loop-finish))
-                             (t
-                              (push digit result)
-                              (setf scaled (* 10 (- scaled digit)))
-                              (setf d- (* d- 10))
-                              (setf d+ (* d+ 10)))))
-                  finally (return (nreverse result)))
-            s)))
+(defmethod quaviver:float-decimal ((client naive-client) x)
+  (prog* ((x-abs (abs x))
+          (v- (predecessor x-abs))
+          (v+ (successor x-abs))
+          (s (scale (/ (+ (rational x-abs) (rational v+)) 2)))
+          (scale (expt 10 (1- s)))
+          (d- (- (/ (/ (- x v-) 2d0) scale)))
+          (d+ (/ (/ (- v+ x) 2d0) scale))
+          (scaled (/ x-abs scale))
+          (result (make-array 16 :adjustable t
+                                 :fill-pointer 0
+                                 :initial-element 0
+                                 :element-type '(integer 0 9)))
+          digit)
+   next
+     (setf digit (floor scaled))
+     (cond ((< (- scaled digit) d+)
+            (vector-push-extend digit result))
+           ((> (- scaled (1+ digit)) d-)
+            (vector-push-extend (1+ digit) result))
+           (t
+            (vector-push-extend digit result)
+            (setf scaled (* 10 (- scaled digit))
+                  d- (* d- 10)
+                  d+ (* d+ 10))
+            (go next)))
+     (return (values result s (float-sign x)))))
 
 (defun int-1 (x)
   (let* ((v- (predecessor x))
