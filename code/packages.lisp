@@ -3,5 +3,4 @@
   (:export #:bits-float
            #:float-bits
            #:decimal-float
-           #:float-decimal
-           #:integer-digits))
+           #:float-decimal))

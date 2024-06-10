@@ -1,6 +1,8 @@
 (in-package #:quaviver/schubfach)
 
-(defclass client (quaviver/ieee754:client) ())
+(defclass client (quaviver/ieee754:client
+                  quaviver/integer-significand:client)
+  ())
 
 (defparameter +pow-10+
   #(#x81CEB32C4B43FCF5   ; -31
@@ -132,20 +134,20 @@
                (wp-inside (<= (* 40 (1+ sp)) upper)))
           (unless (eq up-inside wp-inside)
             (return-from quaviver:float-decimal
-              (values (quaviver:integer-digits (if wp-inside (1+ sp) sp))
-                      (1+ k)
-                      sign)))))
+              (values (if wp-inside (1+ sp) sp)
+                                 (1+ k)
+                                 sign)))))
       (let ((u-inside (<= lower (* 4 s)))
             (w-inside (<= (* 4 (1+ s)) upper)))
         (unless (eq u-inside w-inside)
           (return-from quaviver:float-decimal
-            (values (quaviver:integer-digits (if w-inside (1+ s) s))
+            (values (if w-inside (1+ s) s)
                     k
                     sign))))
       (let* ((mid (+ (* 4 s) 2))
              (round-up (or (not (zerop (ash vb (- mid))))
                            (and (= vb mid)
                                 (logbitp s 0)))))
-        (values (quaviver:integer-digits (if round-up (1+ s) s))
+        (values (if round-up (1+ s) s)
                 k
                 sign))))))
