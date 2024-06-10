@@ -14,7 +14,8 @@
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")
-                             (:file "interface")))))
+                             (:file "interface")
+                             (:file "integer-digits")))))
 
 (defsystem "quaviver/ieee754"
   :description "IEEE-754 float conversions"
@@ -65,6 +66,22 @@
                 :serial t
                 :components ((:file "packages")
                              (:file "test")))))
+
+(defsystem "quaviver/schubfach"
+  :description "Shubfach algorithm for Quaviver"
+  :license "MIT"
+  :author ("Tarn W. Burton")
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ("quaviver"
+               "quaviver/ieee754")
+  :components ((:module "code"
+                :pathname "code/schubfach/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "implementation")))))
 
 (defsystem "quaviver/ansi-test"
   :description "ANSI Test system for Quaviver"
