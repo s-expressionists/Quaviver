@@ -31,16 +31,25 @@
                                  :single-time)
                           most-positive-double-float
                           :double-time))
-          (fn (formatter "~30g"))
           (table (ascii-table:make-table '("client"
-                                           "                  single-float"
-                                           "                  double-float"))))
+                                           "         absolute single-float"
+                                           "relative single-float"
+                                           "         absolute double-float"
+                                           "relative double-float"))))
       (plot "float-decimal single-float" results :single-time)
       (terpri)
       (plot "float-decimal double-float" results :double-time)
       (terpri)
-      (loop for result in results
+      (loop with min-single = (loop for result in results
+                                    minimize (getf result :single-time))
+            with min-double = (loop for result in results
+                                    minimize (getf result :double-time))
+            for result in results
             do (ascii-table:add-row table (list (getf result :label)
-                                                (format nil fn (getf result :single-time))
-                                                (format nil fn (getf result :single-time)))))
+                                                (format nil "~30g" (getf result :single-time))
+                                                (format nil "~21,15f" (/ (getf result :single-time)
+                                                                  min-single))
+                                                (format nil "~30g" (getf result :double-time))
+                                                (format nil "~21,15f" (/ (getf result :double-time)
+                                                                  min-double)))))
       (ascii-table:display table))))
