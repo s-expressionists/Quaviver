@@ -700,7 +700,9 @@
     #xA1E53AF46F801C5360495AE3C1097FD1   ;  321
     #xCA5E89B18B602368385BB19CB14BDFC5   ;  322
     #xFCF62C1DEE382C4246729E03DD9ED7B6   ;  323
-    #x9E19DB92B4E31BA96C07A2C26A8346D2)) ;  324
+    #x9E19DB92B4E31BA96C07A2C26A8346D2   ;  324
+    #+(or)#xC5A05277621BE293C7098B7305241885
+    #+(or)#xF70867153AA2DB38B8CBEE4FC66D1EA7))
 
 (defun round-to-odd (g cp width)
   (let ((p (* g cp)))
@@ -709,67 +711,73 @@
 
 (declaim (inline %float-decimal))
 
-(defun %float-decimal (client value bits exponent-offset pow-10)
-  (let ((width (* 2 bits)))
-    (multiple-value-bind (ieee-significand ieee-exponent sign)
-        (integer-decode-float value)
-    (let* ((c (if t #+(or)(zerop ieee-exponent)
-                  ieee-significand
-                  (logior ieee-significand hidden-bit)))
-           (q ieee-exponent);(zerop ieee-exponent)
-               ;   (- 1 exponent-bias)
-                ;  (- ieee-exponent exponent-bias)))
-           (is-even (evenp c))
-           (accept-lower is-even)
-           (accept-upper is-even)
-           (lower-boundary-is-closer (and (zerop ieee-significand)
-                                         (> ieee-exponent 1)))
-           (cb (* 4 c))
-           (cbl (if lower-boundary-is-closer
-                    (1- cb)
-                    (- cb 2)))
-           (cbr (+ cb 2))
-           (k (ash (- (* q 1262611)
-                      (if lower-boundary-is-closer 524031 0))
-                   -22))
-           (h (+ q 1 (ash (* (- k) 1741647) -19)))
-           (pow10 (svref pow-10 (- exponent-offset k)))
-           (vbl (round-to-odd pow10 (ash cbl h) width))
-           (vb (round-to-odd pow10 (ash cb h) width))
-           (vbr (round-to-odd pow10 (ash cbr h) width))
-           (lower (if accept-lower
-                      vbl
-                      (1+ vbl)))
-           (upper (if accept-lower
-                      vbr
-                      (1- vbr)))
-           (s (ash vb -2)))
-      (when (>= s 10)
-        (let* ((sp (floor (/ s 10)))
-               (up-inside (<= lower (* 40 sp)))
-               (wp-inside (<= (* 40 (1+ sp)) upper)))
-          (unless (eq (not up-inside) (not wp-inside))
+(defun %float-decimal (client value bits significand-bits exponent-offset pow-10)
+  (if (zerop value)
+      (values 0 0 (float-sign value))
+      (let* ((width (ash bits 1))
+             (value-bits (quaviver:float-bits client value))
+             (ieee-significand (ldb (byte (1- significand-bits) 0) value-bits))
+             (ieee-exponent (ldb (byte (- bits significand-bits) (1- significand-bits)) value-bits))
+             (sign (if (logbitp (1- bits) value-bits) -1 1))
+             (exponent-bias (+ (ash 1 (- bits significand-bits 1)) significand-bits -2))
+             (hidden-bit (ash 1 (1- significand-bits)))
+             (c (if (zerop ieee-exponent)
+                    ieee-significand
+                    (logior ieee-significand hidden-bit)))
+             (q (if (zerop ieee-exponent)
+                    (- 1 exponent-bias)
+                    (- ieee-exponent exponent-bias)))
+             (is-even (evenp c))
+             (accept-lower is-even)
+             (accept-upper is-even)
+             (lower-boundary-is-closer (and (zerop ieee-significand)
+                                            (> ieee-exponent 1)))
+             (cb (* 4 c))
+             (cbl (if lower-boundary-is-closer
+                      (1- cb)
+                      (- cb 2)))
+             (cbr (+ cb 2))
+             (k (ash (- (* q 1262611)
+                        (if lower-boundary-is-closer 524031 0))
+                     -22))
+             (h (+ q 1 (ash (* (- k) 1741647) -19)))
+             (pow10 (svref pow-10 (- exponent-offset k)))
+             (vbl (round-to-odd pow10 (ash cbl h) width))
+             (vb (round-to-odd pow10 (ash cb h) width))
+             (vbr (round-to-odd pow10 (ash cbr h) width))
+             (lower (if accept-lower
+                        vbl
+                        (1+ vbl)))
+             (upper (if accept-lower
+                        vbr
+                        (1- vbr)))
+             (s (ash vb -2)))
+        (when (>= s 10)
+          (let* ((sp (floor (/ s 10)))
+                 (up-inside (<= lower (* 40 sp)))
+                 (wp-inside (<= (* 40 (1+ sp)) upper)))
+            (unless (eq (not up-inside) (not wp-inside))
+              (return-from %float-decimal
+                (values (if wp-inside (1+ sp) sp)
+                        (1+ k)
+                        sign)))))
+        (let ((u-inside (<= lower (* 4 s)))
+              (w-inside (<= (* 4 (1+ s)) upper)))
+          (unless (eq (not u-inside) (not w-inside))
             (return-from %float-decimal
-              (values (if wp-inside (1+ sp) sp)
-                                 (1+ k)
-                                 sign)))))
-      (let ((u-inside (<= lower (* 4 s)))
-            (w-inside (<= (* 4 (1+ s)) upper)))
-        (unless (eq (not u-inside) (not w-inside))
-          (return-from %float-decimal
-            (values (if w-inside (1+ s) s)
-                    k
-                    sign))))
-      (let* ((mid (+ (* 4 s) 2))
-             (round-up (or (not (zerop (ash vb (- mid))))
-                           (and (= vb mid)
-                                (logbitp s 0)))))
-        (values (if round-up (1+ s) s)
-                k
-                sign))))))
+              (values (if w-inside (1+ s) s)
+                      k
+                      sign))))
+        (let* ((mid (+ (* 4 s) 2))
+               (round-up (or (not (zerop (ash vb (- mid))))
+                             (and (= vb mid)
+                                  (logbitp s 0)))))
+          (values (if round-up (1+ s) s)
+                  k
+                  sign)))))
 
 (defmethod quaviver:float-decimal ((client client) (value single-float))
-  (%float-decimal client value 32 31 +pow-10/32+))
+  (%float-decimal client value 32 24 31 +pow-10/32+))
 
 (defmethod quaviver:float-decimal ((client client) (value double-float))
-  (%float-decimal client value 64 292 +pow-10/64+))
+  (%float-decimal client value 64 53 292 +pow-10/64+))
