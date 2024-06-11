@@ -12,6 +12,18 @@
 
 (defclass client () ())
 
+(declaim (inline ub32-sb32))
+(defun ub32-sb32 (ub32)
+  (if (not (zerop (ldb (byte 1 31) ub32)))
+      (- ub32 #.(ash 1 32))
+      ub32))
+
+(declaim (inline sb32-ub32))
+(defun sb32-ub32 (sb32)
+  (if (minusp sb32)
+      (+ sb32 #.(ash 1 32))
+      sb32))
+
 ;;; Based on NIBBLES::IEEE-SINGLE-REF/BE [1].
 ;;;
 ;;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L60
@@ -28,7 +40,7 @@
   #+clasp
   (ext:bits-to-single-float bits)
   #+cmu
-  (kernel:make-single-float (- bits #.(ash 1 32)))
+  (kernel:make-single-float (ub32-sb32 bits))
   #+ecl
   (system:bits-single-float bits)
   #+lispworks
@@ -40,7 +52,7 @@
   #+mezzano
   (mezzano.extensions:ieee-binary32-to-single-float bits)
   #+sbcl
-  (sb-kernel:make-single-float (- bits #.(ash 1 32)))
+  (sb-kernel:make-single-float (ub32-sb32 bits))
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
   ;; Based on NIBBLES::MAKE-SINGLE-FLOAT [1].
   ;;
@@ -74,7 +86,7 @@
   #+clasp
   (ext:bits-to-double-float bits)
   #+cmu
-  (let ((upper (- (ldb (byte 32 32) bits) #.(ash 1 32)))
+  (let ((upper (ub32-sb32 (ldb (byte 32 32) bits)))
         (lower (ldb (byte 32 0) bits)))
     (kernel:make-double-float upper lower))
   #+ecl
@@ -95,7 +107,7 @@
   #+mezzano
   (mezzano.extensions:ieee-binary64-to-double-float bits)
   #+sbcl
-  (let ((upper (- (ldb (byte 32 32) bits) #.(ash 1 32)))
+  (let ((upper (ub32-sb32 (ldb (byte 32 32) bits)))
         (lower (ldb (byte 32 0) bits)))
     (sb-kernel:make-double-float upper lower))
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
@@ -125,7 +137,7 @@
   #+clasp
   (ext:single-float-to-bits value)
   #+cmu
-  (+ (kernel:single-float-bits value) #.(ash 1 32))
+  (sb32-ub32 (kernel:single-float-bits value))
   #+ecl
   (system:single-float-bits value)
   #+lispworks
@@ -137,7 +149,7 @@
   #+mezzano
   (mezzano.extensions:single-float-to-ieee-binary32 value)
   #+sbcl
-  (+ (sb-kernel:single-float-bits value) #.(ash 1 32))
+  (sb32-ub32 (sb-kernel:single-float-bits value))
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
   ;; Based on NIBBLES::SINGLE-FLOAT-BITS [1].
   ;;
@@ -168,7 +180,7 @@
   #+clasp
   (ext:double-float-to-bits value)
   #+cmu
-  (let ((upper (+ (kernel:double-float-high-bits value) #.(ash 1 32)))
+  (let ((upper (sb32-ub32 (kernel:double-float-high-bits value)))
         (lower (kernel:double-float-low-bits value)))
     (logior (ash upper 32) lower))
   #+ecl
@@ -189,7 +201,7 @@
   #+mezzano
   (mezzano.extensions:double-float-to-ieee-binary64 value)
   #+sbcl
-  (let ((upper (+ (sb-kernel:double-float-high-bits value) #.(ash 1 32)))
+  (let ((upper (sb32-ub32 (sb-kernel:double-float-high-bits value)))
         (lower (sb-kernel:double-float-low-bits value)))
     (logior (ash upper 32) lower))
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
