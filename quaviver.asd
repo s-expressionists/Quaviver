@@ -109,7 +109,8 @@
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
   :depends-on ("ansi-test-harness"
                "invistra-extrinsic"
-               "quaviver/burger-dybvig")
+               "quaviver/burger-dybvig"
+               "quaviver/schubfach")
   :perform (test-op (op c)
              (symbol-call :quaviver/ansi-test :test))
   :components ((:module "code"
@@ -129,7 +130,8 @@
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
   :depends-on ("the-cost-of-nothing"
                "cl-spark"
-               "quaviver/burger-dybvig")
+               "quaviver/burger-dybvig"
+               "quaviver/schubfach")
   :components ((:module "code"
                 :pathname "code/benchmark/"
                 :serial t

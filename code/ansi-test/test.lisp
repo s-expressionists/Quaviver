@@ -46,9 +46,15 @@
      quaviver/burger-dybvig:client-2)
   ())
 
+(defclass schubfach
+    (inravina-extrinsic:extrinsic-client
+     quaviver/schubfach:client)
+  ())
+
 (defvar *client-initargs*
   '(#+(or)(burger-dybvig-1)
-    (burger-dybvig-2)))
+    (burger-dybvig-2)
+    (schubfach)))
 
 (defun test (&rest args &key exit &allow-other-keys)
   (setf args (remprop :exit args))

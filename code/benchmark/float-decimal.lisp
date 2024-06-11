@@ -2,8 +2,8 @@
 
 (defvar *client-initargs*
   '((quaviver/burger-dybvig:client-1)
-    (quaviver/burger-dybvig:client-2)))
-
+    (quaviver/burger-dybvig:client-2)
+    (quaviver/schubfach:client)))
 (defun float-decimal ()
   (labels ((bench (title limit)
              (write-string (cl-spark:vspark
@@ -14,7 +14,7 @@
                                     *client-initargs*)
                             :title title
                             :min 0
-                            :size 80
+                            :size 132
                             :labels (mapcar (lambda (initargs
                                                      &aux (*print-case* :downcase))
                                               (format nil "~{~s~^ ~}" initargs))
