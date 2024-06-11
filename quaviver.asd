@@ -130,6 +130,7 @@
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
   :depends-on ("the-cost-of-nothing"
                "cl-spark"
+               "cl-ascii-table"
                "quaviver/burger-dybvig"
                "quaviver/schubfach")
   :components ((:module "code"
