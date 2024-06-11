@@ -26,7 +26,7 @@
 
 ;;; Based on NIBBLES::IEEE-SINGLE-REF/BE [1].
 ;;;
-;;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L60
+;;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L60
 (defmethod quaviver:bits-float
     ((client client) (result-type (eql 'single-float)) (bits integer))
   #+abcl
@@ -56,7 +56,7 @@
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
   ;; Based on NIBBLES::MAKE-SINGLE-FLOAT [1].
   ;;
-  ;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L5
+  ;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L5
   (let ((exponent-bits (ldb (byte 8 23) bits)))
     (when (= exponent-bits 255)
       (error "Infinities and NaNs are unsupported."))
@@ -68,7 +68,7 @@
 
 ;;; Based on NIBBLES::IEEE-DOUBLE-REF/BE [1].
 ;;;
-;;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L231
+;;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L231
 (defmethod quaviver:bits-float
     ((client client) (result-type (eql 'double-float)) (bits integer))
   #+abcl
@@ -113,7 +113,7 @@
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
   ;; Based on NIBBLES::MAKE-DOUBLE-FLOAT [1].
   ;;
-  ;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L14
+  ;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L14
   (let ((exponent-bits (ldb (byte 11 52) bits)))
     (when (= exponent-bits 2047)
       (error "Infinities and NaNs are unsupported."))
@@ -125,7 +125,7 @@
 
 ;;; Based on NIBBLES::IEEE-SINGLE-SET/BE [1].
 ;;;
-;;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L93
+;;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L93
 (defmethod quaviver:float-bits ((client client) (value single-float))
   #+abcl
   (system:single-float-bits value)
@@ -153,7 +153,7 @@
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
   ;; Based on NIBBLES::SINGLE-FLOAT-BITS [1].
   ;;
-  ;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L26
+  ;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L26
   (multiple-value-bind (significand exponent sign) (decode-float value)
     (let ((sign-bit (if (plusp sign) 0 1))
           (exponent-bits (if (zerop significand) 0 (+ exponent 127 -1)))
@@ -165,7 +165,7 @@
 
 ;;; Based on NIBBLES::IEEE-DOUBLE-SET/BE [1].
 ;;;
-;;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L290
+;;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L290
 (defmethod quaviver:float-bits ((client client) (value double-float))
   #+abcl
   (let ((upper (system:double-float-high-bits value))
@@ -207,7 +207,7 @@
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
   ;; Based on NIBBLES::DOUBLE-FLOAT-BITS [1].
   ;;
-  ;; https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L37
+  ;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L37
   (multiple-value-bind (significand exponent sign) (decode-float value)
     (let ((sign-bit (if (plusp sign) 0 1))
           (exponent-bits (if (zerop significand) 0 (+ exponent 1023 -1)))
