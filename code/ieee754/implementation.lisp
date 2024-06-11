@@ -28,7 +28,7 @@
   #+clasp
   (ext:bits-to-single-float bits)
   #+cmu
-  (kernel:make-single-float bits)
+  (kernel:make-single-float (- bits #.(ash 1 32)))
   #+ecl
   (system:bits-single-float bits)
   #+lispworks
@@ -40,7 +40,7 @@
   #+mezzano
   (mezzano.extensions:ieee-binary32-to-single-float bits)
   #+sbcl
-  (sb-kernel:make-single-float bits)
+  (sb-kernel:make-single-float (- bits #.(ash 1 32)))
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
   ;; Based on NIBBLES::MAKE-SINGLE-FLOAT [1].
   ;;
@@ -74,7 +74,7 @@
   #+clasp
   (ext:bits-to-double-float bits)
   #+cmu
-  (let ((upper (ldb (byte 32 32) bits))
+  (let ((upper (- (ldb (byte 32 32) bits) #.(ash 1 32)))
         (lower (ldb (byte 32 0) bits)))
     (kernel:make-double-float upper lower))
   #+ecl
@@ -95,7 +95,7 @@
   #+mezzano
   (mezzano.extensions:ieee-binary64-to-double-float bits)
   #+sbcl
-  (let ((upper (ldb (byte 32 32) bits))
+  (let ((upper (- (ldb (byte 32 32) bits) #.(ash 1 32)))
         (lower (ldb (byte 32 0) bits)))
     (sb-kernel:make-double-float upper lower))
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
@@ -125,7 +125,7 @@
   #+clasp
   (ext:single-float-to-bits value)
   #+cmu
-  (kernel:single-float-bits value)
+  (+ (kernel:single-float-bits value) #.(ash 1 32))
   #+ecl
   (system:single-float-bits value)
   #+lispworks
@@ -137,7 +137,7 @@
   #+mezzano
   (mezzano.extensions:single-float-to-ieee-binary32 value)
   #+sbcl
-  (sb-kernel:single-float-bits value)
+  (+ (sb-kernel:single-float-bits value) #.(ash 1 32))
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
   ;; Based on NIBBLES::SINGLE-FLOAT-BITS [1].
   ;;
@@ -168,7 +168,7 @@
   #+clasp
   (ext:double-float-to-bits value)
   #+cmu
-  (let ((upper (kernel:double-float-high-bits value))
+  (let ((upper (+ (kernel:double-float-high-bits value) #.(ash 1 32)))
         (lower (kernel:double-float-low-bits value)))
     (logior (ash upper 32) lower))
   #+ecl
@@ -189,7 +189,7 @@
   #+mezzano
   (mezzano.extensions:double-float-to-ieee-binary64 value)
   #+sbcl
-  (let ((upper (sb-kernel:double-float-high-bits value))
+  (let ((upper (+ (sb-kernel:double-float-high-bits value) #.(ash 1 32)))
         (lower (sb-kernel:double-float-low-bits value)))
     (logior (ash upper 32) lower))
   #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
