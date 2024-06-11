@@ -4,6 +4,13 @@
                   quaviver/integer-significand:client)
   ())
 
+(defun compute-pow-10 (k-min k-max width)
+  (loop for k from k-min to k-max
+        do (format t "    #x~x ; ~3d~%"
+                   (ceiling (* (expt 10 k)
+                               (expt 2 (- width (floor (log (expt 10 k) 2)) 1))))
+                   k)))
+
 (defparameter +pow-10/32+
   #(#x81CEB32C4B43FCF5   ; -31
     #xA2425FF75E14FC32   ; -30
@@ -81,7 +88,14 @@
     #xB7ABC627050305AE   ;  42
     #xE596B7B0C643C71A   ;  43
     #x8F7E32CE7BEA5C70   ;  44
-    #xB35DBF821AE4F38C)) ;  45
+    #xB35DBF821AE4F38C   ;  45
+    #xE0352F62A19E306F   ;  46
+    #x8C213D9DA502DE46   ;  47
+    #xAF298D050E4395D7   ;  48
+    #xDAF3F04651D47B4D   ;  49
+    #x88D8762BF324CD10   ;  50
+    #xAB0E93B6EFEE0054   ;  51
+    #xD5D238A4ABE98069)) ;  52
 
 (defvar +pow-10/64+
   #(#xFF77B1FCBEBCDC4F25E8E89C13BB0F7B   ; -292
@@ -701,8 +715,22 @@
     #xCA5E89B18B602368385BB19CB14BDFC5   ;  322
     #xFCF62C1DEE382C4246729E03DD9ED7B6   ;  323
     #x9E19DB92B4E31BA96C07A2C26A8346D2   ;  324
-    #+(or)#xC5A05277621BE293C7098B7305241885
-    #+(or)#xF70867153AA2DB38B8CBEE4FC66D1EA7))
+    #xC5A05277621BE293C7098B7305241886   ;  325
+    #xF70867153AA2DB38B8CBEE4FC66D1EA8   ;  326
+    #x9A65406D44A5C903737F74F1DC043329   ;  327
+    #xC0FE908895CF3B44505F522E53053FF3   ;  328
+    #xF13E34AABB430A15647726B9E7C68FF0   ;  329
+    #x96C6E0EAB509E64D5ECA783430DC19F6   ;  330
+    #xBC789925624C5FE0B67D16413D132073   ;  331
+    #xEB96BF6EBADF77D8E41C5BD18C57E890   ;  332
+    #x933E37A534CBAAE78E91B962F7B6F15A   ;  333
+    #xB80DC58E81FE95A1723627BBB5A4ADB1   ;  334
+    #xE61136F2227E3B09CEC3B1AAA30DD91D   ;  335
+    #x8FCAC257558EE4E6213A4F0AA5E8A7B2   ;  336
+    #xB3BD72ED2AF29E1FA988E2CD4F62D19E   ;  337
+    #xE0ACCFA875AF45A793EB1B80A33B8606   ;  338
+    #x8C6C01C9498D8B88BC72F130660533C4   ;  339
+    #xAF87023B9BF0EE6AEB8FAD7C7F8680B5)) ;  340
 
 (defun round-to-odd (g cp width)
   (let ((p (* g cp)))
@@ -721,12 +749,14 @@
              (sign (if (logbitp (1- bits) value-bits) -1 1))
              (exponent-bias (+ (ash 1 (- bits significand-bits 1)) significand-bits -2))
              (hidden-bit (ash 1 (1- significand-bits)))
-             (c (if (zerop ieee-exponent)
-                    ieee-significand
-                    (logior ieee-significand hidden-bit)))
              (q (if (zerop ieee-exponent)
                     (- 1 exponent-bias)
                     (- ieee-exponent exponent-bias)))
+             (c (if (zerop ieee-exponent)
+                    (let ((shift (- significand-bits (integer-length ieee-significand))))
+                      (decf q shift)
+                      (ash ieee-significand shift))
+                    (logior ieee-significand hidden-bit)))
              (is-even (evenp c))
              (accept-lower is-even)
              (accept-upper is-even)
