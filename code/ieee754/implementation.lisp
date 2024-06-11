@@ -20,9 +20,7 @@
 
 (declaim (inline sb32-ub32))
 (defun sb32-ub32 (sb32)
-  (if (minusp sb32)
-      (+ sb32 #.(ash 1 32))
-      sb32))
+  (ldb (byte 32 0) sb32))
 
 ;;; Based on NIBBLES::IEEE-SINGLE-REF/BE [1].
 ;;;
