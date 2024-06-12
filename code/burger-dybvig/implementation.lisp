@@ -252,7 +252,7 @@
         for high-out = (* (+ value (* factor (1+ d))) (expt 10 scale))
         finally (return (values result
                                 (- scale (length result))
-                                (float-sign x)))
+                                (floor (float-sign x))))
         do (cond ((and (> low-out low)
                        (>= high-out high))
                   (vector-push-extend d result)
@@ -318,7 +318,7 @@
             (go next)))
      (return (values result
                      (- s (length result))
-                     (float-sign x)))))
+                     (floor (float-sign x))))))
 
 (defun int-1 (x)
   (let* ((v- (predecessor x))
@@ -351,7 +351,7 @@
 ;;; but reimplements the algorithm they present in Common Lisp.
 (defmethod quaviver:float-decimal ((client client-2) x)
   (if (zerop x)
-      (values #(0) 0 (float-sign x))
+      (values #(0) 0 (floor (float-sign x)))
       (multiple-value-bind (f e sign)
           (integer-decode-float x)
         ;; adjust mantissa and exponent

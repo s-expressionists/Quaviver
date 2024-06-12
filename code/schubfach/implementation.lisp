@@ -741,7 +741,7 @@
 
 (defun %float-decimal (client value bits significand-bits exponent-offset pow-10)
   (if (zerop value)
-      (values 0 0 (float-sign value))
+      (values 0 0 (floor (float-sign value)))
       (let* ((width (ash bits 1))
              (value-bits (quaviver:float-bits client value))
              (ieee-significand (ldb (byte (1- significand-bits) 0) value-bits))
