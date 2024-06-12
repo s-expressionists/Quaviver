@@ -3,7 +3,9 @@
 (defvar *clients*
   '((:label "Burger-Dybvig 1" :initargs (quaviver/burger-dybvig:client-1))
     (:label "Burger-Dybvig 2" :initargs (quaviver/burger-dybvig:client-2))
-    (:label "Schubfach"       :initargs (quaviver/schubfach:client))))
+    (:label "Schubfach"       :initargs (quaviver/schubfach:client))
+    #+(or abcl ccl clasp cmucl ecl sbcl)
+    (:label "Native"          :initargs (quaviver/native:client))))
 
 (defun float-decimal ()
   (labels ((bench (clients limit key)

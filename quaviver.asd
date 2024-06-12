@@ -47,6 +47,21 @@
                 :components ((:file "packages")
                              (:file "implementation")))))
 
+(defsystem "quaviver/native"
+  :description "Current implementation's native algorithms"
+  :license "MIT"
+  :author ("Tarn W. Burton")
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ("quaviver")
+  :components ((:module "code"
+                :pathname "code/native/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "implementation")))))
+
 (defsystem "quaviver/burger-dybvig"
   :description "Burger Dybvig algorithm for Quaviver"
   :license "MIT"
@@ -132,6 +147,7 @@
                "cl-spark"
                "cl-ascii-table"
                "quaviver/burger-dybvig"
+               "quaviver/native"
                "quaviver/schubfach")
   :components ((:module "code"
                 :pathname "code/benchmark/"
