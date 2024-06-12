@@ -754,7 +754,7 @@
              (exponent-bias (+ (ash 1 (- bits significand-bits 1)) significand-bits -2))
              (hidden-bit (ash 1 (1- significand-bits)))
              is-even (k 0) (h 0) (pow10 0) (s 0))
-        (cond ((zerop exponent)
+        (cond ((zerop exponent) ; subnormal
                (let ((shift (- significand-bits (integer-length significand))))
                  (setf exponent (- 1 exponent-bias shift)
                        significand (ash significand shift))))
@@ -780,7 +780,7 @@
           (incf lower)
           (decf upper))
         (when (>= s 10)
-          (let* ((sp (floor (/ s 10)))
+          (let* ((sp (floor s 10))
                  (up-inside (<= lower (* 40 sp)))
                  (wp-inside (<= (* 40 (1+ sp)) upper)))
             (unless (eq (not up-inside) (not wp-inside))
