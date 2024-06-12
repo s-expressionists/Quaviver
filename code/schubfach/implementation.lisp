@@ -796,7 +796,7 @@
                       k
                       sign))))
         (let* ((mid (+ (ash s 2) 2))
-               (round-up (or (not (zerop (ash significand (- mid))))
+               (round-up (or (> significand mid)
                              (and (= significand mid)
                                   (logbitp s 0)))))
           (values (if round-up (1+ s) s)
