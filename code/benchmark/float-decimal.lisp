@@ -12,9 +12,12 @@
              (mapcar (lambda (properties
                               &aux (client (apply #'make-instance
                                                   (getf properties :initargs))))
+                       ;; Do one conversion in case there is some initialization needed.
+                       (quaviver:float-decimal client (random limit))
                        (list* key
-                              (the-cost-of-nothing:benchmark (quaviver:float-decimal client
-                                                                                     (random limit)))
+                              (the-cost-of-nothing:benchmark
+                               (quaviver:float-decimal client
+                                                       (random limit)))
                               properties))
                      clients))
            (plot (title results key)

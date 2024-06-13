@@ -732,79 +732,82 @@
     #x8C6C01C9498D8B88BC72F130660533C4   ;  339
     #xAF87023B9BF0EE6AEB8FAD7C7F8680B5)) ;  340
 
-(defun round-to-odd (g cp width)
-  (let ((p (* g cp)))
-    (logior (ldb (byte width width) p)
-            (if (> (ldb (byte width 0) p) 1) 1 0))))
-
-(declaim (inline %float-decimal))
-
-(defun %float-decimal (client value bits significand-bits exponent-offset pow-10)
-  (if (zerop value)
-      (values 0 0 (floor (float-sign value)))
-      (let* ((width (ash bits 1))
-             (value-bits (quaviver:float-bits client value))
-             (significand (ldb (byte (1- significand-bits) 0) value-bits))
-             (exponent (ldb (byte (- bits significand-bits) (1- significand-bits)) value-bits))
-             (sign (if (logbitp (1- bits) value-bits) -1 1))
-             (lower 0)
-             (upper 0)
-             (lower-boundary-is-closer (and (zerop significand)
-                                            (> exponent 1)))
-             (exponent-bias (+ (ash 1 (- bits significand-bits 1)) significand-bits -2))
-             (hidden-bit (ash 1 (1- significand-bits)))
-             is-even (k 0) (h 0) (pow10 0) (s 0))
-        (cond ((zerop exponent) ; subnormal
-               (let ((shift (- significand-bits (integer-length significand))))
-                 (setf exponent (- 1 exponent-bias shift)
-                       significand (ash significand shift))))
-              (t
-               (decf exponent exponent-bias)
-               (setf significand (logior significand hidden-bit))))
-        (setf is-even (evenp significand)
-              significand (ash significand 2)
-              lower (if lower-boundary-is-closer
-                        (1- significand)
-                        (- significand 2))
-              upper (+ significand 2)
-              k (ash (- (* exponent 1262611)
-                        (if lower-boundary-is-closer 524031 0))
-                     -22)
-              h (+ exponent 1 (ash (* (- k) 1741647) -19))
-              pow10 (svref pow-10 (- exponent-offset k))
-              lower (round-to-odd pow10 (ash lower h) width)
-              significand (round-to-odd pow10 (ash significand h) width)
-              upper (round-to-odd pow10 (ash upper h) width)
-              s (ash significand -2))
-        (unless is-even
-          (incf lower)
-          (decf upper))
-        (when (>= s 10)
-          (let* ((sp (floor s 10))
-                 (up-inside (<= lower (* 40 sp)))
-                 (wp-inside (<= (* 40 (1+ sp)) upper)))
-            (unless (eq (not up-inside) (not wp-inside))
-              (return-from %float-decimal
-                (values (if wp-inside (1+ sp) sp)
-                        (1+ k)
-                        sign)))))
-        (let ((u-inside (<= lower (ash s 2)))
-              (w-inside (<= (ash (1+ s) 2) upper)))
-          (unless (eq (not u-inside) (not w-inside))
-            (return-from %float-decimal
-              (values (if w-inside (1+ s) s)
-                      k
-                      sign))))
-        (let* ((mid (+ (ash s 2) 2))
-               (round-up (or (> significand mid)
-                             (and (= significand mid)
-                                  (logbitp s 0)))))
-          (values (if round-up (1+ s) s)
-                  k
-                  sign)))))
+(defmacro %float-decimal (client value bits significand-bits expt10 round-to-odd)
+  (let ((exponent-bias (+ (ash 1 (- bits significand-bits 1)) significand-bits -2))
+        (hidden-bit (ash 1 (1- significand-bits))))
+    `(block %float-decimal
+       (if (zerop ,value)
+           (values 0 0 (floor (float-sign ,value)))
+           (let* ((value-bits (quaviver:float-bits ,client ,value))
+                  (significand (ldb (byte ,(1- significand-bits) 0) value-bits))
+                  (exponent (ldb (byte ,(- bits significand-bits) ,(1- significand-bits)) value-bits))
+                  (sign (if (logbitp ,(1- bits) value-bits) -1 1))
+                  (lower 0)
+                  (upper 0)
+                  (lower-boundary-is-closer (and (zerop significand)
+                                                 (> exponent 1)
+                                                 t))
+                  is-even (k 0) (h 0) (expt10 0) (s 0))
+             (declare (type (integer 0 ,(1- (ash 1 bits)))
+                            value-bits significand lower upper s)
+                      (type (integer 0 ,(1- (ash 1 (ash bits 1))))
+                            expt10)
+                      (boolean lower-boundary-is-closer is-even))
+             (cond ((zerop exponent) ; subnormal
+                    (let ((shift (- ,significand-bits (integer-length significand))))
+                      (setf exponent (- 1 ,exponent-bias shift)
+                            significand (ash significand shift))))
+                   (t
+                    (decf exponent ,exponent-bias)
+                    (setf significand (logior significand ,hidden-bit))))
+             (setf is-even (evenp significand)
+                   significand (ash significand 2)
+                   lower (if lower-boundary-is-closer
+                             (1- significand)
+                             (- significand 2))
+                   upper (+ significand 2)
+                   k (quaviver:floor-log10-expt2 exponent lower-boundary-is-closer)
+                   h (+ exponent 1 (quaviver:floor-log2-expt10 (- k)))
+                   expt10 (,expt10 k)
+                   lower (,round-to-odd expt10 (ash lower h))
+                   significand (,round-to-odd expt10 (ash significand h))
+                   upper (,round-to-odd expt10 (ash upper h))
+                   s (ash significand -2))
+             (unless is-even
+               (incf lower)
+               (decf upper))
+             (when (>= s 10)
+               (let* ((sp (floor s 10))
+                      (up-inside (<= lower (* 40 sp)))
+                      (wp-inside (<= (* 40 (1+ sp)) upper)))
+                 (unless (eq (not up-inside) (not wp-inside))
+                   (return-from %float-decimal
+                     (values (if wp-inside (1+ sp) sp)
+                             (1+ k)
+                             sign)))))
+             (let ((u-inside (<= lower (ash s 2)))
+                   (w-inside (<= (ash (1+ s) 2) upper)))
+               (unless (eq (not u-inside) (not w-inside))
+                 (return-from %float-decimal
+                   (values (if w-inside (1+ s) s)
+                           k
+                           sign))))
+             (let* ((mid (+ (ash s 2) 2))
+                    (round-up (or (> significand mid)
+                                  (and (= significand mid)
+                                       (logbitp s 0)))))
+               (values (if round-up (1+ s) s)
+                       k
+                       sign)))))))
 
 (defmethod quaviver:float-decimal ((client client) (value single-float))
-  (%float-decimal client value 32 24 31 +pow-10/32+))
+  (%float-decimal client value
+                  32 24
+                  quaviver:expt10/32
+                  quaviver:round-to-odd/32))
 
 (defmethod quaviver:float-decimal ((client client) (value double-float))
-  (%float-decimal client value 64 53 292 +pow-10/64+))
+  (%float-decimal client value
+                  64 53
+                  quaviver:expt10/64
+                  quaviver:round-to-odd/64))

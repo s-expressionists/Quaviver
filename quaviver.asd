@@ -14,7 +14,8 @@
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")
-                             (:file "interface")))))
+                             (:file "interface")
+                             (:file "math")))))
 
 (defsystem "quaviver/ieee754"
   :description "IEEE-754 float conversions"
