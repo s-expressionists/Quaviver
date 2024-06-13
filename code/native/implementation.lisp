@@ -2,7 +2,7 @@
 
 (defclass client () ())
 
-#+(or abcl ccl clasp cmucl ecl sbcl)
+#+(or abcl ccl clasp clisp cmucl ecl sbcl)
 (defmethod quaviver:float-decimal ((client client) value)
   #+abcl
   (multiple-value-bind (digits digits-length leading-point
@@ -18,6 +18,13 @@
     (values (map 'vector #'digit-char-p digits)
             exponent
             sign))
+  #+clisp
+  (multiple-value-bind (digits k position sign)
+      (system::decode-float-decimal value t)
+    (declare (ignore k))
+    (values (map 'vector #'digit-char-p digits)
+            (- position (length digits))
+            (floor (float-sign value))))
   #+(or clasp cmucl ecl sbcl)
   (multiple-value-bind (position digits)
       #+clasp (core::float-to-digits nil value nil nil)
