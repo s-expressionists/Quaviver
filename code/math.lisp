@@ -18,7 +18,8 @@
          (ftype (function (fixnum) uint-128)
                 integer-expt10/64)
          (ftype (function (fixnum) fixnum)
-                floor-log2-expt10
+                floor-log2-expt10)
+         (ftype (function (fixnum &optional boolean) fixnum)
                 floor-log10-expt2)
          (inline round-to-odd/32
                  round-to-odd/64
