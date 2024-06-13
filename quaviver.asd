@@ -14,8 +14,24 @@
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")
-                             (:file "interface")
-                             (:file "math")))))
+                             (:file "interface")))))
+
+(defsystem "quaviver/math"
+  :description "Math routines for Quaviver"
+  :license "MIT"
+  :author ("Robert Strandh"
+           "Paul A. Patience"
+           "Tarn W. Burton")
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ()
+  :components ((:module "code"
+                :pathname "code/math/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "implementation")))))
 
 (defsystem "quaviver/ieee754"
   :description "IEEE-754 float conversions"
@@ -106,6 +122,7 @@
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
   :depends-on ("quaviver"
+               "quaviver/math"
                "quaviver/ieee754"
                "quaviver/integer-significand")
   :components ((:module "code"
