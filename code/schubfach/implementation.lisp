@@ -78,11 +78,11 @@
 (defmethod quaviver:float-decimal ((client client) (value single-float))
   (%float-decimal client value
                   32 24
-                  quaviver/math:integer-expt10/32
+                  quaviver/math:expt10/32
                   quaviver/math:round-to-odd/32))
 
 (defmethod quaviver:float-decimal ((client client) (value double-float))
   (%float-decimal client value
                   64 53
-                  quaviver/math:integer-expt10/64
+                  quaviver/math:expt10/64
                   quaviver/math:round-to-odd/64))

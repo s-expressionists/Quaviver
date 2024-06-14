@@ -7,17 +7,17 @@
                           (unsigned-byte 64))
                 round-to-odd/64)
          (ftype (function (fixnum) (unsigned-byte 64))
-                integer-expt10/32)
+                expt10/32)
          (ftype (function (fixnum) (unsigned-byte 128))
-                integer-expt10/64)
+                expt10/64)
          (ftype (function (fixnum) fixnum)
                 floor-log2-expt10)
          (ftype (function (fixnum &optional boolean) fixnum)
                 floor-log10-expt2)
          (inline round-to-odd/32
                  round-to-odd/64
-                 integer-expt10/32
-                 integer-expt10/64
+                 expt10/32
+                 expt10/64
                  floor-log2-expt10
                  floor-log10-expt2))
 
@@ -130,7 +130,7 @@
 
 (defconstant +expt10/max-exponent/32 52)
 
-(defun integer-expt10/32 (power)
+(defun expt10/32 (power)
   (svref *expt10/values/32*
          (- (- +expt10/min-exponent/32) power)))
 
@@ -773,7 +773,7 @@
 
 (defconstant +expt10/max-exponent/64 340)
 
-(defun integer-expt10/64 (power)
+(defun expt10/64 (power)
   (svref *expt10/values/64*
          (- (- +expt10/min-exponent/64) power)))
 
