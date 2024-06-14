@@ -1,21 +1,14 @@
 (in-package #:quaviver/math)
 
-(deftype uint-32 ()
-  '(integer 0 #xFFFFFFFF))
-
-(deftype uint-64 ()
-  '(integer 0 #xFFFFFFFFFFFFFFFF))
-
-(deftype uint-128 ()
-  '(integer 0 #xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF))
-
-(declaim (ftype (function (uint-64 uint-32) uint-32)
+(declaim (ftype (function ((unsigned-byte 64) (unsigned-byte 32))
+                          (unsigned-byte 32))
                 round-to-odd/32)
-         (ftype (function (uint-128 uint-64) uint-64)
+         (ftype (function ((unsigned-byte 128) (unsigned-byte 64))
+                          (unsigned-byte 64))
                 round-to-odd/64)
-         (ftype (function (fixnum) uint-64)
+         (ftype (function (fixnum) (unsigned-byte 64))
                 integer-expt10/32)
-         (ftype (function (fixnum) uint-128)
+         (ftype (function (fixnum) (unsigned-byte 128))
                 integer-expt10/64)
          (ftype (function (fixnum) fixnum)
                 floor-log2-expt10)
