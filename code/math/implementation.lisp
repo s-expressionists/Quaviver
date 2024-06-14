@@ -130,7 +130,7 @@
 
 (defconstant +expt10/max-exponent/32 52)
 
-(defun expt10/32 (power)
+(defun integer-expt10/32 (power)
   (aref *expt10/values/32*
         (- (- +expt10/min-exponent/32) power)))
 
@@ -773,7 +773,7 @@
 
 (defconstant +expt10/max-exponent/64 340)
 
-(defun expt10/64 (power)
+(defun integer-expt10/64 (power)
   (aref *expt10/values/64*
          (- (- +expt10/min-exponent/64) power)))
 
