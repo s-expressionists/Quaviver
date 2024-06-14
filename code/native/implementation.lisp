@@ -1,5 +1,17 @@
 (in-package #:quaviver/native)
 
+(defclass benchmark-client () ())
+
+#+(or abcl ccl clasp clisp cmucl ecl sbcl)
+(defmethod quaviver:float-decimal ((client benchmark-client) value)
+  #+abcl  (system::flonum-to-string (abs value))
+  #+ccl   (ccl::flonum-to-string value)
+  #+clisp (system::decode-float-decimal value t)
+  #+clasp (core::float-to-digits nil value nil nil)
+  #+cmucl (lisp::flonum-to-digits value)
+  #+ecl   (si::float-to-digits nil value nil nil)
+  #+sbcl  (sb-impl::flonum-to-digits value))
+
 (defclass client () ())
 
 #+(or abcl ccl clasp clisp cmucl ecl sbcl)

@@ -1,3 +1,4 @@
 (cl:defpackage #:quaviver/native
   (:use #:common-lisp)
-  (:export #:client))
+  (:export #:benchmark-client
+           #:client))

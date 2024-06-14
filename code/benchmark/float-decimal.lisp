@@ -8,7 +8,7 @@
     (:label ,(format nil
                      "Native (~a)"
                      (lisp-implementation-type))
-                              :initargs (quaviver/native:client))))
+                              :initargs (quaviver/native:benchmark-client))))
 
 (defun float-decimal ()
   (labels ((bench (clients limit key)
