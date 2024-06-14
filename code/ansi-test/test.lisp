@@ -36,14 +36,9 @@
     invistra-extrinsic:format
     invistra-extrinsic:formatter))
 
-(defclass burger-dybvig-1
+(defclass burger-dybvig
     (inravina-extrinsic:extrinsic-client
-     quaviver/burger-dybvig:client-1)
-  ())
-
-(defclass burger-dybvig-2
-    (inravina-extrinsic:extrinsic-client
-     quaviver/burger-dybvig:client-2)
+     quaviver/burger-dybvig:client)
   ())
 
 (defclass schubfach
@@ -52,8 +47,7 @@
   ())
 
 (defvar *client-initargs*
-  '(#+(or)(burger-dybvig-1)
-    (burger-dybvig-2)
+  '((burger-dybvig)
     (schubfach)))
 
 (defun test (&rest args &key exit &allow-other-keys)

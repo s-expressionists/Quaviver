@@ -1,8 +1,7 @@
 (cl:in-package #:quaviver/benchmark)
 
 (defvar *clients*
-  `((:label "Burger-Dybvig 1" :initargs (quaviver/burger-dybvig:client-1))
-    (:label "Burger-Dybvig 2" :initargs (quaviver/burger-dybvig:client-2))
+  `((:label "Burger-Dybvig" :initargs (quaviver/burger-dybvig:client))
     (:label "Schubfach"       :initargs (quaviver/schubfach:client))
     #+(or abcl ccl clasp cmucl ecl sbcl)
     (:label ,(format nil

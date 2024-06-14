@@ -224,7 +224,7 @@
              (setf expt (* expt 10)))
     try))
 
-(defclass client-1 () ())
+(defclass basic-client () ())
 
 ;;; This is a trivial and inefficient implementation of
 ;;; the first algorithm in the Burger-Dybvig paper.  It is used
@@ -232,7 +232,7 @@
 ;;; of numbers that represent the individual digits of the result,
 ;;; and the scale factor.
 
-(defmethod quaviver:float-decimal ((client client-1) x)
+(defmethod quaviver:float-decimal ((client basic-client) x)
   (loop with x-abs = (abs x)
         with v = (rational x-abs)
         with v- = (rational (predecessor x-abs))
@@ -344,12 +344,12 @@
                   finally (return (nreverse result)))
             s)))
 
-(defclass client-2 () ())
+(defclass client () ())
 
 ;;; This is a direct implementation of the second algorithm of the
 ;;; Burger & Dybvig paper.  It is not modeled after their Scheme code,
 ;;; but reimplements the algorithm they present in Common Lisp.
-(defmethod quaviver:float-decimal ((client client-2) x)
+(defmethod quaviver:float-decimal ((client client) x)
   (if (zerop x)
       (values #(0) 0 (floor (float-sign x)))
       (multiple-value-bind (f e sign)
