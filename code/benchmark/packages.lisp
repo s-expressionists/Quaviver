@@ -2,4 +2,4 @@
 
 (defpackage #:quaviver/benchmark
   (:use #:common-lisp)
-  (:export #:float-decimal))
+  (:export #:float-integer))

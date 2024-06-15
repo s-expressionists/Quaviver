@@ -3,7 +3,8 @@
 (defclass benchmark-client () ())
 
 #+(or abcl ccl clasp clisp cmucl ecl sbcl)
-(defmethod quaviver:float-decimal ((client benchmark-client) value)
+(defmethod quaviver:float-integer
+    ((client benchmark-client) (base (eql 10)) value)
   #+abcl  (system::flonum-to-string (abs value))
   #+ccl   (ccl::flonum-to-string value)
   #+clisp (system::decode-float-decimal value t)
@@ -15,7 +16,8 @@
 (defclass client () ())
 
 #+(or abcl ccl clasp clisp cmucl ecl sbcl)
-(defmethod quaviver:float-decimal ((client client) value)
+(defmethod quaviver:float-integer
+    ((client client) (base (eql 10)) value)
   #+abcl
   (multiple-value-bind (digits digits-length leading-point
                         trailing-point position)

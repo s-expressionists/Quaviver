@@ -14,7 +14,9 @@
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")
-                             (:file "interface")))))
+                             (:file "interface")
+                             (:file "float-integer-2")
+                             (:file "integer-digits")))))
 
 (defsystem "quaviver/math"
   :description "Math routines for Quaviver"
@@ -49,8 +51,8 @@
                 :components ((:file "packages")
                              (:file "implementation")))))
 
-(defsystem "quaviver/integer-significand"
-  :description "Integer to digits conversion"
+(defsystem "quaviver/trailing-zeros"
+  :description "Trailing zero removal"
   :license "MIT AND (Apache-2.0 WITH LLVM-exception OR BSL-1.0)"
   :author ("Tarn W. Burton"
            "Paul A. Patience")
@@ -61,7 +63,7 @@
   :depends-on ("quaviver"
                (:feature :sbcl "sb-rotate-byte"))
   :components ((:module "code"
-                :pathname "code/integer-significand/"
+                :pathname "code/trailing-zeros/"
                 :serial t
                 :components ((:file "packages")
                              (:file "implementation")))))
@@ -125,8 +127,7 @@
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
   :depends-on ("quaviver"
                "quaviver/math"
-               "quaviver/ieee754"
-               "quaviver/integer-significand")
+               "quaviver/trailing-zeros")
   :components ((:module "code"
                 :pathname "code/schubfach/"
                 :serial t

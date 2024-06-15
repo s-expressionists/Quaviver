@@ -2,5 +2,7 @@
   (:use #:common-lisp)
   (:export #:bits-float
            #:float-bits
-           #:decimal-float
-           #:float-decimal))
+           #:integer-float
+           #:float-integer
+           #:digits-integer
+           #:integer-digits))

@@ -9,16 +9,17 @@
                      (lisp-implementation-type))
                               :initargs (quaviver/native:benchmark-client))))
 
-(defun float-decimal ()
+(defun float-integer (&optional (base 10))
   (labels ((bench (clients limit key)
              (mapcar (lambda (properties
                               &aux (client (apply #'make-instance
                                                   (getf properties :initargs))))
                        ;; Do one conversion in case there is some initialization needed.
-                       (quaviver:float-decimal client (random limit))
+                       (quaviver:float-integer client base (random limit))
                        (list* key
                               (the-cost-of-nothing:benchmark
-                               (quaviver:float-decimal client
+                               (quaviver:float-integer client
+                                                       base
                                                        (random limit)))
                               properties))
                      clients))
@@ -43,9 +44,9 @@
                                            "relative single-float"
                                            "         absolute double-float"
                                            "relative double-float"))))
-      (plot "float-decimal single-float" results :single-time)
+      (plot "float-integer single-float" results :single-time)
       (terpri)
-      (plot "float-decimal double-float" results :double-time)
+      (plot "float-integer double-float" results :double-time)
       (terpri)
       (loop with min-single = (loop for result in results
                                     minimize (getf result :single-time))

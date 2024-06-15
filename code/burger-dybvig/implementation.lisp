@@ -232,7 +232,7 @@
 ;;; of numbers that represent the individual digits of the result,
 ;;; and the scale factor.
 
-(defmethod quaviver:float-decimal ((client basic-client) x)
+(defmethod quaviver:float-integer ((client basic-client) (base (eql 10)) x)
   (loop with x-abs = (abs x)
         with v = (rational x-abs)
         with v- = (rational (predecessor x-abs))
@@ -241,84 +241,43 @@
         with high = (/ (+ v v+) 2)
         with scale = (scale high)
         with value = 0
-        with result = (make-array 16 :adjustable t
-                                     :fill-pointer 0
-                                     :initial-element 0
-                                     :element-type '(integer 0 9))
+        with result = 0
         for factor = 1/10 then (/ factor 10)
         for q = (/ v (expt 10 scale)) then (- (* q 10) (floor (* q 10)))
         for d = (floor (* q 10))
         for low-out = (* (+ value (* factor d)) (expt 10 scale))
         for high-out = (* (+ value (* factor (1+ d))) (expt 10 scale))
         finally (return (values result
-                                (- scale (length result))
+                                scale
                                 (floor (float-sign x))))
         do (cond ((and (> low-out low)
                        (>= high-out high))
-                  (vector-push-extend d result)
+                  (setf result (+ (* 10 result) d))
+                  (decf scale)
                   (loop-finish))
                  ((and (<= low-out low)
                        (< high-out high))
-                  (vector-push-extend (1+ d) result)
+                  (setf result (+ (* 10 result) (1+ d)))
+                  (decf scale)
                   (loop-finish))
                  ((and (> low-out low)
                        (< high-out high))
                   (cond ((< (abs (- v low-out))
                             (abs (- v high-out)))
-                         (vector-push-extend d result))
+                         (setf result (+ (* 10 result) d))
+                         (decf scale))
                         ((< (abs (- v high-out))
                             (abs (- v low-out)))
-                         (vector-push-extend (1+ d) result))
+                         (setf result (+ (* 10 result) (1+ d)))
+                         (decf scale))
                         (t ;; beak the tie
-                         (vector-push-extend (1+ d) result)))
+                         (setf result (+ (* 10 result) (1+ d))))
+                        (decf scale))
                   (loop-finish))
                  (t
-                  (vector-push-extend d result)
+                  (setf result (+ (* 10 result) d))
+                  (decf scale)
                   (incf value (* factor d))))))
-
-(defclass naive-client () ())
-
-;;; This function uses a very direct method to generate floating
-;;; point digits.  It uses floating-point arithmetic, so it may
-;;; not be accurate, but it is an order of magnitude faster than
-;;; the Burger & Dybvig algorithm.   It would be very easy, and
-;;; not too costly to check whether this function generates
-;;; a result that will read back in accurately.  In many
-;;; cases it would not be the shortest possible external
-;;; representation with that property, but that might be good
-;;; enough for some people.  For that reason, we might suggest
-;;; an extension to the CL standard where a special variable
-;;; is used to control whether fast printing should be used
-;;; instead.
-(defmethod quaviver:float-decimal ((client naive-client) x)
-  (prog* ((x-abs (abs x))
-          (v- (predecessor x-abs))
-          (v+ (successor x-abs))
-          (s (scale (/ (+ (rational x-abs) (rational v+)) 2)))
-          (scale (expt 10 (1- s)))
-          (d- (- (/ (/ (- x v-) 2d0) scale)))
-          (d+ (/ (/ (- v+ x) 2d0) scale))
-          (scaled (/ x-abs scale))
-          (result (make-array 16 :adjustable t
-                                 :fill-pointer 0
-                                 :initial-element 0
-                                 :element-type '(integer 0 9)))
-          digit)
-   next
-     (setf digit (floor scaled))
-     (cond ((< (- scaled digit) d+)
-            (vector-push-extend digit result))
-           ((> (- scaled (1+ digit)) d-)
-            (vector-push-extend (1+ digit) result))
-           (t
-            (vector-push-extend digit result)
-            (setf scaled (* 10 (- scaled digit))
-                  d- (* d- 10)
-                  d+ (* d+ 10))
-            (go next)))
-     (return (values result
-                     (- s (length result))
-                     (floor (float-sign x))))))
 
 (defun int-1 (x)
   (let* ((v- (predecessor x))
@@ -349,11 +308,11 @@
 ;;; This is a direct implementation of the second algorithm of the
 ;;; Burger & Dybvig paper.  It is not modeled after their Scheme code,
 ;;; but reimplements the algorithm they present in Common Lisp.
-(defmethod quaviver:float-decimal ((client client) x)
+(defmethod quaviver:float-integer ((client client) (base (eql 10)) x)
   (if (zerop x)
-      (values #(0) 0 (floor (float-sign x)))
+      (values 0 0 (floor (float-sign x)))
       (multiple-value-bind (f e sign)
-          (integer-decode-float x)
+          (quaviver:float-integer client 2 x)
         ;; adjust mantissa and exponent
         (when (< (float-precision x) (float-digits x))
           (let ((shift (- (float-digits x) (integer-length f))))
@@ -392,10 +351,7 @@
                   (setf r (* r coeff)
                         m+ (* m+ coeff)
                         m- (* m- coeff))))
-            (prog ((result (make-array 16 :adjustable t
-                                          :fill-pointer 0
-                                          :initial-element 0
-                                          :element-type '(integer 0 9)))
+            (prog ((result 0)
                    tc1 tc2)
              next
                (multiple-value-bind (quotient remainder)
@@ -408,14 +364,17 @@
                                (>= (+ r m+) s)
                                (> (+ r m+) s)))
                  (when (or tc1 tc2)
-                   (vector-push-extend (if (or (and (not tc1) tc2)
-                                               (not (or (and tc1 (not tc2))
-                                                        (< (* r 2) s))))
-                                           (1+ quotient)
-                                           quotient)
-                                       result)
-                   (return (values result (- k (length result)) sign)))
-                 (vector-push-extend quotient result)
+                   (setf result
+                         (+ (* result 10)
+                            (if (or (and (not tc1) tc2)
+                                    (not (or (and tc1 (not tc2))
+                                             (< (* r 2) s))))
+                                (1+ quotient)
+                                quotient)))
+                   (decf k)
+                   (return (values result k sign)))
+                 (setf result (+ (* result 10) quotient))
+                 (decf k)
                  (go next))))))))
 
 ;;; Test that the two implementations above give the same result
@@ -431,9 +390,9 @@
              (cl:format *trace-output* "~s~%" x)
              (finish-output *trace-output*))
         do (multiple-value-bind (d1 k1)
-               (quaviver:float-decimal client-1 x)
+               (quaviver:float-integer client-1 10 x)
              (multiple-value-bind (d2 k2)
-                 (quaviver:float-decimal client-2 x)
+                 (quaviver:float-integer client-2 10 x)
                (when (not (and (equalp d1 d2)
                                (= k1 k2)))
                  (cl:format *trace-output* "no: ~s~%" x))))))
