@@ -4,22 +4,28 @@
 ;;;; This file contains code ported from Dragonbox [1], which at the
 ;;;; time of the port was copyright 2020–2024 Junekey Jeon and licensed
 ;;;; under Apache-2.0 WITH LLVM-exception OR BSL-1.0.
-;;;; This file also contains code ported from Daniel Lemire's blog [1],
+;;;; This file also contains code ported from Daniel Lemire's blog [2],
 ;;;; which he has dedicated to the public domain.
+;;;; This file also contains code ported from itoa-benchmark [3], which
+;;;; at the time of the port was copyright 2014-2016 Milo Yip and
+;;;; licensed under the MIT license (Expat).
 ;;;;
 ;;;; Any original code herein is licensed under the MIT license (Expat).
 ;;;;
 ;;;; [1]: https://github.com/jk-jeon/dragonbox
 ;;;; [2]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03
+;;;; [3]: https://github.com/miloyip/itoa-benchmark
 
 (in-package #:quaviver/integer-significand)
 
 ;;; Counting digits
 ;;;
 ;;; The digit-counting algorithms implemented here — basically faster
-;;; versions of (CEILING (LOG INTEGER 10)) — are ports of Daniel
-;;; Lemire's code [1,2], which is dedicated to the public domain.
-;;; An accompanying description is also available [3].
+;;; versions of (CEILING (LOG INTEGER 10)) — include a port of Daniel
+;;; Lemire's code [1,2] (which gives credit to Kendall Willets), and
+;;; also a port of part of itoa-benchmark [3].
+;;; An accompanying description of Daniel Lemire's algorithm is also
+;;; available [4].
 ;;;
 ;;; The algorithms consist of computing the integer base-2 and base-10
 ;;; logarithms separately and then dividing them.
@@ -27,30 +33,16 @@
 ;;; (1- (INTEGER-LENGTH INTEGER)) and the base-10 logarithm with lookup
 ;;; tables.
 ;;;
-;;; There are two algorithms: one with a smaller lookup table and a few
-;;; more arithmetic operations, described in the book Hacker's Delight,
-;;; and another with a larger lookup table and fewer arithmetic
-;;; operations, credited to Kendall Willets.
-;;; Daniel Lemire's implementations support only uint32 data, but they
-;;; are trivially extended to uint64 data.
-;;;
-;;; On SBCL the larger lookup table is faster for uint32 data and the
-;;; smaller lookup table is faster for uint64 data, because the lookup
-;;; table elements are twice the size of the input data, and so the
-;;; larger lookup table contains uint128 bignums.
-;;;
 ;;; Both COUNT-DIGITS/32 and COUNT-DIGITS/64 fail when given 0, but that
 ;;; is immaterial because the 0 value is handled specially in
-;;; REMOVE-TRAILING-ZEROS/32 and REMOVE-TRAILING-ZEROS/64.
+;;; SIGNIFICAND-DIGITS/32 and SIGNIFICAND-DIGITS/64.
 ;;;
 ;;; [1]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/digitcount.c
 ;;; [2]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/generate.py
-;;; [3]: https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/
+;;; [3]: https://github.com/miloyip/itoa-benchmark/blob/6b66399db63358157892c258a2daa75c07173b05/src/tmueller.cpp
+;;; [4]: https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/
 
-;;; This computes the table inlined in COUNT-DIGITS/32.
-;;; Ported from [1].
-;;;
-;;; [1]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/generate.py#L9
+;;; Based on https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/generate.py#L9-L17
 (defun compute-count-digits/32-table ()
   (loop with result = (make-array 32)
         for i from 1 upto 32
@@ -61,11 +53,7 @@
                        (ash log10 32))))
         finally (return result)))
 
-;;; This counts the digits in a uint32 using the algorithm with the
-;;; larger lookup table.
-;;; Ported from [1].
-;;;
-;;; [1]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/digitcount.c#L40
+;;; Based on https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/digitcount.c#L40-L50
 (defun count-digits/32 (integer)
   (declare (optimize speed)
            ((unsigned-byte 32) integer))
@@ -79,36 +67,34 @@
                  (1- (integer-length integer))))
        -32))
 
-;;; This counts the digits in a uint64 using the algorithm with the
-;;; smaller lookup table.
-;;; Ported from [1] and extended for uint64 data.
-;;;
-;;; [1]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/digitcount.c#L51
+;;; Based on https://github.com/miloyip/itoa-benchmark/blob/6b66399db63358157892c258a2daa75c07173b05/src/tmueller.cpp#L108-L113
 (defun count-digits/64 (integer)
   (declare (optimize speed)
            ((unsigned-byte 64) integer))
-  (let ((n (ash (* 9 (1- (integer-length integer))) -5)))
-    (when (> integer (svref #(9
-                              99
-                              999
-                              9999
-                              99999
-                              999999
-                              9999999
-                              99999999
-                              999999999
-                              9999999999
-                              99999999999
-                              999999999999
-                              9999999999999
-                              99999999999999
-                              999999999999999
-                              9999999999999999
-                              99999999999999999
-                              999999999999999999)
-                            n))
+  (let ((n (ash (* 1233 (integer-length integer)) -12)))
+    (when (>= integer (svref #(1
+                               10
+                               100
+                               1000
+                               10000
+                               100000
+                               1000000
+                               10000000
+                               100000000
+                               1000000000
+                               10000000000
+                               100000000000
+                               1000000000000
+                               10000000000000
+                               100000000000000
+                               1000000000000000
+                               10000000000000000
+                               100000000000000000
+                               1000000000000000000
+                               10000000000000000000)
+                             n))
       (incf n))
-    (1+ n)))
+    n))
 
 ;;; Trailing zeros
 
