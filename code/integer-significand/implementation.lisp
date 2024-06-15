@@ -1,22 +1,228 @@
+;;;; SPDX-FileCopyrightText: Copyright (c) 2024 s-expressionists
+;;;; SPDX-License-Identifier: MIT AND (Apache-2.0 WITH LLVM-exception OR BSL-1.0)
+;;;;
+;;;; This file contains code ported from Dragonbox [1], which at the
+;;;; time of the port was copyright 2020–2024 Junekey Jeon and licensed
+;;;; under Apache-2.0 WITH LLVM-exception OR BSL-1.0.
+;;;; This file also contains code ported from Daniel Lemire's blog [1],
+;;;; which he has dedicated to the public domain.
+;;;;
+;;;; Any original code herein is licensed under the MIT license (Expat).
+;;;;
+;;;; [1]: https://github.com/jk-jeon/dragonbox
+;;;; [2]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03
+
 (in-package #:quaviver/integer-significand)
+
+;;; Counting digits
+;;;
+;;; The digit-counting algorithms implemented here — basically faster
+;;; versions of (CEILING (LOG INTEGER 10)) — are ports of Daniel
+;;; Lemire's code [1,2], which is dedicated to the public domain.
+;;; An accompanying description is also available [3].
+;;;
+;;; The algorithms consist of computing the integer base-2 and base-10
+;;; logarithms separately and then dividing them.
+;;; The base-2 logarithm can be optimized to
+;;; (1- (INTEGER-LENGTH INTEGER)) and the base-10 logarithm with lookup
+;;; tables.
+;;;
+;;; There are two algorithms: one with a smaller lookup table and a few
+;;; more arithmetic operations, described in the book Hacker's Delight,
+;;; and another with a larger lookup table and fewer arithmetic
+;;; operations, credited to Kendall Willets.
+;;; Daniel Lemire's implementations support only uint32 data, but they
+;;; are trivially extended to uint64 data.
+;;;
+;;; On SBCL the larger lookup table is faster for uint32 data and the
+;;; smaller lookup table is faster for uint64 data, because the lookup
+;;; table elements are twice the size of the input data, and so the
+;;; larger lookup table contains uint128 bignums.
+;;;
+;;; Both COUNT-DIGITS/32 and COUNT-DIGITS/64 fail when given 0, but that
+;;; is immaterial because the 0 value is handled specially in
+;;; REMOVE-TRAILING-ZEROS/32 and REMOVE-TRAILING-ZEROS/64.
+;;;
+;;; [1]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/digitcount.c
+;;; [2]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/generate.py
+;;; [3]: https://lemire.me/blog/2021/06/03/computing-the-number-of-digits-of-an-integer-even-faster/
+
+;;; This computes the table inlined in COUNT-DIGITS/32.
+;;; Ported from [1].
+;;;
+;;; [1]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/generate.py#L9
+(defun compute-count-digits/32-table ()
+  (loop with result = (make-array 32)
+        for i from 1 upto 32
+        do (let ((log10 (ceiling (log (ash 1 (1- i)) 10))))
+             (setf (aref result (1- i))
+                   (if (< i 31)
+                       (+ #.(ash 1 32) (- (expt 10 log10)) (ash log10 32))
+                       (ash log10 32))))
+        finally (return result)))
+
+;;; This counts the digits in a uint32 using the algorithm with the
+;;; larger lookup table.
+;;; Ported from [1].
+;;;
+;;; [1]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/digitcount.c#L40
+(defun count-digits/32 (integer)
+  (declare (optimize speed)
+           ((unsigned-byte 32) integer))
+  (ash (+ integer
+          (svref #(4294967295 8589934582 8589934582 8589934582 12884901788 12884901788
+                   12884901788 17179868184 17179868184 17179868184 21474826480 21474826480
+                   21474826480 21474826480 25769703776 25769703776 25769703776 30063771072
+                   30063771072 30063771072 34349738368 34349738368 34349738368 34349738368
+                   38554705664 38554705664 38554705664 41949672960 41949672960 41949672960
+                   42949672960 42949672960)
+                 (1- (integer-length integer))))
+       -32))
+
+;;; This counts the digits in a uint64 using the algorithm with the
+;;; smaller lookup table.
+;;; Ported from [1] and extended for uint64 data.
+;;;
+;;; [1]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/digitcount.c#L51
+(defun count-digits/64 (integer)
+  (declare (optimize speed)
+           ((unsigned-byte 64) integer))
+  (let ((n (ash (* 9 (1- (integer-length integer))) -5)))
+    (when (> integer (svref #(9
+                              99
+                              999
+                              9999
+                              99999
+                              999999
+                              9999999
+                              99999999
+                              999999999
+                              9999999999
+                              99999999999
+                              999999999999
+                              9999999999999
+                              99999999999999
+                              999999999999999
+                              9999999999999999
+                              99999999999999999
+                              999999999999999999)
+                            n))
+      (incf n))
+    (1+ n)))
+
+;;; Trailing zeros
+
+(declaim (inline rotr/32))
+(defun rotr/32 (count integer)
+  (declare (optimize speed)
+           ((integer 0 (32)) count)
+           ((unsigned-byte 32) integer))
+  #+sbcl
+  (sb-rotate-byte:rotate-byte (- count) (byte 32 0) integer)
+  #-sbcl
+  (logior (ash integer (- count))
+          (ldb (byte 32 0) (ash integer (- 32 count)))))
+
+(declaim (inline rotr/64))
+(defun rotr/64 (count integer)
+  (declare (optimize speed)
+           ((integer 0 (64)) count)
+           ((unsigned-byte 64) integer))
+  #+sbcl
+  (sb-rotate-byte:rotate-byte (- count) (byte 64 0) integer)
+  #-sbcl
+  (logior (ash integer (- count))
+          (ldb (byte 64 0) (ash integer (- 64 count)))))
+
+(defun significand-digits/32 (significand exponent sign)
+  (declare (optimize speed)
+           ((unsigned-byte 32) significand)
+           (fixnum exponent))
+  (when (zerop significand)
+    (return-from significand-digits/32 (values #(0) exponent sign)))
+  ;; Remove trailing zeros from significand; ported from [1].
+  ;;
+  ;; [1]: https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L2950
+  (let ((r 0)
+        (b nil)
+        (s 0))
+    (declare ((unsigned-byte 32) r))
+    (setf r (rotr/32 4 (ldb (byte 32 0) (* significand 184254097)))
+          b (< r 429497)
+          s (if b 1 0)
+          significand (if b r significand)
+          r (rotr/32 2 (ldb (byte 32 0) (* significand 42949673)))
+          b (< r 42949673)
+          s (+ (* s 2) (if b 1 0))
+          significand (if b r significand)
+          r (rotr/32 1 (ldb (byte 32 0) (* significand 1288490189)))
+          b (< r 429496730)
+          s (+ (* s 2) (if b 1 0))
+          significand (if b r significand)
+          exponent (+ exponent s)))
+  ;; Convert significand into digits.
+  ;;
+  ;; Extracting this into an inline function causes a performance hit
+  ;; on SBCL, so leave it here.
+  ;;
+  ;; The division by 10 could be optimized by reinterpreting the
+  ;; significand in fixed point arithmetic with the decimal point to
+  ;; the left of the leading digit and multiplying by 10 at each
+  ;; iteration instead [1,2].
+  ;;
+  ;; [1]: https://lemire.me/blog/2021/05/17/converting-binary-integers-to-ascii-characters-apple-m1-vs-amd-zen2/#comment-584345
+  ;; [2]: https://stackoverflow.com/questions/7890194/optimized-itoa-function/32818030#32818030
+  (loop with digits = (make-array (count-digits/32 significand))
+        with digit
+        for i from (1- (length digits)) downto 0
+        do (multiple-value-setq (significand digit) (floor significand 10))
+        do (setf (aref digits i) digit)
+        finally (return (values digits exponent sign))))
+
+(defun significand-digits/64 (significand exponent sign)
+  (declare (optimize speed)
+           ((unsigned-byte 64) significand)
+           (fixnum exponent))
+  (when (zerop significand)
+    (return-from significand-digits/64 (values #(0) exponent sign)))
+  ;; Remove trailing zeros from significand; ported from [1].
+  ;;
+  ;; [1]: https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L2982
+  (let ((r 0)
+        (b nil)
+        (s 0))
+    (declare ((unsigned-byte 64) r))
+    (setf r (rotr/64 8 (ldb (byte 64 0) (* significand 28999941890838049)))
+          b (< r 184467440738)
+          s (if b 1 0)
+          significand (if b r significand)
+          r (rotr/64 4 (ldb (byte 64 0) (* significand 182622766329724561)))
+          b (< r 1844674407370956)
+          s (+ (* s 2) (if b 1 0))
+          significand (if b r significand)
+          r (rotr/64 2 (ldb (byte 64 0) (* significand 10330176681277348905)))
+          b (< r 184467440737095517)
+          s (+ (* s 2) (if b 1 0))
+          significand (if b r significand)
+          r (rotr/64 1 (ldb (byte 64 0) (* significand 14757395258967641293)))
+          b (< r 1844674407370955162)
+          s (+ (* s 2) (if b 1 0))
+          significand (if b r significand)
+          exponent (+ exponent s)))
+  ;; Convert significand into digits.
+  (loop with digits = (make-array (count-digits/64 significand))
+        with digit
+        for i from (1- (length digits)) downto 0
+        do (multiple-value-setq (significand digit) (floor significand 10))
+        do (setf (aref digits i) digit)
+        finally (return (values digits exponent sign))))
+
+;;; Client
 
 (defclass client () ())
 
-(defmethod quaviver:float-decimal :around ((client client) value)
-  (declare (ignore value))
-  (multiple-value-bind (significand exponent sign)
-      (call-next-method)
-    (if (zerop significand)
-        (values #(0) exponent sign)
-        (prog (digits digit)
-         next
-           (unless (zerop significand)
-             (multiple-value-setq (significand digit) (floor significand 10))
-             (if (and (zerop digit)
-                      (null digits))
-                 (incf exponent)
-                 (push digit digits))
-             (go next))
-           (return (values (coerce digits 'vector)
-                           exponent
-                           sign))))))
+(defmethod quaviver:float-decimal :around ((client client) (value single-float))
+  (multiple-value-call #'significand-digits/32 (call-next-method)))
+
+(defmethod quaviver:float-decimal :around ((client client) (value double-float))
+  (multiple-value-call #'significand-digits/64 (call-next-method)))

@@ -51,13 +51,15 @@
 
 (defsystem "quaviver/integer-significand"
   :description "Integer to digits conversion"
-  :license "MIT"
-  :author ("Tarn W. Burton")
+  :license "MIT AND (Apache-2.0 WITH LLVM-exception OR BSL-1.0)"
+  :author ("Tarn W. Burton"
+           "Paul A. Patience")
   :version (:read-file-form "version.sexp")
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
-  :depends-on ("quaviver")
+  :depends-on ("quaviver"
+               (:feature :sbcl "sb-rotate-byte"))
   :components ((:module "code"
                 :pathname "code/integer-significand/"
                 :serial t
