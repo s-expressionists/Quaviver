@@ -4,7 +4,7 @@
 
 (defgeneric float-bits (client value))
 
-(defgeneric integer-float (client result-type base digits exponent sign))
+(defgeneric integer-float (client result-type base significand exponent sign))
 
 (defgeneric float-integer (client base value))
 
