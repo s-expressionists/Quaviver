@@ -23,20 +23,21 @@
                         trailing-point position)
       (system::flonum-to-string (abs value))
     (declare (ignore leading-point trailing-point))
-    (values (remove nil (map 'vector #'digit-char-p digits))
+    (values (quaviver:digits-integer client base
+                                     (remove #\. digits))
             (- position digits-length -1)
             (floor (float-sign value))))
   #+ccl
   (multiple-value-bind (digits sign exponent)
       (ccl::flonum-to-string value)
-    (values (map 'vector #'digit-char-p digits)
+    (values (quaviver:digits-integer client base digits)
             exponent
             sign))
   #+clisp
   (multiple-value-bind (digits k position sign)
       (system::decode-float-decimal value t)
     (declare (ignore k))
-    (values (map 'vector #'digit-char-p digits)
+    (values (quaviver:digits-integer client base digits)
             (- position (length digits))
             (floor (float-sign value))))
   #+(or clasp cmucl ecl sbcl)
@@ -45,6 +46,6 @@
       #+cmucl (lisp::flonum-to-digits value)
       #+ecl   (si::float-to-digits nil value nil nil)
       #+sbcl  (sb-impl::flonum-to-digits value)
-    (values (map 'vector #'digit-char-p digits)
+    (values (quaviver:digits-integer client base digits)
             (- position (length digits))
             (floor (float-sign value)))))
