@@ -31,7 +31,7 @@
                  sign))))
 
 #-(or abcl allegro clasp cmucl ecl lispworks sbcl)
-(defmethod float-integer (client (base (eql 2)) (value single-float))
+(defmethod float-integer (client (base (eql 2)) value)
   (declare (ignore client))
   ;; CCL has good behavior so use integer-decode-float. Fallback to
   ;; integer-decode-float for unknown CL implementations.
