@@ -127,9 +127,9 @@
       #(0)
       (etypecase value
         ((unsigned-byte 32)
-         (digits/32 value))
+         (digit-vector/32 value))
         ((unsigned-byte 64)
-         (digits/64 value)))))
+         (digit-vector/64 value)))))
 
 (defun digit-string/32 (value)
   ;; Convert value into string of digits.
