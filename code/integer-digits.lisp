@@ -31,7 +31,7 @@
 ;;;
 ;;; Both COUNT-DIGITS/32 and COUNT-DIGITS/64 fail when given 0, but that
 ;;; is immaterial because the 0 value is handled specially in
-;;; DIGITS/32 and DIGITS/64.
+;;; DIGIT-VECTOR/32 and DIGIT-VECTOR/64.
 ;;;
 ;;; [1]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/digitcount.c
 ;;; [2]: https://github.com/lemire/Code-used-on-Daniel-Lemire-s-blog/blob/693681a91167b0b694294bea35f5716c2d2ee264/2021/06/03/generate.py
@@ -92,7 +92,7 @@
       (incf n))
     n))
 
-(defun digits/32 (value)
+(defun digit-vector/32 (value)
   ;; Convert value into digits.
   ;;
   ;; The division by 10 could be optimized by reinterpreting the
@@ -106,10 +106,10 @@
         with digit
         for i from (1- (length digits)) downto 0
         do (multiple-value-setq (value digit) (floor value 10))
-        do (setf (aref digits i) digit)
+           (setf (aref digits i) digit)
         finally (return digits)))
 
-(defun digits/64 (value)
+(defun digit-vector/64 (value)
   (declare (optimize speed)
            (type (unsigned-byte 64) value))
   ;; Convert value into digits.
@@ -130,3 +130,57 @@
          (digits/32 value))
         ((unsigned-byte 64)
          (digits/64 value)))))
+
+(defun digit-string/32 (value)
+  ;; Convert value into string of digits.
+  ;;
+  ;; The division by 10 could be optimized by reinterpreting the
+  ;; value in fixed point arithmetic with the decimal point to
+  ;; the left of the leading digit and multiplying by 10 at each
+  ;; iteration instead [1,2].
+  ;;
+  ;; [1]: https://lemire.me/blog/2021/05/17/converting-binary-integers-to-ascii-characters-apple-m1-vs-amd-zen2/#comment-584345
+  ;; [2]: https://stackoverflow.com/questions/7890194/optimized-itoa-function/32818030#32818030
+  (loop with digits = (make-string (count-digits/32 value)
+                                  :element-type 'base-char)
+        with digit
+        for i from (1- (length digits)) downto 0
+        do (multiple-value-setq (value digit) (floor value 10))
+           (setf (aref digits i) (digit-char digit))
+        finally (return digits)))
+
+(defun digit-string/64 (value)
+  (declare (optimize speed)
+           (type (unsigned-byte 64) value))
+  ;; Convert value into digits.
+  (loop with digits = (make-string (count-digits/64 value)
+                                   :element-type 'base-char)
+        with digit
+        for i from (1- (length digits)) downto 0
+        finally (return digits)
+        do (multiple-value-setq (value digit) (floor value 10))
+           (setf (aref digits i) (digit-char digit))))
+
+(defmethod quaviver:integer-digits
+    (client (result-type (eql 'string)) (base (eql 10)) value)
+  (declare (ignore client))
+  (if (zerop value)
+      #(0)
+      (etypecase value
+        ((unsigned-byte 32)
+         (digit-string/32 value))
+        ((unsigned-byte 64)
+         (digit-string/64 value)))))
+
+(defmethod quaviver:integer-digits
+    (client (result-type (eql 'list)) base value)
+  (declare (ignore client))
+  (if (zerop value)
+      (list 0)
+      (prog (digits digit)
+       next
+         (unless (zerop value)
+           (multiple-value-setq (value digit) (floor value base))
+           (push digit digits)
+           (go next))
+         (return digits))))
