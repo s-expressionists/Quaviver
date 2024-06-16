@@ -16,6 +16,7 @@
                 :components ((:file "packages")
                              (:file "interface")
                              (:file "float-integer-2")
+                             (:file "digits-integer")
                              (:file "integer-digits")))))
 
 (defsystem "quaviver/math"
