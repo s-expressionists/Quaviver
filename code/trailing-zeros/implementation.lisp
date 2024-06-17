@@ -100,6 +100,21 @@
 (defclass client () ())
 
 (defmethod quaviver:float-integer :around
+    ((client client) (base (eql 10)) value)
+  (multiple-value-bind (significand exponent sign)
+      (call-next-method)
+    (unless (zerop significand)
+      (prog (quotient remainder)
+       next
+         (multiple-value-setq (quotient remainder)
+           (floor significand 10))
+         (when (zerop remainder)
+           (setf significand quotient)
+           (incf exponent)
+           (go next))))
+    (values significand exponent sign)))
+
+(defmethod quaviver:float-integer :around
     ((client client) (base (eql 10)) (value single-float))
   (multiple-value-call #'remove-trailing-zeros/32 (call-next-method)))
 

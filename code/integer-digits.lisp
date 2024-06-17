@@ -92,9 +92,57 @@
       (incf n))
     n))
 
+(defun count-digits/128 (integer)
+  (declare (optimize speed)
+           ((unsigned-byte 128) integer))
+  (let ((n (ash (* 1233 (integer-length integer)) -12)))
+    (when (>= integer (svref #(1
+                               10
+                               100
+                               1000
+                               10000
+                               100000
+                               1000000
+                               10000000
+                               100000000
+                               1000000000
+                               10000000000
+                               100000000000
+                               1000000000000
+                               10000000000000
+                               100000000000000
+                               1000000000000000
+                               10000000000000000
+                               100000000000000000
+                               1000000000000000000
+                               10000000000000000000
+                               100000000000000000000
+                               1000000000000000000000
+                               10000000000000000000000
+                               100000000000000000000000
+                               1000000000000000000000000
+                               10000000000000000000000000
+                               100000000000000000000000000
+                               1000000000000000000000000000
+                               10000000000000000000000000000
+                               100000000000000000000000000000
+                               1000000000000000000000000000000
+                               10000000000000000000000000000000
+                               100000000000000000000000000000000
+                               1000000000000000000000000000000000
+                               10000000000000000000000000000000000
+                               100000000000000000000000000000000000
+                               1000000000000000000000000000000000000
+                               10000000000000000000000000000000000000
+                               100000000000000000000000000000000000000
+                               1000000000000000000000000000000000000000
+                               10000000000000000000000000000000000000000
+                               100000000000000000000000000000000000000000)
+                             n))
+      (incf n))
+    n))
+
 (defun digit-vector/32 (value)
-  ;; Convert value into digits.
-  ;;
   ;; The division by 10 could be optimized by reinterpreting the
   ;; value in fixed point arithmetic with the decimal point to
   ;; the left of the leading digit and multiplying by 10 at each
@@ -112,8 +160,17 @@
 (defun digit-vector/64 (value)
   (declare (optimize speed)
            (type (unsigned-byte 64) value))
-  ;; Convert value into digits.
   (loop with digits = (make-array (count-digits/64 value))
+        with digit
+        for i from (1- (length digits)) downto 0
+        finally (return digits)
+        do (multiple-value-setq (value digit) (floor value 10))
+           (setf (aref digits i) digit)))
+
+(defun digit-vector/128 (value)
+  (declare (optimize speed)
+           (type (unsigned-byte 128) value))
+  (loop with digits = (make-array (count-digits/128 value))
         with digit
         for i from (1- (length digits)) downto 0
         finally (return digits)
@@ -129,11 +186,11 @@
         ((unsigned-byte 32)
          (digit-vector/32 value))
         ((unsigned-byte 64)
-         (digit-vector/64 value)))))
+         (digit-vector/64 value))
+        ((unsigned-byte 128)
+         (digit-vector/128 value)))))
 
 (defun digit-string/32 (value)
-  ;; Convert value into string of digits.
-  ;;
   ;; The division by 10 could be optimized by reinterpreting the
   ;; value in fixed point arithmetic with the decimal point to
   ;; the left of the leading digit and multiplying by 10 at each
@@ -152,8 +209,18 @@
 (defun digit-string/64 (value)
   (declare (optimize speed)
            (type (unsigned-byte 64) value))
-  ;; Convert value into digits.
   (loop with digits = (make-string (count-digits/64 value)
+                                   :element-type 'base-char)
+        with digit
+        for i from (1- (length digits)) downto 0
+        finally (return digits)
+        do (multiple-value-setq (value digit) (floor value 10))
+           (setf (aref digits i) (digit-char digit))))
+
+(defun digit-string/128 (value)
+  (declare (optimize speed)
+           (type (unsigned-byte 128) value))
+  (loop with digits = (make-string (count-digits/128 value)
                                    :element-type 'base-char)
         with digit
         for i from (1- (length digits)) downto 0
@@ -170,7 +237,9 @@
         ((unsigned-byte 32)
          (digit-string/32 value))
         ((unsigned-byte 64)
-         (digit-string/64 value)))))
+         (digit-string/64 value))
+        ((unsigned-byte 128)
+         (digit-string/128 value)))))
 
 (defmethod quaviver:integer-digits
     (client (result-type (eql 'list)) base value)

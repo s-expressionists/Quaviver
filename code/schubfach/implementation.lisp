@@ -71,3 +71,10 @@
               64 53
               quaviver/math:expt10/64
               quaviver/math:round-to-odd/64))
+
+#+(and ecl long-float)
+(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value long-float))
+  (%schubfach client value
+              128 64
+              quaviver/math:expt10/128
+              quaviver/math:round-to-odd/128))

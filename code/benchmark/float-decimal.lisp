@@ -34,24 +34,38 @@
                             :labels (mapcar (lambda (client)
                                               (getf client :label))
                                             results)))))
-    (let ((results (bench (bench *clients*
-                                 most-positive-single-float
-                                 :single-time)
-                          most-positive-double-float
-                          :double-time))
+    (let ((results *clients*)
           (table (ascii-table:make-table '("client"
                                            "         absolute single-float"
                                            "relative single-float"
                                            "         absolute double-float"
-                                           "relative double-float"))))
+                                           "relative double-float"
+                                           #+(and ecl long-float)
+                                           "           absolute long-float"
+                                           #+(and ecl long-float)
+                                           "  relative long-float"))))
+      (setf results (bench results
+                           most-positive-single-float
+                           :single-time))
+      (setf results (bench results
+                           most-positive-double-float
+                           :double-time))
+      #+(and ecl long-float)
+      (setf results (bench results
+                           most-positive-long-float
+                           :long-time))
       (plot "float-integer single-float" results :single-time)
       (terpri)
       (plot "float-integer double-float" results :double-time)
       (terpri)
+      #+(and ecl long-float) (plot "float-integer long-float" results :long-time)
+      #+(and ecl long-float) (terpri)
       (loop with min-single = (loop for result in results
                                     minimize (getf result :single-time))
             with min-double = (loop for result in results
                                     minimize (getf result :double-time))
+            with min-long = (loop for result in results
+                                    minimize (getf result :long-time 0))
             for result in results
             do (ascii-table:add-row table (list (getf result :label)
                                                 (format nil "~30g" (getf result :single-time))
@@ -59,5 +73,10 @@
                                                                   min-single))
                                                 (format nil "~30g" (getf result :double-time))
                                                 (format nil "~21,15f" (/ (getf result :double-time)
-                                                                  min-double)))))
+                                                                  min-double))
+                                                #+(and ecl long-float)
+                                                (format nil "~30g" (getf result :long-time))
+                                                #+(and ecl long-float)
+                                                (format nil "~21,15f" (/ (getf result :long-time)
+                                                                  min-long)))))
       (ascii-table:display table))))
