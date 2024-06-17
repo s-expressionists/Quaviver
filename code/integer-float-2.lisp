@@ -9,7 +9,7 @@
    &body body)
   (declare (ignore hidden-bit-p))
   (multiple-value-bind (forms declarations)
-      (uiop:parse-body body)
+      (alexandria:parse-body body)
     `(let ((,bits-var (if (minusp sign)
                           ,(ash 1 (+ significand-size exponent-size))
                           0)))

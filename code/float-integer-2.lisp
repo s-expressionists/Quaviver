@@ -18,17 +18,21 @@
                     exponent)
               (type (integer -1 1)
                     sign))
-     (if (zerop exponent) ; subnormal
-         (let ((shift (- ,(if hidden-bit-p (1+ significand-size) significand-size)
-                         (integer-length significand))))
-           (values (ash significand shift)
-                   (- ,(- 1 exponent-bias) shift)
-                   sign))
-         (values ,(if hidden-bit-p
-                      `(logior significand ,(ash 1 significand-size))
-                      'significand)
-                 (- exponent ,exponent-bias)
-                 sign))))
+     (cond ((and (zerop significand)
+                 (zerop exponent))
+            (values 0 0 sign))
+           ((zerop exponent) ; subnormal
+            (let ((shift (- ,(if hidden-bit-p (1+ significand-size) significand-size)
+                            (integer-length significand))))
+              (values (ash significand shift)
+                      (- ,(- 1 exponent-bias) shift)
+                      sign)))
+           (t
+            (values ,(if hidden-bit-p
+                         `(logior significand ,(ash 1 significand-size))
+                         'significand)
+                    (- exponent ,exponent-bias)
+                    sign)))))
 
 #-(or abcl allegro clasp cmucl ecl lispworks sbcl)
 (defmethod float-integer (client (base (eql 2)) value)
@@ -98,3 +102,13 @@
    :exponent-size 11
    :hidden-bit t
    :exponent-bias 1075))
+
+#+(and ecl long-float)
+(defmethod float-integer (client (base (eql 2)) (value long-float))
+  (declare (ignore client))
+  (%integer-decode-float
+   (system:long-float-bits value)
+   :significand-size 64
+   :exponent-size 15
+   :hidden-bit nil
+   :exponent-bias 16446))
