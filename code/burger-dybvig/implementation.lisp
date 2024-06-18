@@ -376,23 +376,3 @@
                  (setf result (+ (* result 10) quotient))
                  (decf k)
                  (go next))))))))
-
-;;; Test that the two implementations above give the same result
-;;; for all single floats.  Running this test may take a few days
-;;; on a good 64-bit machine.
-(defun test-dybvig-2 (start)
-  (loop with client-1 = (make-instance 'client-1)
-        with client-2 = (make-instance 'client-2)
-        for x = start then (predecessor x)
-        for i from 0
-        until (= x 0)
-        do (when (zerop (mod i 1000000))
-             (cl:format *trace-output* "~s~%" x)
-             (finish-output *trace-output*))
-        do (multiple-value-bind (d1 k1)
-               (quaviver:float-integer client-1 10 x)
-             (multiple-value-bind (d2 k2)
-                 (quaviver:float-integer client-2 10 x)
-               (when (not (and (equalp d1 d2)
-                               (= k1 k2)))
-                 (cl:format *trace-output* "no: ~s~%" x))))))
