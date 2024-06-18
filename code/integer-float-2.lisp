@@ -35,7 +35,7 @@ of ~a when the significand size is ~a and the exponent size is ~a."
 
 (declaim (inline ub32-sb32))
 (defun ub32-sb32 (ub32)
-  (if (not (zerop (ldb (byte 1 31) ub32)))
+  (if (logbitp 31 ub32)
       (- ub32 #.(ash 1 32))
       ub32))
 
