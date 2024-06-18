@@ -1,44 +1,26 @@
 (in-package #:quaviver)
 
-(defmethod digits-integer (client base (digits vector))
-  (declare (ignore client))
-  (loop with result = 0
-        for digit across digits
-        finally (return result)
-        do (setf result (+ (* result base) digit))))
-
-(defmethod digits-integer (client (base (eql 2)) (digits vector))
-  (declare (ignore client))
-  (loop with result = 0
-        for digit across digits
-        finally (return result)
-        do (setf result (logior (ash result 1) digit))))
-
-(defmethod digits-integer (client base (digits string))
-  (declare (ignore client))
-  (loop with result = 0
-        for digit across digits
-        finally (return result)
-        do (setf result (+ (* result base) (digit-char-p digit base)))))
-
-(defmethod digits-integer (client (base (eql 2)) (digits string))
-  (declare (ignore client))
-  (loop with result = 0
-        for digit across digits
-        finally (return result)
-        do (setf result (logior (ash result 1)
-                                (if (eql digit #\1) 1 0)))))
-
-(defmethod digits-integer (client base (digits list))
-  (declare (ignore client))
-  (loop with result = 0
-        for digit in digits
-        finally (return result)
-        do (setf result (+ (* result base) digit))))
-
-(defmethod digits-integer (client (base (eql 2)) (digits list))
-  (declare (ignore client))
-  (loop with result = 0
-        for digit in digits
-        finally (return result)
-        do (setf result (logior (ash result 1) digit))))
+(defmethod digits-integer (client base (digits sequence) part
+                           &optional (start 0) (end (length digits))
+                             limit)
+  (prog ((result 0)
+         (count 0)
+         (discarded 0)
+         digit)
+   next
+     (when (< start end)
+       (setf digit (digit-integer client base (elt digits start) part count))
+       (cond ((null digit)
+              (go terminate))
+             ((eq digit :skip))
+             ((or (null limit)
+                  (< count limit))
+              (setf result (+ (* result base) digit))
+              (unless (zerop result)
+                (incf count)))
+             (t
+              (incf discarded)))
+       (incf start)
+       (go next))
+   terminate
+     (return (values result start count discarded))))

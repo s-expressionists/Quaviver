@@ -113,3 +113,39 @@
   (declare (ignore client))
   (%integer-decode-float long-float
                          (system:long-float-bits value)))
+
+(defmethod float-integer (client (base (eql 4)) value)
+  (multiple-value-bind (significand exponent sign)
+      (float-integer client 2 value)
+    (multiple-value-bind (exponent shift)
+        (floor exponent 2)
+      (values (ash significand shift)
+              exponent
+              sign))))
+
+(defmethod float-integer (client (base (eql 8)) value)
+  (multiple-value-bind (significand exponent sign)
+      (float-integer client 2 value)
+    (multiple-value-bind (exponent shift)
+        (floor exponent 3)
+      (values (ash significand shift)
+              exponent
+              sign))))
+
+(defmethod float-integer (client (base (eql 16)) value)
+  (multiple-value-bind (significand exponent sign)
+      (float-integer client 2 value)
+    (multiple-value-bind (exponent shift)
+        (floor exponent 4)
+      (values (ash significand shift)
+              exponent
+              sign))))
+
+(defmethod float-integer (client (base (eql 32)) value)
+  (multiple-value-bind (significand exponent sign)
+      (float-integer client 2 value)
+    (multiple-value-bind (exponent shift)
+        (floor exponent 5)
+      (values (ash significand shift)
+              exponent
+              sign))))

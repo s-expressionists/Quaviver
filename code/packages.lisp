@@ -6,6 +6,10 @@
            #:float-integer
            #:digits-integer
            #:integer-digits
+           #:digit-integer
+           #:integer-digit
+           #:sequence-float
+           #:float-sequence
            #:storage-size
            #:significand-bytespec
            #:exponent-bytespec

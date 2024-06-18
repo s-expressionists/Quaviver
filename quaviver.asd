@@ -16,6 +16,7 @@
                 :components ((:file "packages")
                              (:file "interface")
                              (:file "traits")
+                             (:file "digit-integer")
                              (:file "integer-float-2")
                              (:file "float-integer-2")
                              (:file "digits-integer")
@@ -169,6 +170,24 @@
                 :serial t
                 :components ((:file "packages")
                              (:file "implementation")))))
+
+(defsystem "quaviver/string"
+  :description "Serialization/Deserialization for Quaviver"
+  :license "MIT"
+  :author ("Tarn W. Burton")
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ("quaviver"
+               "quaviver/liebler"
+               "quaviver/schubfach")
+  :components ((:module "code"
+                :pathname "code/string/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "common-lisp")
+                             (:file "parse-float")))))
 
 (defsystem "quaviver/ansi-test"
   :description "ANSI Test system for Quaviver"

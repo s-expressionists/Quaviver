@@ -8,9 +8,17 @@
 
 (defgeneric float-integer (client base value))
 
-(defgeneric digits-integer (client base digits))
+(defgeneric digits-integer (client base digits part &optional start end limit))
 
-(defgeneric integer-digits (client result-type base value))
+(defgeneric integer-digits (client result-type base value part))
+
+(defgeneric digit-integer (client base value part count))
+
+(defgeneric integer-digit (client base value part count))
+
+(defgeneric sequence-float (client result-type base sequence &optional start end))
+
+(defgeneric float-sequence (client result-type base value))
 
 (defgeneric storage-size (type))
 

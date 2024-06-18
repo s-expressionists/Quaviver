@@ -156,3 +156,19 @@
       (bits client long-float significand exponent sign)
     #+ecl
     (system:bits-long-float bits)))
+
+(defmethod integer-float
+    (client result-type (base (eql 4)) significand exponent sign)
+  (integer-float client result-type 2 significand (* exponent 2) sign))
+
+(defmethod integer-float
+    (client result-type (base (eql 8)) significand exponent sign)
+  (integer-float client result-type 2 significand (* exponent 3) sign))
+
+(defmethod integer-float
+    (client result-type (base (eql 16)) significand exponent sign)
+  (integer-float client result-type 2 significand (* exponent 4) sign))
+
+(defmethod integer-float
+    (client result-type (base (eql 32)) significand exponent sign)
+  (integer-float client result-type 2 significand (* exponent 5) sign))

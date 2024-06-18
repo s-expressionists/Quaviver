@@ -178,7 +178,7 @@
            (setf (aref digits i) digit)))
 
 (defmethod quaviver:integer-digits
-    (client (result-type (eql 'vector)) (base (eql 10)) value)
+    (client (result-type (eql 'vector)) (base (eql 10)) value part)
   (declare (ignore client))
   (if (zerop value)
       #(0)
@@ -229,7 +229,7 @@
            (setf (aref digits i) (digit-char digit))))
 
 (defmethod quaviver:integer-digits
-    (client (result-type (eql 'string)) (base (eql 10)) value)
+    (client (result-type (eql 'string)) (base (eql 10)) value part)
   (declare (ignore client))
   (if (zerop value)
       #(0)
@@ -242,7 +242,7 @@
          (digit-string/128 value)))))
 
 (defmethod quaviver:integer-digits
-    (client (result-type (eql 'list)) base value)
+    (client (result-type (eql 'list)) base value part)
   (declare (ignore client))
   (if (zerop value)
       (list 0)
