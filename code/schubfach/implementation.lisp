@@ -6,7 +6,7 @@
 (defmacro %schubfach (client value bits significand-size expt10 round-to-odd)
   `(block %schubfach
      (multiple-value-bind (significand exponent sign)
-         (quaviver:float-integer client 2 value)
+         (quaviver:float-integer ,client 2 ,value)
        (declare (type (unsigned-byte ,bits) significand))
        (if (or (not (numberp exponent))
                (zerop significand))
