@@ -8,7 +8,7 @@
        (values 0 0 (floor (float-sign ,value)))
        (block %schubfach
          (multiple-value-bind (significand exponent sign)
-             (quaviver:float-integer client 2 value)
+             (quaviver:float-integer ,client 2 value)
            (declare (type (unsigned-byte ,bits) significand))
            (let* ((lower-boundary-is-closer (= significand ,(ash 1 (1- significand-size))))
                   (is-even (evenp significand))
