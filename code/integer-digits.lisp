@@ -1,8 +1,8 @@
 ;;;; SPDX-FileCopyrightText: Copyright (c) 2024 s-expressionists
 ;;;; SPDX-License-Identifier: MIT
 ;;;;
-;;;; This file also contains code ported from Daniel Lemire's blog [1],
-;;;; which he has dedicated to the public domain.
+;;;; This file contains code ported from Daniel Lemire's blog [1], which
+;;;; he has dedicated to the public domain.
 ;;;; This file also contains code ported from itoa-benchmark [2], which
 ;;;; at the time of the port was copyright 2014-2016 Milo Yip and
 ;;;; licensed under the MIT license (Expat).
