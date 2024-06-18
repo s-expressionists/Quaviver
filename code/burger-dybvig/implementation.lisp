@@ -271,8 +271,8 @@
                          (setf result (+ (* 10 result) (1+ d)))
                          (decf scale))
                         (t ;; beak the tie
-                         (setf result (+ (* 10 result) (1+ d))))
-                        (decf scale))
+                         (setf result (+ (* 10 result) (1+ d)))
+                         (decf scale)))
                   (loop-finish))
                  (t
                   (setf result (+ (* 10 result) d))
