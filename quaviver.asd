@@ -177,4 +177,4 @@
                 :pathname "code/benchmark/"
                 :serial t
                 :components ((:file "packages")
-                             (:file "float-decimal")))))
+                             (:file "float-integer")))))
