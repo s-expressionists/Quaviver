@@ -178,3 +178,21 @@
                 :serial t
                 :components ((:file "packages")
                              (:file "float-integer")))))
+
+(defsystem "quaviver/compare"
+  :description "Compare implementations of Quaviver protocol"
+  :license "MIT"
+  :author ("Paul A. Patience")
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ("quaviver/ieee754"
+               "quaviver/burger-dybvig"
+               "quaviver/schubfach"
+               "lparallel")
+  :components ((:module "code"
+                :pathname "code/compare/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "float-integer")))))
