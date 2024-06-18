@@ -78,8 +78,7 @@
    #+cmucl     (logior (ash (ldb (byte 32 0)
                                  (kernel:double-float-high-bits value))
                             32)
-                       (ldb (byte 32 0)
-                            (kernel:double-float-low-bits value)))
+                       (kernel:double-float-low-bits value))
    #+ecl       (system:double-float-bits value)
    #+lispworks (let ((v (sys:make-typed-aref-vector 8)))
                  (declare (optimize (speed 3) (float 0) (safety 0))
@@ -96,8 +95,7 @@
    #+sbcl      (logior (ash (ldb (byte 32 0)
                                  (sb-kernel:double-float-high-bits value))
                             32)
-                       (ldb (byte 32 0)
-                            (sb-kernel:double-float-low-bits value)))
+                       (sb-kernel:double-float-low-bits value))
    :significand-size 52
    :exponent-size 11
    :hidden-bit t
