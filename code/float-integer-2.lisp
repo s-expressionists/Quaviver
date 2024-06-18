@@ -18,7 +18,15 @@
                     exponent)
               (type (integer -1 1)
                     sign))
-     (cond ((and (zerop significand)
+     (cond ((= exponent ,(1- (ash 1 exponent-size)))
+            (if (zerop significand) ; infinity
+                (values 0 :infinity sign)
+                (values (ldb (byte ,(1- significand-size) 0) significand)
+                        (if (logbitp ,(1- significand-size) significand)
+                            :quiet-nan
+                            :signaling-nan)
+                        sign)))
+           ((and (zerop significand)
                  (zerop exponent))
             (values 0 0 sign))
            ((zerop exponent) ; subnormal

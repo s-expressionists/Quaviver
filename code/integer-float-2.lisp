@@ -14,23 +14,41 @@
                           ,(ash 1 (+ significand-size exponent-size))
                           0)))
        ,@declarations
-       (unless (or (>= ,exponent ,(- exponent-bias))
-                   (plusp (+ ,significand-size
-                             ,exponent
-                             ,exponent-bias)))
-         (error "Unable to encode subnormal float with significand of ~a and exponent
+       (cond ((numberp exponent)
+              (unless (or (>= ,exponent ,(- exponent-bias))
+                          (plusp (+ ,significand-size
+                                    ,exponent
+                                    ,exponent-bias)))
+                (error "Unable to encode subnormal float with significand of ~a and exponent
 of ~a when the significand size is ~a and the exponent size is ~a."
-                ,significand ,exponent
-                ,significand-size ,exponent-size))
-       (incf ,exponent ,exponent-bias)
-       (cond ((minusp ,exponent) ; Unadjusted subnormal
-              (setf (ldb (byte (+ ,significand-size ,exponent) 0)
-                         ,bits-var)
-                    (ldb (byte (+ ,significand-size ,exponent) (- 1 ,exponent))
-                         ,significand)))
+                       ,significand ,exponent
+                       ,significand-size ,exponent-size))
+              (incf ,exponent ,exponent-bias)
+              (cond ((minusp ,exponent) ; Unadjusted subnormal
+                     (setf (ldb (byte (+ ,significand-size ,exponent)
+                                      0)
+                                ,bits-var)
+                           (ldb (byte (+ ,significand-size ,exponent)
+                                      (- 1 ,exponent))
+                                ,significand)))
+                    (t
+                     (setf (ldb (byte ,significand-size 0) ,bits-var)
+                           ,significand
+                           (ldb (byte ,exponent-size ,significand-size) ,bits-var)
+                           ,exponent))))
              (t
-              (setf (ldb (byte ,significand-size 0) ,bits-var) ,significand
-                    (ldb (byte ,exponent-size ,significand-size) ,bits-var) ,exponent)))
+              (setf (ldb (byte ,exponent-size ,significand-size) ,bits-var)
+                    ,(1- (ash 1 exponent-size)))
+              (ecase exponent
+                (:infinity)
+                (:quiet-nan
+                 (setf (ldb (byte 1 ,(1- significand-size)) ,bits-var)
+                       1
+                       (ldb (byte ,(1- significand-size) 0) ,bits-var)
+                       significand))
+                (:signaling-nan
+                 (setf (ldb (byte ,(1- significand-size) 0) ,bits-var)
+                       (if (zerop significand) significand 1))))))
        ,@forms)))
 
 (declaim (inline ub32-sb32))
