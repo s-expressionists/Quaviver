@@ -21,20 +21,28 @@
                  floor-log2-expt10
                  floor-log10-expt2))
 
+(defmacro %round-to-odd-1 (g cp size)
+  `(let ((p (* ,g ,cp)))
+     (logior (ldb (byte ,size ,(ash size 1)) p)
+             (if (> (ldb (byte ,size ,size) p) 1) 1 0))))
+
+(defmacro %round-to-odd-2 (g cp size)
+  `(let ((p (ash (* ,g ,cp) ,(- size))))
+     (if (ldb-test (byte ,(1- size) 1) p)
+         (logior (ash p ,(- size)) 1)
+         (ash p ,(- size)))))
+
 (defun round-to-odd/32 (g cp)
-  (let ((p (* g cp)))
-    (logior (ldb (byte 32 64) p)
-            (if (> (ldb (byte 32 32) p) 1) 1 0))))
+  #-(or ecl cmucl) (%round-to-odd-1 g cp 32)
+  #+(or ecl cmucl) (%round-to-odd-2 g cp 32))
 
 (defun round-to-odd/64 (g cp)
-  (let ((p (* g cp)))
-    (logior (ldb (byte 64 128) p)
-            (if (> (ldb (byte 64 64) p) 1) 1 0))))
+  (%round-to-odd-1 g cp 64)
+  (%round-to-odd-2 g cp 64))
 
 (defun round-to-odd/128 (g cp)
-  (let ((p (* g cp)))
-    (logior (ldb (byte 128 256) p)
-            (if (> (ldb (byte 128 128) p) 1) 1 0))))
+  (%round-to-odd-1 g cp 128)
+  (%round-to-odd-2 g cp 128))
 
 (defconstant +expt10/min-exponent/32+ -31)
 
