@@ -34,7 +34,6 @@
   (loop with value = (quaviver:bits-float *ieee754-client* float-type bits)
         with result
         for (name initargs) on clients by #'cddr
-        for (previous-name previous-initargs) on (list* nil nil clients) by #'cddr
         for intrep = (handler-case (multiple-value-list
                                     (quaviver:float-integer
                                      (apply #'make-instance initargs) base value))
