@@ -1,0 +1,54 @@
+#!/bin/sh
+# SPDX-FileCopyrightText: Copyright (c) 2024 s-expressionists
+# SPDX-License-Identifier: MIT
+
+# Usage:
+#
+#   bench [IMPLEMENTATION...]
+
+set -o nounset
+set -o pipefail
+set -o errexit
+
+abcl() {
+  printf -- "--- ABCL ----------------------------------------------------------------------\n"
+  command abcl --noinform "$@" | sed '/^;/d'
+}
+
+ccl() {
+  printf -- "--- CCL -----------------------------------------------------------------------\n"
+  command ccl "$@"
+}
+
+clasp() {
+  printf -- "--- Clasp ---------------------------------------------------------------------\n"
+  command clasp --noinform "$@" | sed '/^;/d'
+}
+
+ecl() {
+  printf -- "--- ECL -----------------------------------------------------------------------\n"
+  command ecl "$@" | sed '/^;;;/d'
+}
+
+sbcl() {
+  printf -- "--- SBCL ----------------------------------------------------------------------\n"
+  command sbcl --noinform "$@" 2>&1 | awk '!keep && /^ +float-integer/ { keep=1; print "" } keep { print }'
+}
+
+bench() {
+  for implementation in "$@"; do
+    "$implementation" \
+      --eval '(require "asdf")' \
+      --eval '(asdf:load-system "quaviver/benchmark")' \
+      --eval '(quaviver/benchmark:float-integer)' \
+      --eval '(uiop:quit)' \
+      2>/dev/null
+    printf "\n"
+  done
+}
+
+if test -z "$@"; then
+  bench abcl ccl clasp ecl sbcl
+else
+  bench "$@"
+fi
