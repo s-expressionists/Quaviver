@@ -109,7 +109,7 @@
    :hidden-bit t
    :exponent-bias 1075))
 
-#+(and ecl long-float)
+#+quaviver/long-float
 (defmethod float-integer (client (base (eql 2)) (value long-float))
   (declare (ignore client))
   (%integer-decode-float

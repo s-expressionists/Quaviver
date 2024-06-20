@@ -1,83 +1,94 @@
 (cl:in-package #:quaviver/benchmark)
 
+(defvar *tests*
+  (list `(:type single-float :limit ,most-positive-single-float)
+        `(:type double-float :limit ,most-positive-double-float)
+        #+quaviver/long-float
+        `(:type long-float   :limit ,most-positive-long-float)))
+
 (defvar *clients*
-  `((:label "Burger-Dybvig" :initargs (quaviver/burger-dybvig:client))
-    (:label "Schubfach"       :initargs (quaviver/schubfach:client))
+  `((:label "Burger-Dybvig"
+     :initargs (quaviver/burger-dybvig:client)
+     :types (single-float double-float long-float))
+    (:label "Schubfach"
+     :initargs (quaviver/schubfach:client)
+     :types (single-float double-float long-float))
     #+(or abcl ccl clasp cmucl ecl sbcl)
     (:label ,(format nil
                      "Native (~a)"
                      (lisp-implementation-type))
-                              :initargs (quaviver/native:benchmark-client))))
+     :initargs (quaviver/native:benchmark-client)
+     :types (single-float double-float long-float))))
 
 (defun float-integer (&optional (base 10))
   (labels ((bench (clients limit key)
              (mapcar (lambda (properties
                               &aux (client (apply #'make-instance
                                                   (getf properties :initargs))))
-                       ;; Do one conversion in case there is some initialization needed.
-                       (quaviver:float-integer client base (random limit))
-                       (list* key
-                              (the-cost-of-nothing:benchmark
-                               (quaviver:float-integer client
-                                                       base
-                                                       (* (1- (ash (random 2) 1))
-                                                          (random limit))))
-                              properties))
+                       (cond ((member key (getf properties :types))
+                              ;; Do one conversion in case there is some initialization needed.
+                              (quaviver:float-integer client base (random limit))
+                              (list* key
+                                     (the-cost-of-nothing:benchmark
+                                      (quaviver:float-integer client
+                                                              base
+                                                              (* (1- (ash (random 2) 1))
+                                                                 (random limit))))
+                                     properties))
+                             (t
+                              properties)))
                      clients))
            (plot (title results key)
              (write-string (cl-spark:vspark
-                            (mapcar (lambda (properties)
-                                      (getf properties key))
+                            (mapcan (lambda (properties
+                                             &aux (value (getf properties key)))
+                                      (when value
+                                        (list value)))
                                     results)
                             :title title
                             :min 0
                             :size 132
-                            :labels (mapcar (lambda (client)
-                                              (getf client :label))
+                            :labels (mapcan (lambda (client)
+                                              (when (getf client key)
+                                                (list (getf client :label))))
                                             results)))))
     (let ((results *clients*)
-          (table (ascii-table:make-table '("client"
-                                           "         absolute single-float"
-                                           "relative single-float"
-                                           "         absolute double-float"
-                                           "relative double-float"
-                                           #+(and ecl long-float)
-                                           "           absolute long-float"
-                                           #+(and ecl long-float)
-                                           "  relative long-float"))))
-      (setf results (bench results
-                           most-positive-single-float
-                           :single-time))
-      (setf results (bench results
-                           most-positive-double-float
-                           :double-time))
-      #+(and ecl long-float)
-      (setf results (bench results
-                           most-positive-long-float
-                           :long-time))
-      (plot "float-integer single-float" results :single-time)
-      (terpri)
-      (plot "float-integer double-float" results :double-time)
-      (terpri)
-      #+(and ecl long-float) (plot "float-integer long-float" results :long-time)
-      #+(and ecl long-float) (terpri)
-      (loop with min-single = (loop for result in results
-                                    minimize (getf result :single-time))
-            with min-double = (loop for result in results
-                                    minimize (getf result :double-time))
-            with min-long = (loop for result in results
-                                    minimize (getf result :long-time 0))
+          (table (ascii-table:make-table
+                  (list* "client"
+                         (loop for test in *tests*
+                               for type = (getf test :type)
+                               collect (format nil "~21@a"
+                                               (format nil "absolute ~(~a~)" type))
+                               collect (format nil "~21@a"
+                                               (format nil "relative ~(~a~)" type)))))))
+      (loop for test in *tests*
+            for type = (getf test :type)
+            for limit = (getf test :limit)
+            do (setf results (bench results limit type))
+               (plot (format nil "float-integer ~(~a~)" type)
+                     results type)
+               (terpri))
+      (loop with mins = (loop for test in *tests*
+                              for type = (getf test :type)
+                              collect type
+                              collect (loop for result in results
+                                            for value = (getf result type)
+                                            when value
+                                              minimize value))
             for result in results
-            do (ascii-table:add-row table (list (getf result :label)
-                                                (format nil "~30g" (getf result :single-time))
-                                                (format nil "~21,15f" (/ (getf result :single-time)
-                                                                  min-single))
-                                                (format nil "~30g" (getf result :double-time))
-                                                (format nil "~21,15f" (/ (getf result :double-time)
-                                                                  min-double))
-                                                #+(and ecl long-float)
-                                                (format nil "~30g" (getf result :long-time))
-                                                #+(and ecl long-float)
-                                                (format nil "~21,15f" (/ (getf result :long-time)
-                                                                  min-long)))))
+            do (ascii-table:add-row table (list* (getf result :label)
+                                                 (loop for test in *tests*
+                                                       for type = (getf test :type)
+                                                       for value = (getf result type)
+                                                       when value
+                                                         collect (format nil "~21,15g"
+                                                                         (getf result type))
+                                                         and collect (format nil "~21,15f"
+                                                                             (/ (getf result type)
+                                                                                (getf mins type)))
+                                                       else
+                                                         collect (make-string 21
+                                                                              :initial-element #\space)
+                                                         and collect (make-string 21
+                                                                                  :initial-element #\space)))))
       (ascii-table:display table))))
