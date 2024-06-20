@@ -101,6 +101,7 @@
 
 (defmethod quaviver:float-integer :around
     ((client client) (base (eql 10)) value)
+  (declare (ignore value))
   (multiple-value-bind (significand exponent sign)
       (call-next-method)
     (unless (or (not (numberp exponent))
