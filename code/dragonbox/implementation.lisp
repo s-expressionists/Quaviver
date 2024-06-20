@@ -452,6 +452,9 @@
                            (,cache-type cache)
                            (,shift-amount-type beta)
                            (,remainder-type deltai))
+                  (format t "deltai ~A deltai/2 ~A~%" deltai (floor deltai 2))
+                  ;; This fails.
+                  (format t "sum ~A~%" (- (floor deltai 2)))
                   (multiple-value-bind (z-result-integer-part z-result-integer-p)
                       (compute-mul (ash (logior two-fc 1) beta) cache)
                     (declare (,carrier-type z-result-integer-part))
