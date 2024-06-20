@@ -177,6 +177,8 @@
                 :pathname "code/benchmark/"
                 :serial t
                 :components ((:file "packages")
+                             (:file "results")
+                             (:file "report")
                              (:file "float-integer")))))
 
 (defsystem "quaviver/compare"

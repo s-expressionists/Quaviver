@@ -2,4 +2,5 @@
 
 (defpackage #:quaviver/benchmark
   (:use #:common-lisp)
-  (:export #:float-integer))
+  (:export #:float-integer
+           #:report))

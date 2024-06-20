@@ -14,13 +14,12 @@
      :initargs (quaviver/schubfach:client)
      :types (single-float double-float long-float))
     #+(or abcl ccl clasp cmucl ecl sbcl)
-    (:label ,(format nil
-                     "Native (~a)"
-                     (lisp-implementation-type))
+    (:label "Native"
      :initargs (quaviver/native:benchmark-client)
      :types (single-float double-float long-float))))
 
-(defun float-integer (&optional (base 10))
+(defun float-integer (&key (base 10)
+                           (name (uiop:implementation-identifier)))
   (labels ((bench (clients limit key)
              (mapcar (lambda (properties
                               &aux (client (apply #'make-instance
@@ -68,6 +67,7 @@
                (plot (format nil "float-integer ~(~a~)" type)
                      results type)
                (terpri))
+      (write-results name `(quaviver:float-integer ,base) results)
       (loop with mins = (loop for test in *tests*
                               for type = (getf test :type)
                               collect type
