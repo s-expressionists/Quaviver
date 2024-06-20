@@ -20,7 +20,8 @@
                               (the-cost-of-nothing:benchmark
                                (quaviver:float-integer client
                                                        base
-                                                       (random limit)))
+                                                       (* (1- (ash (random 2) 1))
+                                                          (random limit))))
                               properties))
                      clients))
            (plot (title results key)
