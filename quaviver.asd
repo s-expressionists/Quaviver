@@ -137,6 +137,23 @@
                 :components ((:file "packages")
                              (:file "implementation")))))
 
+(defsystem "quaviver/dragonbox"
+  :description "Dragonbox algorithm for Quaviver"
+  :license "MIT AND (Apache-2.0 WITH LLVM-exception OR BSL-1.0)"
+  :author ("Paul A. Patience")
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ("quaviver"
+               "quaviver/math"
+               "quaviver/trailing-zeros")
+  :components ((:module "code"
+                :pathname "code/dragonbox/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "implementation")))))
+
 (defsystem "quaviver/ansi-test"
   :description "ANSI Test system for Quaviver"
   :license "MIT"
@@ -149,7 +166,8 @@
   :depends-on ("ansi-test-harness"
                "invistra-extrinsic"
                "quaviver/burger-dybvig"
-               "quaviver/schubfach")
+               "quaviver/schubfach"
+               "quaviver/dragonbox")
   :perform (test-op (op c)
              (symbol-call :quaviver/ansi-test :test))
   :components ((:module "code"
@@ -172,7 +190,8 @@
                "cl-ascii-table"
                "quaviver/burger-dybvig"
                "quaviver/native"
-               "quaviver/schubfach")
+               "quaviver/schubfach"
+               "quaviver/dragonbox")
   :components ((:module "code"
                 :pathname "code/benchmark/"
                 :serial t
@@ -190,6 +209,7 @@
   :depends-on ("quaviver/ieee754"
                "quaviver/burger-dybvig"
                "quaviver/schubfach"
+               "quaviver/dragonbox"
                "lparallel")
   :components ((:module "code"
                 :pathname "code/compare/"

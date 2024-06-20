@@ -46,9 +46,15 @@
      quaviver/schubfach:client)
   ())
 
+(defclass dragonbox
+    (inravina-extrinsic:extrinsic-client
+     quaviver/dragonbox:client)
+  ())
+
 (defvar *client-initargs*
   '((burger-dybvig)
-    (schubfach)))
+    (schubfach)
+    (dragonbox)))
 
 (defun test (&rest args &key exit &allow-other-keys)
   (setf args (remprop :exit args))
