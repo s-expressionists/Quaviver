@@ -19,6 +19,7 @@
                                                                when (getf algo type)
                                                                  do (return-from wibble t)))))
                                             '(short-float single-float double-float long-float))))
+  (format t "~a~%~%" name)
   (write-line
    (cl-spark:vspark
     (loop with gap = nil
@@ -61,9 +62,8 @@
                                                             type))))))
   (format t "~%Absolute and Relative Times~%")
   (let ((table (ascii-table:make-table
-                (list* (format nil "~va | ~va"
-                               implementation-width "Implementation"
-                               algo-width "Client")
+                (list* "Implementation"
+                       "Client"
                        (loop for type in types
                              collect (ecase type
                                        (short-float  " abs short")
@@ -86,10 +86,8 @@
           do (loop for algo in v
                    do (ascii-table:add-row
                        table
-                       (list* (format nil "~va | ~a"
-                                      (max 14 implementation-width)
-                                      implementation
-                                      (getf algo :label))
+                       (list* implementation
+                              (getf algo :label)
                               (loop for type in types
                                     for val = (getf algo type)
                                     when val
