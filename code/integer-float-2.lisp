@@ -3,53 +3,67 @@
 (defmacro %integer-encode-float
   ((bits-var significand exponent sign
     &key significand-size
-         exponent-size
-         ((:hidden-bit hidden-bit-p) nil)
-         exponent-bias)
+      exponent-size
+      ((:hidden-bit hidden-bit-p) nil)
+      exponent-bias)
    &body body)
-  (declare (ignore hidden-bit-p))
-  (multiple-value-bind (forms declarations)
-      (alexandria:parse-body body)
-    `(let ((,bits-var (if (minusp ,sign)
-                          ,(ash 1 (+ significand-size exponent-size))
-                          0)))
-       ,@declarations
-       (cond ((numberp exponent)
-              (unless (or (>= ,exponent ,(- exponent-bias))
-                          (plusp (+ ,significand-size
-                                    ,exponent
-                                    ,exponent-bias)))
-                (error "Unable to encode subnormal float with significand of ~a and exponent
-of ~a when the significand size is ~a and the exponent size is ~a."
-                       ,significand ,exponent
-                       ,significand-size ,exponent-size))
-              (incf ,exponent ,exponent-bias)
-              (cond ((minusp ,exponent) ; Unadjusted subnormal
-                     (setf (ldb (byte (+ ,significand-size ,exponent)
-                                      0)
-                                ,bits-var)
-                           (ldb (byte (+ ,significand-size ,exponent)
-                                      (- 1 ,exponent))
-                                ,significand)))
-                    (t
-                     (setf (ldb (byte ,significand-size 0) ,bits-var)
-                           ,significand
-                           (ldb (byte ,exponent-size ,significand-size) ,bits-var)
-                           ,exponent))))
-             (t
-              (setf (ldb (byte ,exponent-size ,significand-size) ,bits-var)
-                    ,(1- (ash 1 exponent-size)))
-              (ecase exponent
-                (:infinity)
-                (:quiet-nan
-                 (setf (ldb (byte 1 ,(1- significand-size)) ,bits-var)
-                       1
-                       (ldb (byte ,(1- significand-size) 0) ,bits-var)
-                       significand))
-                (:signaling-nan
-                 (setf (ldb (byte ,(1- significand-size) 0) ,bits-var)
-                       (if (zerop significand) significand 1))))))
-       ,@forms)))
+  (let ((decoded-significand-size (if hidden-bit-p
+                                      (1+ significand-size)
+                                      significand-size)))
+    (multiple-value-bind (forms declarations)
+        (alexandria:parse-body body)
+      `(let ((,bits-var (if (minusp ,sign)
+                            ,(ash 1 (+ significand-size exponent-size))
+                            0)))
+         ,@declarations
+         (cond ((keywordp exponent)
+                (setf (ldb (byte ,exponent-size ,significand-size) ,bits-var)
+                      ,(1- (ash 1 exponent-size)))
+                (ecase exponent
+                  (:infinity)
+                  (:quiet-nan
+                   (setf (ldb (byte 1 ,(1- significand-size)) ,bits-var)
+                         1
+                         (ldb (byte ,(1- significand-size) 0) ,bits-var)
+                         ,significand))
+                  (:signaling-nan
+                   (setf (ldb (byte ,(1- significand-size) 0) ,bits-var)
+                         (if (zerop ,significand) 1 ,significand)))))
+               (t
+                (unless (zerop ,significand)
+                  (let ((shift (- ,decoded-significand-size
+                                  (integer-length ,significand))))
+                    (setf ,significand (ash ,significand shift))
+                    (decf ,exponent shift)))
+                (cond ((zerop ,significand)
+                       (setf (ldb (byte ,exponent-size ,significand-size) ,bits-var)
+                             ,exponent-bias))
+                      (t
+                       (unless (and (< ,exponent
+                                       ,(- (1- (ash 1 exponent-size)) exponent-bias))
+                                    (or (>= ,exponent ,(- exponent-bias))
+                                        (plusp (+ ,significand-size
+                                                  ,exponent
+                                                  ,exponent-bias))))
+                         (error "Unable to encode float with significand of ~a and ~
+                                 exponent of ~a when~%the significand size is ~a and ~
+                                 the exponent size is ~a."
+                                ,significand ,exponent
+                                ,significand-size ,exponent-size))
+                       (incf ,exponent ,exponent-bias)
+                       (cond ((minusp ,exponent) ; Unadjusted subnormal
+                              (setf (ldb (byte (+ ,significand-size ,exponent)
+                                               0)
+                                         ,bits-var)
+                                    (ldb (byte (+ ,significand-size ,exponent)
+                                               (- 1 ,exponent))
+                                         ,significand)))
+                             (t
+                              (setf (ldb (byte ,significand-size 0) ,bits-var)
+                                    ,significand
+                                    (ldb (byte ,exponent-size ,significand-size) ,bits-var)
+                                    ,exponent)))))))
+         ,@forms))))
 
 (declaim (inline ub32-sb32))
 (defun ub32-sb32 (ub32)
