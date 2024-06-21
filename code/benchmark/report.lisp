@@ -86,10 +86,9 @@
           do (loop for algo in v
                    do (ascii-table:add-row
                        table
-                       (list* (format nil "~va | ~va"
-                                      implementation-width
+                       (list* (format nil "~va | ~a"
+                                      (max 14 implementation-width)
                                       implementation
-                                      algo-width
                                       (getf algo :label))
                               (loop for type in types
                                     for val = (getf algo type)
