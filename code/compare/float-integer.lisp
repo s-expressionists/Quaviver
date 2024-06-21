@@ -87,7 +87,11 @@
                        (loop for bits from sublower below subupper-exclusive
                              for discrepancy = (float-integer clients float-type base bits)
                              do (unless (null discrepancy)
-                                  (format stream "~S~%" discrepancy)))
+                                  (format stream "(#x~v,'0X ~{~S~^ ~})~%"
+                                          (ecase float-type
+                                            (single-float 8)
+                                            (double-float 16))
+                                          (first discrepancy) (rest discrepancy))))
                        :close-stream
                        pathname)))))
            finally (let ((pathnames (loop repeat parts
