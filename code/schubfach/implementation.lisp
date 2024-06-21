@@ -62,7 +62,10 @@
                                  k
                                  sign))))
                    (let* ((mid (+ (ash s 2) 2))
-                          (round-up (or (> significand mid)
+                          (round-up (>= significand mid)
+                                    ;; yitzchak: changed this to match
+                                    ;; Burger-Dybvig rounding
+                                    #+(or)(or (> significand mid)
                                         (and (= significand mid)
                                              (logbitp s 0)))))
                      (declare (type (unsigned-byte ,word-size)
