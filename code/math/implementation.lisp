@@ -37,11 +37,9 @@
   #+(or ecl cmucl) (%round-to-odd-2 g cp 32))
 
 (defun round-to-odd/64 (g cp)
-  (%round-to-odd-1 g cp 64)
   (%round-to-odd-2 g cp 64))
 
 (defun round-to-odd/128 (g cp)
-  (%round-to-odd-1 g cp 128)
   (%round-to-odd-2 g cp 128))
 
 (defconstant +expt10/min-exponent/32+ -31)
