@@ -184,7 +184,8 @@
 (defsystem "quaviver/compare"
   :description "Compare implementations of Quaviver protocol"
   :license "MIT"
-  :author ("Paul A. Patience")
+  :author ("Paul A. Patience"
+           "Tarn W. Burton")
   :version (:read-file-form "version.sexp")
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
@@ -197,4 +198,5 @@
                 :pathname "code/compare/"
                 :serial t
                 :components ((:file "packages")
+                             (:file "utility")
                              (:file "float-integer")))))
