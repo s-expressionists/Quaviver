@@ -108,7 +108,7 @@
                 (1- (ash 1 (float-size float-type))))
         job-count (min (- end start) job-count))
   (format t "Starting ~s job~p on ~s worker~p.~%"
-          worker-count worker-count job-count job-count)
+          job-count job-count worker-count worker-count)
   (finish-output)
   (let* ((lparallel:*kernel* (lparallel:make-kernel worker-count))
          (channel (lparallel:make-channel))
