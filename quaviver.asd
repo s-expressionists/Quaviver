@@ -137,6 +137,22 @@
                 :components ((:file "packages")
                              (:file "implementation")))))
 
+(defsystem "quaviver/liebler"
+  :description "Liebler algorithm for Quaviver"
+  :license "MIT"
+  :author ("Tarn W. Burton")
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ("quaviver"
+               "quaviver/math")
+  :components ((:module "code"
+                :pathname "code/liebler/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "implementation")))))
+
 (defsystem "quaviver/ansi-test"
   :description "ANSI Test system for Quaviver"
   :license "MIT"

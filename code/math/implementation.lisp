@@ -42,7 +42,7 @@
 (defun round-to-odd/128 (g cp)
   (%round-to-odd-2 g cp 128))
 
-(defconstant +expt10/min-exponent/32+ -31)
+(defconstant +expt10/min-exponent/32+ -53)
 
 (defconstant +expt10/max-exponent/32+ 53)
 
@@ -53,7 +53,7 @@
   (svref *expt10/values/32*
          (- (- +expt10/min-exponent/32+) power)))
 
-(defconstant +expt10/min-exponent/64+ -292)
+(defconstant +expt10/min-exponent/64+ -342)
 
 (defconstant +expt10/max-exponent/64+ 342)
 
@@ -64,7 +64,7 @@
   (svref *expt10/values/64*
          (- (- +expt10/min-exponent/64+) power)))
 
-(defconstant +expt10/min-exponent/128+ -4913)
+(defconstant +expt10/min-exponent/128+ -5023)
 
 (defconstant +expt10/max-exponent/128+ 5023)
 

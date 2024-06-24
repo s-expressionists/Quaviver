@@ -51,18 +51,18 @@
                                 ,significand ,exponent
                                 ,significand-size ,exponent-size))
                        (incf ,exponent ,exponent-bias)
-                       (cond ((minusp ,exponent) ; Unadjusted subnormal
+                       (cond ((plusp ,exponent)
+                              (setf (ldb (byte ,significand-size 0) ,bits-var)
+                                    ,significand
+                                    (ldb (byte ,exponent-size ,significand-size) ,bits-var)
+                                    ,exponent))
+                             (t ; Unadjusted subnormal
                               (setf (ldb (byte (+ ,significand-size ,exponent)
                                                0)
                                          ,bits-var)
                                     (ldb (byte (+ ,significand-size ,exponent)
                                                (- 1 ,exponent))
-                                         ,significand)))
-                             (t
-                              (setf (ldb (byte ,significand-size 0) ,bits-var)
-                                    ,significand
-                                    (ldb (byte ,exponent-size ,significand-size) ,bits-var)
-                                    ,exponent)))))))
+                                         ,significand))))))))
          ,@forms))))
 
 (declaim (inline ub32-sb32))
