@@ -6,7 +6,8 @@
 (defmacro %liebler (client result-type significand exponent sign bits significand-size expt10 round-to-odd)
   `(if (or (not (numberp ,exponent))
            (zerop ,significand))
-       (values ,significand ,exponent ,sign)
+       (quaviver:integer-float ,client ,result-type 2
+                               ,significand ,exponent ,sign)
        (let ((k (quaviver/math:floor-log2-expt10 ,exponent))
              (shift (- ,bits (integer-length ,significand))))
          (setf ,significand (,round-to-odd (,expt10 (- ,exponent))
