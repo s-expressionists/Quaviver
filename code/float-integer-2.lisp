@@ -1,46 +1,51 @@
 (in-package #:quaviver)
 
-(defmacro %integer-decode-float
-    (value
-     &key significand-size
-          exponent-size
-          ((:hidden-bit hidden-bit-p) nil)
-           exponent-bias)
-  `(let* ((bits ,value)
-          (significand (ldb (byte ,significand-size 0) bits))
-          (exponent (ldb (byte ,exponent-size ,significand-size) bits))
-          (sign (if (logbitp ,(+ exponent-size significand-size) bits) -1 1)))
-     (declare (type (unsigned-byte ,(+ 1 exponent-size significand-size))
-                    bits)
-              (type (unsigned-byte ,significand-size)
-                    significand)
-              (type (unsigned-byte ,exponent-size)
-                    exponent)
-              (type (integer -1 1)
-                    sign))
-     (cond ((= exponent ,(1- (ash 1 exponent-size)))
-            (if (zerop significand) ; infinity
-                (values 0 :infinity sign)
-                (values (ldb (byte ,(1- significand-size) 0) significand)
-                        (if (logbitp ,(1- significand-size) significand)
-                            :quiet-nan
-                            :signaling-nan)
-                        sign)))
-           ((and (zerop significand)
-                 (zerop exponent))
-            (values 0 0 sign))
-           ((zerop exponent) ; subnormal
-            (let ((shift (- ,(if hidden-bit-p (1+ significand-size) significand-size)
-                            (integer-length significand))))
-              (values (ash significand shift)
-                      (- ,(- 1 exponent-bias) shift)
-                      sign)))
-           (t
-            (values ,(if hidden-bit-p
-                         `(logior significand ,(ash 1 significand-size))
-                         'significand)
-                    (- exponent ,exponent-bias)
-                    sign)))))
+(defmacro %integer-decode-float (type value)
+  (with-accessors ((storage-size storage-size)
+                   (significand-bytespec significand-bytespec)
+                   (exponent-bytespec exponent-bytespec)
+                   (sign-bytespec sign-bytespec)
+                   (nan-payload-bytespec nan-payload-bytespec)
+                   (nan-type-bytespec nan-type-bytespec)
+                   (hidden-bit-p hidden-bit-p)
+                   (exponent-bias exponent-bias))
+      type
+    `(let* ((bits ,value)
+            (exponent (ldb ',exponent-bytespec bits))
+            (sign (if (ldb-test ',sign-bytespec bits) -1 1)))
+       (declare (type (unsigned-byte ,storage-size)
+                      bits)
+                (type (unsigned-byte ,(byte-size exponent-bytespec))
+                      exponent)
+                (type (integer -1 1)
+                      sign))
+       (cond ((= exponent ,(1- (ash 1 (byte-size exponent-bytespec))))
+              (if (ldb-test ',significand-bytespec bits) ; nan
+                  (values (ldb ',nan-payload-bytespec bits)
+                          (if (ldb-test ',nan-type-bytespec bits)
+                              :quiet-nan
+                              :signaling-nan)
+                          1)
+                  (values 0 :infinity sign)))
+             (t
+              (let ((significand (ldb ',significand-bytespec bits)))
+                (declare (type (unsigned-byte ,(byte-size significand-bytespec))
+                               significand))
+                (cond ((and (zerop significand)
+                            (zerop exponent))
+                       (values 0 0 sign))
+                      ((zerop exponent) ; subnormal
+                       (let ((shift (- ,(byte-size significand-bytespec)
+                                       (integer-length significand))))
+                         (values (ash significand shift)
+                                 (- ,(- 1 exponent-bias) shift)
+                                 sign)))
+                      (t
+                       (values ,(if hidden-bit-p
+                                    `(logior significand ,(ash 1 (byte-size significand-bytespec)))
+                                    'significand)
+                               (- exponent ,exponent-bias)
+                               sign)))))))))
 
 #-(or abcl allegro clasp cmucl ecl lispworks sbcl)
 (defmethod float-integer (client (base (eql 2)) value)
@@ -53,6 +58,7 @@
 (defmethod float-integer (client (base (eql 2)) (value single-float))
   (declare (ignore client))
   (%integer-decode-float
+    single-float
    #+abcl      (system:single-float-bits value)
    #+allegro   (multiple-value-bind (us1 us0)
                    (excl:single-float-to-shorts value)
@@ -67,16 +73,13 @@
                  (setf (sys:typed-aref 'single-float v 0) value)
                  (sys:typed-aref '(unsigned-byte 32) v 0))
    #+sbcl      (ldb (byte 32 0)
-                    (sb-kernel:single-float-bits value))
-   :significand-size 23
-   :exponent-size 8
-   :hidden-bit t
-   :exponent-bias 150))
+                    (sb-kernel:single-float-bits value))))
 
 #+(or abcl allegro clasp cmucl ecl lispworks sbcl)
 (defmethod float-integer (client (base (eql 2)) (value double-float))
   (declare (ignore client))
   (%integer-decode-float
+   double-float
    #+abcl      (logior (ash (system:double-float-high-bits value) 32)
                        (system:double-float-low-bits value))
    #+allegro   (multiple-value-bind (us3 us2 us1 us0)
@@ -103,18 +106,10 @@
    #+sbcl      (logior (ash (ldb (byte 32 0)
                                  (sb-kernel:double-float-high-bits value))
                             32)
-                       (sb-kernel:double-float-low-bits value))
-   :significand-size 52
-   :exponent-size 11
-   :hidden-bit t
-   :exponent-bias 1075))
+                       (sb-kernel:double-float-low-bits value))))
 
 #+quaviver/long-float
 (defmethod float-integer (client (base (eql 2)) (value long-float))
   (declare (ignore client))
-  (%integer-decode-float
-   (system:long-float-bits value)
-   :significand-size 64
-   :exponent-size 15
-   :hidden-bit nil
-   :exponent-bias 16446))
+  (%integer-decode-float long-float
+                         (system:long-float-bits value)))

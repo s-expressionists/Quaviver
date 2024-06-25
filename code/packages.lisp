@@ -5,7 +5,19 @@
            #:integer-float
            #:float-integer
            #:digits-integer
-           #:integer-digits))
+           #:integer-digits
+           #:storage-size
+           #:significand-bytespec
+           #:exponent-bytespec
+           #:sign-bytespec
+           #:nan-payload-bytespec
+           #:nan-type-bytespec
+           #:hidden-bit-p
+           #:exponent-bias
+           #:max-exponent
+           #:min-exponent
+           #:significand-size
+           #:arithmetic-size))
 
 #+(and ecl long-float)
 (eval-when (:compile-toplevel :load-toplevel :execute)

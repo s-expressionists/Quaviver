@@ -15,6 +15,7 @@
                 :serial t
                 :components ((:file "packages")
                              (:file "interface")
+                             (:file "traits")
                              (:file "integer-float-2")
                              (:file "float-integer-2")
                              (:file "digits-integer")
