@@ -1,67 +1,73 @@
 (in-package #:quaviver)
 
 (defmacro %integer-encode-float
-  ((bits-var significand exponent sign
-    &key significand-size
-      exponent-size
-      ((:hidden-bit hidden-bit-p) nil)
-      exponent-bias)
-   &body body)
-  (let ((decoded-significand-size (if hidden-bit-p
-                                      (1+ significand-size)
-                                      significand-size)))
+    ((type bits-var significand exponent sign) &body body)
+  (with-accessors ((storage-size storage-size)
+                   (significand-bytespec significand-bytespec)
+                   (exponent-bytespec exponent-bytespec)
+                   (sign-bytespec sign-bytespec)
+                   (nan-payload-bytespec nan-payload-bytespec)
+                   (nan-type-bytespec nan-type-bytespec)
+                   (hidden-bit-p hidden-bit-p)
+                   (exponent-bias exponent-bias))
+      type
     (multiple-value-bind (forms declarations)
         (alexandria:parse-body body)
-      `(let ((,bits-var (if (minusp ,sign)
-                            ,(ash 1 (+ significand-size exponent-size))
-                            0)))
+      `(let ((,bits-var 0))
          ,@declarations
+         (declare (type (unsigned-byte ,storage-size) ,bits-var))
+         (when (minusp ,sign)
+           (setf (ldb ',sign-bytespec ,bits-var) 1))
          (cond ((keywordp exponent)
-                (setf (ldb (byte ,exponent-size ,significand-size) ,bits-var)
-                      ,(1- (ash 1 exponent-size)))
+                (setf (ldb ',exponent-bytespec ,bits-var)
+                      ,(1- (ash 1 (byte-size exponent-bytespec))))
                 (ecase exponent
                   (:infinity)
                   (:quiet-nan
-                   (setf (ldb (byte 1 ,(1- significand-size)) ,bits-var)
-                         1
-                         (ldb (byte ,(1- significand-size) 0) ,bits-var)
-                         ,significand))
+                   (setf (ldb ',nan-type-bytespec ,bits-var) 1
+                         (ldb ',nan-payload-bytespec ,bits-var) ,significand))
                   (:signaling-nan
-                   (setf (ldb (byte ,(1- significand-size) 0) ,bits-var)
+                   (setf (ldb ',nan-payload-bytespec ,bits-var)
                          (if (zerop ,significand) 1 ,significand)))))
                (t
                 (unless (zerop ,significand)
-                  (let ((shift (- ,decoded-significand-size
+                  (let ((shift (- ,(if hidden-bit-p
+                                       (1+ (byte-size significand-bytespec))
+                                       (byte-size significand-bytespec))
                                   (integer-length ,significand))))
                     (setf ,significand (ash ,significand shift))
                     (decf ,exponent shift)))
                 (cond ((zerop ,significand)
-                       (setf (ldb (byte ,exponent-size ,significand-size) ,bits-var)
-                             ,exponent-bias))
+                       (setf (ldb ',exponent-bytespec ,bits-var) ,exponent-bias))
                       (t
                        (unless (and (< ,exponent
-                                       ,(- (1- (ash 1 exponent-size)) exponent-bias))
+                                       ,(- (1- (ash 1 (byte-size exponent-bytespec)))
+                                           exponent-bias))
                                     (or (>= ,exponent ,(- exponent-bias))
-                                        (plusp (+ ,significand-size
+                                        (plusp (+ ,(byte-size significand-bytespec)
                                                   ,exponent
                                                   ,exponent-bias))))
                          (error "Unable to encode float with significand of ~a and ~
                                  exponent of ~a when~%the significand size is ~a and ~
                                  the exponent size is ~a."
                                 ,significand ,exponent
-                                ,significand-size ,exponent-size))
+                                ,(byte-size significand-bytespec)
+                                ,(byte-size exponent-bytespec)))
                        (incf ,exponent ,exponent-bias)
                        (cond ((plusp ,exponent)
-                              (setf (ldb (byte ,significand-size 0) ,bits-var)
+                              (setf (ldb ',significand-bytespec ,bits-var)
                                     ,significand
-                                    (ldb (byte ,exponent-size ,significand-size) ,bits-var)
+                                    (ldb ',exponent-bytespec ,bits-var)
                                     ,exponent))
                              (t ; Unadjusted subnormal
-                              (setf (ldb (byte (+ ,significand-size ,exponent)
-                                               0)
+                              (setf (ldb (byte (+ ,(byte-size significand-bytespec)
+                                                  ,exponent)
+                                               ,(byte-position significand-bytespec))
                                          ,bits-var)
-                                    (ldb (byte (+ ,significand-size ,exponent)
-                                               (- 1 ,exponent))
+                                    (ldb (byte (+ ,(byte-size significand-bytespec)
+                                                  ,exponent)
+                                               (- ,(1+ (byte-position significand-bytespec))
+                                                  ,exponent))
                                          ,significand))))))))
          ,@forms))))
 
@@ -76,11 +82,7 @@
     (client (result-type (eql 'single-float)) (base (eql 2)) significand exponent sign)
   (declare (ignore client))
   (%integer-encode-float
-      (bits significand exponent sign
-       :significand-size 23
-       :exponent-size 8
-       :hidden-bit t
-       :exponent-bias 150)
+      (single-float bits significand exponent sign)
     #+abcl
     (system:make-single-float bits)
     #+allegro
@@ -110,11 +112,7 @@
     (client (result-type (eql 'double-float)) (base (eql 2)) significand exponent sign)
   (declare (ignore client))
   (%integer-encode-float
-      (bits significand exponent sign
-       :significand-size 52
-       :exponent-size 11
-       :hidden-bit t
-       :exponent-bias 1075)
+      (double-float bits significand exponent sign)
     #+abcl
     (system:make-double-float bits)
     #+allegro
