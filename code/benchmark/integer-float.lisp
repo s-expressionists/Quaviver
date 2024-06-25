@@ -1,38 +1,45 @@
 (cl:in-package #:quaviver/benchmark)
 
-(defvar *float-integer-tests*
-  (list `(:type single-float :limit ,most-positive-single-float)
-        `(:type double-float :limit ,most-positive-double-float)
+(defvar *integer-float-tests*
+  (list `(:type single-float)
+        `(:type double-float)
         #+quaviver/long-float
-        `(:type long-float   :limit ,most-positive-long-float)))
+        `(:type long-float)))
 
-(defvar *float-integer-clients*
-  `((:label "Burger-Dybvig"
-     :initargs (quaviver/burger-dybvig:client)
+(defvar *integer-float-clients*
+  `((:label "Jaffer"
+     :initargs (quaviver/jaffer:client)
      :types (single-float double-float long-float))
-    (:label "Schubfach"
-     :initargs (quaviver/schubfach:client)
-     :types (single-float double-float long-float))
-    #+(or abcl ccl clasp cmucl ecl sbcl)
-    (:label "Native"
-     :initargs (quaviver/native:benchmark-client)
+    (:label "Liebler"
+     :initargs (quaviver/liebler:client)
      :types (single-float double-float long-float))))
 
-(defun float-integer (&key (base 10)
+(defvar *ieee754-client* (make-instance 'quaviver/ieee754:client))
+
+(defvar *schubfach-client* (make-instance 'quaviver/schubfach:client))
+
+
+(defun random-float (type)
+  (multiple-value-list
+   (quaviver:float-integer *schubfach-client* 10
+                           (quaviver:bits-float *ieee754-client*
+                                                type
+                                                (random (ash 1 (quaviver:storage-size type)))))))
+
+(defun integer-float (&key (base 10)
                            (name (uiop:implementation-identifier)))
-  (labels ((bench (clients limit key)
+  (labels ((bench (clients limit key
+                   &aux (significand-limit (ash 1 (quaviver:significand-size key)))
+                        (exponent-limit (1- (ash 1 (byte-size (quaviver:exponent-bytespec key)))))
+                        (exponent-bias (quaviver:exponent-bias key)))
              (mapcar (lambda (properties
                               &aux (client (apply #'make-instance
                                                   (getf properties :initargs))))
                        (cond ((member key (getf properties :types))
                               ;; Do one conversion in case there is some initialization needed.
-                              (quaviver:float-integer client base (random limit))
-                              (list* key
+                               (apply #'quaviver:integer-float client key base (random-float key))                           (list* key
                                      (the-cost-of-nothing:benchmark
-                                      (quaviver:float-integer client
-                                                              base
-                                                              (* (1- (ash (random 2) 1))
-                                                                 (random limit))))
+                                      (apply #'quaviver:integer-float client key base (random-float key)))
                                      properties))
                              (t
                               properties)))
@@ -51,24 +58,24 @@
                                               (when (getf client key)
                                                 (list (getf client :label))))
                                             results)))))
-    (let ((results *float-integer-clients*)
+    (let ((results *integer-float-clients*)
           (table (ascii-table:make-table
                   (list* "client"
-                         (loop for test in *float-integer-tests*
+                         (loop for test in *integer-float-tests*
                                for type = (getf test :type)
                                collect (format nil "~21@a"
                                                (format nil "absolute ~(~a~)" type))
                                collect (format nil "~21@a"
                                                (format nil "relative ~(~a~)" type)))))))
-      (loop for test in *float-integer-tests*
+      (loop for test in *integer-float-tests*
             for type = (getf test :type)
             for limit = (getf test :limit)
             do (setf results (bench results limit type))
-               (plot (format nil "float-integer ~(~a~)" type)
+               (plot (format nil "integer-float ~(~a~)" type)
                      results type)
                (terpri))
-      (write-results name `(quaviver:float-integer ,base) results)
-      (loop with mins = (loop for test in *float-integer-tests*
+      (write-results name `(quaviver:integer-float ,base) results)
+      (loop with mins = (loop for test in *integer-float-tests*
                               for type = (getf test :type)
                               collect type
                               collect (loop for result in results
@@ -77,7 +84,7 @@
                                               minimize value))
             for result in results
             do (ascii-table:add-row table (list* (getf result :label)
-                                                 (loop for test in *float-integer-tests*
+                                                 (loop for test in *integer-float-tests*
                                                        for type = (getf test :type)
                                                        for value = (getf result type)
                                                        when value

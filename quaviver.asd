@@ -138,6 +138,22 @@
                 :components ((:file "packages")
                              (:file "implementation")))))
 
+(defsystem "quaviver/jaffer"
+  :description "Jaffer algorithm for Quaviver"
+  :license "MIT"
+  :author ("Alex Wood"
+           "Tarn W. Burton")
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ("quaviver")
+  :components ((:module "code"
+                :pathname "code/jaffer/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "implementation")))))
+
 (defsystem "quaviver/liebler"
   :description "Liebler algorithm for Quaviver"
   :license "MIT"
@@ -189,14 +205,18 @@
                "cl-ascii-table"
                "quaviver/burger-dybvig"
                "quaviver/native"
-               "quaviver/schubfach")
+               "quaviver/schubfach"
+               "quaviver/liebler"
+               "quaviver/jaffer"
+               "quaviver/ieee754")
   :components ((:module "code"
                 :pathname "code/benchmark/"
                 :serial t
                 :components ((:file "packages")
                              (:file "results")
                              (:file "report")
-                             (:file "float-integer")))))
+                             (:file "float-integer")
+                             (:file "integer-float")))))
 
 (defsystem "quaviver/compare"
   :description "Compare implementations of Quaviver protocol"
