@@ -11,7 +11,7 @@
              (zerop ,significand))
          (quaviver:integer-float ,client ',result-type 2
                                  ,significand ,exponent ,sign)
-         (let ((k (quaviver/math:floor-log2-expt10 ,exponent))
+         (let ((k (quaviver/math:floor-log-expt 2 10 ,exponent))
                (shift (- ,arithmetic-size (integer-length ,significand))))
            (setf ,significand (,round-to-odd (,expt10 (- ,exponent))
                                              (ash ,significand shift))

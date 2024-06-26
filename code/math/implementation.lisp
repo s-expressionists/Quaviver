@@ -6,20 +6,25 @@
          (ftype (function ((unsigned-byte 128) (unsigned-byte 64))
                           (unsigned-byte 64))
                 round-to-odd/64)
+         (ftype (function ((unsigned-byte 256) (unsigned-byte 128))
+                          (unsigned-byte 128))
+                round-to-odd/128)
          (ftype (function (fixnum) (unsigned-byte 64))
                 expt10/32)
          (ftype (function (fixnum) (unsigned-byte 128))
                 expt10/64)
-         (ftype (function (fixnum) fixnum)
-                floor-log2-expt10)
-         (ftype (function (fixnum &optional boolean) fixnum)
-                floor-log10-expt2)
+         (ftype (function (fixnum) (unsigned-byte 256))
+                expt10/128)
+         (ftype (function (fixnum fixnum fixnum &optional boolean) fixnum)
+                floor-log-expt ceiling-log-expt)
          (inline round-to-odd/32
                  round-to-odd/64
+                 round-to-odd/128
                  expt10/32
                  expt10/64
-                 floor-log2-expt10
-                 floor-log10-expt2))
+                 expt10/128
+                 floor-log-expt
+                 ceiling-log-expt))
 
 (defmacro %round-to-odd-1 (g cp size)
   `(let ((p (* ,g ,cp)))
@@ -47,7 +52,7 @@
 (defconstant +expt10/max-exponent/32+ 53)
 
 (defvar *expt10/values/32*
-  (compute-expt10 +expt10/min-exponent/32+ +expt10/max-exponent/32+ 64))
+  (compute-expt +expt10/min-exponent/32+ +expt10/max-exponent/32+ 64))
 
 (defun expt10/32 (power)
   (svref *expt10/values/32*
@@ -58,7 +63,7 @@
 (defconstant +expt10/max-exponent/64+ 342)
 
 (defvar *expt10/values/64*
-  (compute-expt10 +expt10/min-exponent/64+ +expt10/max-exponent/64+ 128))
+  (compute-expt +expt10/min-exponent/64+ +expt10/max-exponent/64+ 128))
 
 (defun expt10/64 (power)
   (svref *expt10/values/64*
@@ -73,13 +78,80 @@
 (defun expt10/128 (power)
   (svref (or *expt10/values/128*
              (setf *expt10/values/128*
-                   (compute-expt10 +expt10/min-exponent/128+ +expt10/max-exponent/128+ 256)))
+                   (compute-expt +expt10/min-exponent/128+ +expt10/max-exponent/128+ 256)))
          (- (- +expt10/min-exponent/128+) power)))
 
-(defun floor-log2-expt10 (e)
-  (ash (* e 1741647) -19))
+(defconstant +min-base+ 2)
 
-(defun floor-log10-expt2 (e &optional three-quarters-p)
-  (ash (- (* e 1262611)
-          (if three-quarters-p 524031 0))
-       -22))
+(defconstant +max-base+ 36)
+
+(defconstant +log-expt-shift+ 22)
+
+(defvar *log-expt*
+  (compute-log-expt +min-base+ +max-base+ +log-expt-shift+))
+
+(defvar *log-3/4*
+  (compute-log-3/4 +min-base+ +max-base+ +log-expt-shift+))
+
+(defun floor-log-expt (log-base expt-base exp &optional three-quarters-p)
+  (declare (optimize speed))
+  (ash (+ (* exp (aref *log-expt*
+                       (- log-base +min-base+)
+                       (- expt-base +min-base+)))
+          (if three-quarters-p
+              (svref *log-3/4* (- log-base +min-base+))
+              0))
+       (- +log-expt-shift+)))
+
+(define-compiler-macro floor-log-expt
+    (&whole whole log-base expt-base exp &optional three-quarters-p)
+  (if (or (not (constantp log-base))
+          (not (constantp expt-base)))
+      whole
+      (let ((multiplier (aref *log-expt*
+                              (- log-base +min-base+)
+                              (- expt-base +min-base+)))
+            (offset (- +log-expt-shift+))
+            (shift (- +log-expt-shift+)))
+        (cond ((null three-quarters-p)
+               `(ash (* ,exp ,multiplier) ,shift))
+              ((constantp three-quarters-p)
+               `(ash (+ (* ,exp ,multiplier) ,offset)
+                     ,shift))
+              (t
+               `(ash (+ (* ,exp ,multiplier)
+                        (if ,three-quarters-p
+                            ,offset
+                            0))
+                     ,shift))))))
+
+(defun ceiling-log-expt (log-base expt-base exp &optional three-quarters-p)
+  (values (ceiling (+ (* exp (aref *log-expt*
+                                   (- log-base +min-base+)
+                                   (- expt-base +min-base+)))
+                      (if three-quarters-p
+                          (svref *log-3/4* (- log-base +min-base+))
+                          0))
+                   (ash 1 +log-expt-shift+))))
+
+(define-compiler-macro ceiling-log-expt
+    (&whole whole log-base expt-base exp &optional three-quarters-p)
+  (if (or (not (constantp log-base))
+          (not (constantp expt-base)))
+      whole
+      (let ((multiplier (aref *log-expt*
+                              (- log-base +min-base+)
+                              (- expt-base +min-base+)))
+            (offset (- +log-expt-shift+))
+            (divisor (ash 1 +log-expt-shift+)))
+        (cond ((null three-quarters-p)
+               `(values (ceiling (* ,exp ,multiplier) ,divisor)))
+              ((constantp three-quarters-p)
+               `(values (ceiling (+ (* ,exp ,multiplier) ,offset)
+                                 ,divisor)))
+              (t
+               `(values (ceiling (+ (* ,exp ,multiplier)
+                                    (if ,three-quarters-p
+                                        ,offset
+                                        0))
+                                 ,divisor)))))))

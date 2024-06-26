@@ -16,13 +16,14 @@
 
 (defun random-float (type)
   (list (random (ash 1 (quaviver:significand-size type)))
-        (quaviver/math:floor-log10-expt2 (+ (random (- (quaviver:max-exponent type)
-                                                       (quaviver:min-exponent type)
-                                                       (quaviver:significand-size type)
-                                                       4))
-                                            (quaviver:min-exponent type)
-                                            (quaviver:significand-size type)
-                                            2))
+        (quaviver/math:floor-log-expt 10 2
+                                      (+ (random (- (quaviver:max-exponent type)
+                                                    (quaviver:min-exponent type)
+                                                    (quaviver:significand-size type)
+                                                    4))
+                                         (quaviver:min-exponent type)
+                                         (quaviver:significand-size type)
+                                         2))
         (if (zerop (random 2)) 1 -1)))
 
 (defun integer-float (&key (base 10)
