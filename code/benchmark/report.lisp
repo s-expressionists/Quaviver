@@ -113,3 +113,58 @@
                            nconc (mapcar #'car result))
                      :test #'equalp)
         do (report/test test)))
+
+(defun report/plot-type (title results key)
+  (write-string (cl-spark:vspark
+                 (mapcan (lambda (properties
+                                  &aux (value (getf properties key)))
+                           (when value
+                             (list value)))
+                         results)
+                 :title title
+                 :min 0
+                 :size 132
+                 :labels (mapcan (lambda (client)
+                                   (when (getf client key)
+                                     (list (getf client :label))))
+                                 results))))
+
+(defun report/run-summary (title tests results)
+  (loop for test in tests
+        for type = (getf test :type)
+        do (report/plot-type (format nil "~a ~(~a~)" title type)
+                             results type)
+           (terpri))
+  (let ((table (ascii-table:make-table
+                (list* "client"
+                       (loop for test in *float-integer-tests*
+                             for type = (getf test :type)
+                             collect (format nil "~21@a"
+                                             (format nil "absolute ~(~a~)" type))
+                             collect (format nil "~21@a"
+                                             (format nil "relative ~(~a~)" type)))))))
+    (loop with mins = (loop for test in tests
+                            for type = (getf test :type)
+                            collect type
+                            collect (loop for result in results
+                                          for value = (getf result type)
+                                          when value
+                                            minimize value))
+          for result in results
+          do (ascii-table:add-row table
+                                  (list* (getf result :label)
+                                         (loop for test in tests
+                                               for type = (getf test :type)
+                                               for value = (getf result type)
+                                               when value
+                                                 collect (format nil "~21,15g"
+                                                                 (getf result type))
+                                                 and collect (format nil "~21,15f"
+                                                                     (/ (getf result type)
+                                                                        (getf mins type)))
+                                               else
+                                                 collect (make-string 21
+                                                                      :initial-element #\space)
+                                                 and collect (make-string 21
+                                                                          :initial-element #\space)))))
+    (ascii-table:display table)))

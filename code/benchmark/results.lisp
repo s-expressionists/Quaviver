@@ -20,3 +20,17 @@
         (with-standard-io-syntax
           (write current :stream stream))))
   (values))
+
+(defun bench (func tests clients)
+  (loop with results = (copy-tree clients)
+        for test in tests
+        for type = (getf test :type)
+        finally (return results)
+        do (loop for client in results
+                 for client-instance = (apply #'make-instance
+                                              (getf client :initargs))
+                 when (member type (getf client :types))
+                   do (apply func client-instance test)
+                      (setf (cdr (last client))
+                            (list type
+                                  (the-cost-of-nothing:benchmark (apply func client-instance test)))))))
