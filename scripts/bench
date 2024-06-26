@@ -47,7 +47,7 @@ bench() {
   done
 }
 
-if test -z "$@"; then
+if test "$#" -le 0; then
   bench abcl ccl clasp ecl sbcl
 else
   bench "$@"
