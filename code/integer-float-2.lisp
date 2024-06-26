@@ -148,3 +148,12 @@
     #+sbcl
     (sb-kernel:make-double-float (ub32-sb32 (ldb (byte 32 32) bits))
                                  (ldb (byte 32 0) bits))))
+
+#+quaviver/long-float
+(defmethod integer-float
+    (client (result-type (eql 'long-float)) (base (eql 2)) significand exponent sign)
+  (declare (ignore client))
+  (%integer-encode-float
+      (long-float bits significand exponent sign)
+    #+ecl
+    (system:bits-long-float bits)))
