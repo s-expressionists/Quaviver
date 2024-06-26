@@ -18,12 +18,12 @@ abcl() {
 
 ccl() {
   printf -- "--- CCL -----------------------------------------------------------------------\n"
-  command ccl "$@"
+  command ccl --batch "$@"
 }
 
 clasp() {
   printf -- "--- Clasp ---------------------------------------------------------------------\n"
-  command clasp --noinform "$@" | sed '/^;/d'
+  command clasp --noinform --disable-debugger "$@" | sed '/^;/d'
 }
 
 ecl() {
@@ -33,7 +33,7 @@ ecl() {
 
 sbcl() {
   printf -- "--- SBCL ----------------------------------------------------------------------\n"
-  command sbcl --noinform "$@" 2>&1 | awk '!keep && /^ +float-integer/ { keep=1; print "" } keep { print }'
+  command sbcl --noinform --disable-debugger "$@" 2>&1 | awk '!keep && /^ +float-integer/ { keep=1; print "" } keep { print }'
 }
 
 bench() {
