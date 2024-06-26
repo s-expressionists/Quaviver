@@ -37,11 +37,7 @@
          (exponent-sign 1)
          (exponent 0)
          (code nil)
-         (limit (case result-type
-                  (short-float 9)
-                  (single-float 9)
-                  (double-float 17)
-                  (long-float #+quaviver/long-float 21 #-quaviver/long-float 17))))
+         (limit (1+ (ceiling-log-expt base 2 (quaviver:significand-size result-type)))))
      (unless (< start end)
        (error "no float"))
      (case (char sequence start)

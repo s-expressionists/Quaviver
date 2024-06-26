@@ -83,3 +83,33 @@
   (ash (- (* e 1262611)
           (if three-quarters-p 524031 0))
        -22))
+
+(defconstant +min-base+ 2)
+
+(defconstant +max-base+ 36)
+
+(defconstant +log-expt-shift+ 22)
+
+(defvar *log-expt*
+  (compute-log-expt +min-base+ +max-base+ +log-expt-shift+))
+
+(defvar *log-3/4*
+  (compute-log-expt +min-base+ +max-base+ +log-expt-shift+))
+
+(defun floor-log-expt (log-base expt-base exp &optional three-quarters-p)
+  (ash (+ (* exp (aref *log-expt*
+                       (- log-base +min-base+)
+                       (- expt-base +min-base+)))
+          (if three-quarters-p
+              (svref *log-3/4* (- log-base +min-base+))
+              0))
+       (- +log-expt-shift+)))
+
+(defun ceiling-log-expt (log-base expt-base exp &optional three-quarters-p)
+  (values (ceiling (+ (* exp (aref *log-expt*
+                                   (- log-base +min-base+)
+                                   (- expt-base +min-base+)))
+                      (if three-quarters-p
+                          (svref *log-3/4* (- log-base +min-base+))
+                          0))
+                   (ash 1 +log-expt-shift+))))
