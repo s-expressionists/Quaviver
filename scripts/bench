@@ -42,12 +42,15 @@ bench() {
     case "$implementation" in
     abcl|ccl|clasp|ecl|sbcl)
       if command -v "$implementation" >/dev/null; then
-        "$implementation" \
+        if ! "$implementation" \
           --eval '(require "asdf")' \
           --eval '(asdf:load-system "quaviver/benchmark")' \
           --eval '(quaviver/benchmark:float-integer)' \
           --eval '(uiop:quit)' \
-          2>/dev/null
+          2>/dev/null; then
+          printf >&2 "bench: benchmark failed: %s\n" "$implementation"
+          ret=1
+        fi
         printf "\n"
       else
         printf >&2 "bench: implementation not found: %s\n" "$implementation"
