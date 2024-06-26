@@ -14,16 +14,16 @@
      :initargs (quaviver/liebler:client)
      :types (single-float double-float long-float))))
 
-(defvar *ieee754-client* (make-instance 'quaviver/ieee754:client))
-
-(defvar *schubfach-client* (make-instance 'quaviver/schubfach:client))
-
 (defun random-float (type)
-  (multiple-value-list
-   (quaviver:float-integer *schubfach-client* 10
-                           (quaviver:bits-float *ieee754-client*
-                                                type
-                                                (random (ash 1 (quaviver:storage-size type)))))))
+  (list (random (ash 1 (quaviver:significand-size type)))
+        (quaviver/math:floor-log10-expt2 (+ (random (- (quaviver:max-exponent type)
+                                                       (quaviver:min-exponent type)
+                                                       (quaviver:significand-size type)
+                                                       4))
+                                            (quaviver:min-exponent type)
+                                            (quaviver:significand-size type)
+                                            2))
+        (if (zerop (random 2)) 1 -1)))
 
 (defun integer-float (&key (base 10)
                            (name (uiop:implementation-identifier)))
