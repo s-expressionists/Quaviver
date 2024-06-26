@@ -46,6 +46,7 @@ bench() {
           --eval '(require "asdf")' \
           --eval '(asdf:load-system "quaviver/benchmark")' \
           --eval '(quaviver/benchmark:float-integer)' \
+          --eval '(quaviver/benchmark:integer-float)' \
           --eval '(uiop:quit)' \
           2>/dev/null; then
           printf >&2 "bench: benchmark failed: %s\n" "$implementation"
