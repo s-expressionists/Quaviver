@@ -37,18 +37,33 @@ sbcl() {
 
 bench() {
   for implementation in "$@"; do
-    "$implementation" \
-      --eval '(require "asdf")' \
-      --eval '(asdf:load-system "quaviver/benchmark")' \
-      --eval '(quaviver/benchmark:float-integer)' \
-      --eval '(uiop:quit)' \
-      2>/dev/null
-    printf "\n"
+    case "$implementation" in
+    abcl|ccl|clasp|ecl|sbcl)
+      if command -v "$implementation" >/dev/null; then
+        "$implementation" \
+          --eval '(require "asdf")' \
+          --eval '(asdf:load-system "quaviver/benchmark")' \
+          --eval '(quaviver/benchmark:float-integer)' \
+          --eval '(uiop:quit)' \
+          2>/dev/null
+        printf "\n"
+      else
+        printf >&2 "bench: implementation not found: %s\n" "$implementation"
+      fi
+      ;;
+    *)
+      printf >&2 "bench: unknown implementation: %s\n" "$implementation"
+      ;;
+    esac
   done
 }
 
 if test "$#" -le 0; then
-  bench abcl ccl clasp ecl sbcl
-else
-  bench "$@"
+  for implementation in abcl ccl clasp ecl sbcl; do
+    if command -v "$implementation" >/dev/null; then
+      set -- "$@" "$implementation"
+    fi
+  done
 fi
+
+bench "$@"
