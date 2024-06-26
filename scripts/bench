@@ -13,7 +13,7 @@ set -o errexit
 
 abcl() {
   printf -- "--- ABCL ----------------------------------------------------------------------\n"
-  command abcl --noinform "$@" | sed '/^;/d'
+  command abcl --noinform "$@" 2>&1 | awk '!keep && /^ +float-integer/ { keep=1; print "" } keep { print }'
 }
 
 ccl() {
