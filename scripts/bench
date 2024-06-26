@@ -1,4 +1,5 @@
 #!/bin/sh
+# -*- mode: sh-script; sh-shell: ash; -*-
 # SPDX-FileCopyrightText: Copyright (c) 2024 s-expressionists
 # SPDX-License-Identifier: MIT
 
@@ -36,6 +37,7 @@ sbcl() {
 }
 
 bench() {
+  local ret=0
   for implementation in "$@"; do
     case "$implementation" in
     abcl|ccl|clasp|ecl|sbcl)
@@ -49,13 +51,16 @@ bench() {
         printf "\n"
       else
         printf >&2 "bench: implementation not found: %s\n" "$implementation"
+        ret=1
       fi
       ;;
     *)
       printf >&2 "bench: unknown implementation: %s\n" "$implementation"
+      ret=1
       ;;
     esac
   done
+  return "$ret"
 }
 
 if test "$#" -le 0; then
