@@ -137,7 +137,7 @@
            (terpri))
   (let ((table (ascii-table:make-table
                 (list* "client"
-                       (loop for test in *float-integer-tests*
+                       (loop for test in tests
                              for type = (getf test :type)
                              collect (format nil "~21@a"
                                              (format nil "absolute ~(~a~)" type))
