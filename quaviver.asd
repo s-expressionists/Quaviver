@@ -203,12 +203,11 @@
   :depends-on ("the-cost-of-nothing"
                "cl-spark"
                "cl-ascii-table"
-               "quaviver/burger-dybvig"
                "quaviver/native"
+               "quaviver/burger-dybvig"
                "quaviver/schubfach"
-               "quaviver/liebler"
                "quaviver/jaffer"
-               "quaviver/ieee754")
+               "quaviver/liebler")
   :components ((:module "code"
                 :pathname "code/benchmark/"
                 :serial t
