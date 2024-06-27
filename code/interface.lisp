@@ -18,13 +18,27 @@
 
 (defgeneric significand-byte-form (type))
 
+(defgeneric significand-size (type)
+  (:method (type)
+    (if (hidden-bit-p type)
+        (1+ (byte-size (significand-bytespec type)))
+        (byte-size (significand-bytespec type)))))
+
 (defgeneric exponent-bytespec (type))
 
 (defgeneric exponent-byte-form (type))
 
+(defgeneric exponent-size (type)
+  (:method (type)
+    (byte-size (exponent-bytespec type))))
+
 (defgeneric sign-bytespec (type))
 
 (defgeneric sign-byte-form (type))
+
+(defgeneric sign-size (type)
+  (:method (type)
+    (byte-size (sign-bytespec type))))
 
 (defgeneric nan-payload-bytespec (type))
 
@@ -36,16 +50,22 @@
 
 (defgeneric hidden-bit-p (type))
 
-(defgeneric exponent-bias (type))
-
-(defgeneric max-exponent (type))
-
-(defgeneric min-exponent (type))
-
-(defgeneric significand-size (type)
+(defgeneric exponent-bias (type)
   (:method (type)
-    (if (hidden-bit-p type)
-        (1+ (byte-size (significand-bytespec type)))
-        (byte-size (significand-bytespec type)))))
+    (+ (ash 1 (1- (exponent-size type)))
+       (significand-size type)
+       -2)))
+
+(defgeneric max-exponent (type)
+  (:method (type)
+    (- (ash 1 (exponent-size type))
+       (exponent-bias type)
+       2)))
+
+(defgeneric min-exponent (type)
+  (:method (type)
+    (- 2
+       (exponent-bias type)
+       (significand-size type))))
 
 (defgeneric arithmetic-size (type))

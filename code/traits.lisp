@@ -47,18 +47,6 @@
 (defmethod hidden-bit-p ((type (eql 'short-float)))
   t)
 
-(defmethod exponent-bias ((type (eql 'short-float)))
-  #+clisp 143
-  #-clisp 150)
-
-(defmethod max-exponent ((type (eql 'short-float)))
-  #+clisp 110
-  #-clisp 104)
-
-(defmethod min-exponent ((type (eql 'short-float)))
-  #+clisp -158
-  #-clisp -172)
-
 (defmethod arithmetic-size ((type (eql 'short-float)))
   32)
 
@@ -98,15 +86,6 @@
 (defmethod hidden-bit-p ((type (eql 'single-float)))
   t)
 
-(defmethod exponent-bias ((type (eql 'single-float)))
-  150)
-
-(defmethod max-exponent ((type (eql 'single-float)))
-  104)
-
-(defmethod min-exponent ((type (eql 'single-float)))
-  -172)
-
 (defmethod arithmetic-size ((type (eql 'single-float)))
   32)
 
@@ -145,15 +124,6 @@
 
 (defmethod hidden-bit-p ((type (eql 'double-float)))
   t)
-
-(defmethod exponent-bias ((type (eql 'double-float)))
-  1075)
-
-(defmethod max-exponent ((type (eql 'double-float)))
-  971)
-
-(defmethod min-exponent ((type (eql 'double-float)))
-  -1126)
 
 (defmethod arithmetic-size ((type (eql 'double-float)))
   64)
@@ -205,18 +175,6 @@
 (defmethod hidden-bit-p ((type (eql 'long-float)))
   #+quaviver/long-float nil
   #-quaviver/long-float t)
-
-(defmethod exponent-bias ((type (eql 'long-float)))
-  #+quaviver/long-float 16446
-  #-quaviver/long-float 1075)
-
-(defmethod max-exponent ((type (eql 'long-float)))
-  #+quaviver/long-float 16320
-  #-quaviver/long-float 971)
-
-(defmethod min-exponent ((type (eql 'long-float)))
-  #+quaviver/long-float -16509
-  #-quaviver/long-float -1126)
 
 (defmethod arithmetic-size ((type (eql 'long-float)))
   #+quaviver/long-float 128

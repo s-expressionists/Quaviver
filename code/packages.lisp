@@ -9,10 +9,13 @@
            #:storage-size
            #:significand-bytespec
            #:significand-byte-form
+           #:significand-size
            #:exponent-bytespec
            #:exponent-byte-form
+           #:exponent-size
            #:sign-bytespec
            #:sign-byte-form
+           #:sign-size
            #:nan-payload-bytespec
            #:nan-payload-byte-form
            #:nan-type-bytespec
@@ -21,7 +24,6 @@
            #:exponent-bias
            #:max-exponent
            #:min-exponent
-           #:significand-size
            #:arithmetic-size))
 
 #+(and ecl long-float)
