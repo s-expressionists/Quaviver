@@ -31,3 +31,6 @@
         (floor minutes 60)
       (format stream "~d:~2,'0d:~2,'0d"
               hours minutes seconds))))
+
+(defun float-hex-digits (float-type)
+  (ceiling (quaviver:storage-size float-type) 4))

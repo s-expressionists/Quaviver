@@ -249,14 +249,18 @@
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
-  :depends-on ("quaviver/ieee754"
-               "quaviver/burger-dybvig"
+  :depends-on ("quaviver/burger-dybvig"
                "quaviver/schubfach"
                "quaviver/dragonbox"
+               "quaviver/jaffer"
+               "quaviver/liebler"
                "lparallel")
   :components ((:module "code"
                 :pathname "code/compare/"
                 :serial t
                 :components ((:file "packages")
                              (:file "utility")
-                             (:file "float-integer")))))
+                             (:file "interval")
+                             (:file "test")
+                             (:file "float-integer")
+                             (:file "integer-float")))))
