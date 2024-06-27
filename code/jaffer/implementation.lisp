@@ -3,7 +3,6 @@
 (defclass client () ())
 
 (defmacro %jaffer (client result-type significand exponent sign)
-  (declare (ignore client))
   (let ((significand-size (quaviver:significand-size result-type)))
     `(if (or (not (numberp ,exponent))
              (zerop ,significand))
