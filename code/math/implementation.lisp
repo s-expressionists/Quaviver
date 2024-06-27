@@ -111,7 +111,7 @@
       (let ((multiplier (aref *log-expt*
                               (- log-base +min-base+)
                               (- expt-base +min-base+)))
-            (offset (- +log-expt-shift+))
+            (offset (svref *log-3/4* (- log-base +min-base+)))
             (shift (- +log-expt-shift+)))
         (cond ((null three-quarters-p)
                `(ash (* ,exp ,multiplier) ,shift))
@@ -142,7 +142,7 @@
       (let ((multiplier (aref *log-expt*
                               (- log-base +min-base+)
                               (- expt-base +min-base+)))
-            (offset (- +log-expt-shift+))
+            (offset (svref *log-3/4* (- log-base +min-base+)))
             (divisor (ash 1 +log-expt-shift+)))
         (cond ((null three-quarters-p)
                `(values (ceiling (* ,exp ,multiplier) ,divisor)))
