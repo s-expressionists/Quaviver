@@ -16,7 +16,8 @@
 
 (defvar *clients*
  '(:burger-dybvig (quaviver/burger-dybvig:client)
-   :schubfach (quaviver/schubfach:client)))
+   :schubfach (quaviver/schubfach:client)
+   :dragonbox (quaviver/dragonbox:nearest-client)))
 
 (defun float-integer/compare (client-instance-1 client-instance-2 base value)
   (multiple-value-bind (significand1 exponent1 sign1)

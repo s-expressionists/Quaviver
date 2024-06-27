@@ -13,6 +13,9 @@
     (:label "Schubfach"
      :initargs (quaviver/schubfach:client)
      :types (single-float double-float long-float))
+    (:label "Dragonbox"
+     :initargs (quaviver/dragonbox:nearest-client)
+     :types (single-float double-float))
     #+(or abcl ccl clasp cmucl ecl sbcl)
     (:label "Native"
      :initargs (quaviver/native:benchmark-client)
