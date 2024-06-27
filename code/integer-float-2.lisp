@@ -36,15 +36,13 @@
                     (:signaling-nan
                      (setf (ldb ',nan-payload-bytespec ,bits-var)
                            (if (zerop ,significand-var) 1 ,significand-var)))))
+                 ((zerop ,significand-var))
                  (t
-                  (unless (zerop ,significand-var)
-                    (let ((shift (- ,significand-size
-                                    (integer-length ,significand-var))))
-                      (setf ,significand-var (ash ,significand-var shift))
-                      (decf ,exponent-var shift)))
-                  (cond ((zerop ,significand-var)
-                         (setf (ldb ',exponent-bytespec ,bits-var) ,exponent-bias))
-                        ((< ,exponent-var ,min-exponent)
+                  (let ((shift (- ,significand-size
+                                  (integer-length ,significand-var))))
+                    (setf ,significand-var (ash ,significand-var shift))
+                    (decf ,exponent-var shift))
+                  (cond ((< ,exponent-var ,min-exponent)
                          (error 'floating-point-underflow
                                 :operation 'integer-float
                                 :operands (list ,client ',type 2
