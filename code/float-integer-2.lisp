@@ -2,6 +2,7 @@
 
 (defmacro %integer-decode-float (type value)
   (with-accessors ((storage-size storage-size)
+                   (significand-size significand-size)
                    (significand-bytespec significand-bytespec)
                    (exponent-bytespec exponent-bytespec)
                    (sign-bytespec sign-bytespec)
@@ -35,7 +36,7 @@
                             (zerop exponent))
                        (values 0 0 sign))
                       ((zerop exponent) ; subnormal
-                       (let ((shift (- ,(byte-size significand-bytespec)
+                       (let ((shift (- ,significand-size
                                        (integer-length significand))))
                          (values (ash significand shift)
                                  (- ,(- 1 exponent-bias) shift)
