@@ -249,10 +249,13 @@
                "quaviver/burger-dybvig"
                "quaviver/schubfach"
                "quaviver/dragonbox"
+               "quaviver/jaffer"
+               "quaviver/liebler"
                "lparallel")
   :components ((:module "code"
                 :pathname "code/compare/"
                 :serial t
                 :components ((:file "packages")
                              (:file "utility")
-                             (:file "float-integer")))))
+                             (:file "float-integer")
+                             (:file "integer-float")))))

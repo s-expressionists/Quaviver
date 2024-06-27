@@ -14,7 +14,7 @@
 
 (defvar *ieee754-client* (make-instance 'quaviver/ieee754:client))
 
-(defvar *clients*
+(defvar *float-integer-clients*
  '(:burger-dybvig (quaviver/burger-dybvig:client)
    :schubfach (quaviver/schubfach:client)
    :dragonbox (quaviver/dragonbox:nearest-client)))
@@ -67,14 +67,14 @@
 (defun float-hex-digits (float-type)
   (/ (float-size float-type) 4))
 
-(defun write-discrepancy (float-type discrepancy &optional (stream t))
+(defun write-float-integer-discrepancy (float-type discrepancy &optional (stream t))
   (format stream "~:<#x~v,'0x ~e ~s ~s~:@>~%"
           (list* (float-hex-digits float-type) discrepancy)))
 
 (defun float-integer/random (name1 name2 float-type base count &optional (stream t))
   (loop with limit = (ash 1 (float-size float-type))
-        with client-instance-1 = (apply #'make-instance (getf *clients* name1))
-        with client-instance-2 = (apply #'make-instance (getf *clients* name2))
+        with client-instance-1 = (apply #'make-instance (getf *float-integer-clients* name1))
+        with client-instance-2 = (apply #'make-instance (getf *float-integer-clients* name2))
         with *print-base* = base
         with pass = t
         repeat count
@@ -84,11 +84,11 @@
         finally (return pass)
         when discrepancy
           do (setf pass nil)
-             (write-discrepancy float-type discrepancy stream)))
+             (write-float-integer-discrepancy float-type discrepancy stream)))
 
 (defun float-integer/range (name1 name2 float-type base start end &optional (stream t))
-  (loop with client-instance-1 = (apply #'make-instance (getf *clients* name1))
-        with client-instance-2 = (apply #'make-instance (getf *clients* name2))
+  (loop with client-instance-1 = (apply #'make-instance (getf *float-integer-clients* name1))
+        with client-instance-2 = (apply #'make-instance (getf *float-integer-clients* name2))
         with *print-base* = base
         with pass = t
         for bits from start upto end
@@ -97,7 +97,7 @@
         finally (return pass)
         when discrepancy
           do (setf pass nil)
-             (write-discrepancy float-type discrepancy stream)))
+             (write-float-integer-discrepancy float-type discrepancy stream)))
 
 (defun float-integer/range/parallel (name1 name2 output
                                      &key (float-type 'single-float) (base 10)
