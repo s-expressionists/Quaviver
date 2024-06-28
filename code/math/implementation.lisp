@@ -1,5 +1,19 @@
 (in-package #:quaviver/math)
 
+(deftype word (arithmetic-size &optional (count 1))
+   #+quaviver/bignum-elision
+   (ecase arithmetic-size
+     (32 (case count
+           (1 `(unsigned-byte 32))
+           (2 `(unsigned-byte 64))
+           (otherwise `(simple-array (unsigned-byte 64) (,(ceiling count 2))))))
+     (64 (if (eql count 1)
+             `(unsigned-byte 64)
+             `(simple-array (unsigned-byte 64) (,count))))
+     (128 `(simple-array (unsigned-byte 64) (,(ash count 1)))))
+   #-quaviver/bignum-elision
+   `(unsigned-byte ,(* arithmetic-size count)))
+
 ;;; Bignum elision
 ;;;
 ;;; From Dragonbox.

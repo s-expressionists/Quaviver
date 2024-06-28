@@ -34,12 +34,7 @@
                       (k (quaviver/math:floor-log-expt 10 2 exponent lower-boundary-is-closer))
                       (h (+ exponent 1 (quaviver/math:floor-log-expt 2 10 (- k))))
                       (expt10 (,expt10 k)))
-                 (declare (type #+quaviver/bignum-elision
-                                ,@(ecase arithmetic-size
-                                    (32 `((unsigned-byte ,(ash arithmetic-size 1))))
-                                    (64 `((simple-array (unsigned-byte 64) (2)))))
-                                #-quaviver/bignum-elision
-                                (unsigned-byte ,(ash arithmetic-size 1))
+                 (declare (type (quaviver/math::word ,arithmetic-size 2)
                                 expt10)
                           (type boolean
                                 lower-boundary-is-closer is-even)
