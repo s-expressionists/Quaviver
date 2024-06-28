@@ -345,16 +345,20 @@
     (loop with remainder
           do (multiple-value-setq (number remainder) (floor number divisor))
           while (zerop remainder)
-          count 1)))
+          count 1))
 
-(defmacro compute-delta (expt10 beta arithmetic-size)
-  (let ((expt10-size (ash arithmetic-size 1)))
+  ;; The -HIGH suffix is misleading for 32 bits and bignum.
+  (defun word-high (var arithmetic-size)
     #+quaviver/bignum-elision
     (ecase arithmetic-size
-      (32 `(ldb (byte ,arithmetic-size 0) (ash ,expt10 (- (- ,expt10-size 1 ,beta)))))
-      (64 `(ldb (byte ,arithmetic-size 0) (ash (aref ,expt10 0) (- (- 63 ,beta))))))
+      (32 (values var (ash arithmetic-size 1)))
+      (64 (values `(aref ,var 0) 64)))
     #-quaviver/bignum-elision
-    `(ldb (byte ,arithmetic-size 0) (ash ,expt10 (- (- ,expt10-size 1 ,beta))))))
+    (values var (ash arithmetic-size 1))))
+
+(defmacro compute-delta (expt10 beta arithmetic-size)
+  (multiple-value-bind (high size) (word-high expt10 arithmetic-size)
+    `(ldb (byte ,arithmetic-size 0) (ash ,high (- (- ,size 1 ,beta))))))
 
 ;;; Based on
 ;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3064-L3068
@@ -449,8 +453,7 @@
                    (min-k min-k)
                    (max-k max-k))
       type
-    (let (#-quaviver/bignum-elision
-          (expt10-size (ash arithmetic-size 1)))
+    (let ()
       `(block %dragonbox
          (let ((significand 0)
                (exponent 0)
@@ -484,43 +487,17 @@
                       (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                       (expt10 (,expt10 -k))
                       ;; Left endpoint
-                      (xi #+quaviver/bignum-elision
-                          ,@(ecase arithmetic-size
-                              (32
-                               `((ldb (byte ,arithmetic-size 0)
-                                      (ash (the (unsigned-byte 64)
-                                                (- expt10 (ash expt10 ,(- (1+ significand-size)))))
-                                           (- (- 64 ,significand-size beta))))))
-                              (64
-                               `((let ((expt10-high (aref expt10 0)))
-                                   (ldb (byte ,arithmetic-size 0)
-                                        (ash (the (unsigned-byte 64)
-                                                  (- expt10-high (ash expt10-high ,(- (1+ significand-size)))))
-                                             (- (- 64 ,significand-size beta))))))))
-                          #-quaviver/bignum-elision
-                          (ldb (byte ,arithmetic-size 0)
-                               (ash (the (unsigned-byte ,expt10-size)
-                                         (- expt10 (ash expt10 ,(- (1+ significand-size)))))
-                                    (- (- ,expt10-size ,significand-size beta)))))
+                      (xi ,(multiple-value-bind (high size) (word-high 'expt10 arithmetic-size)
+                             `(ldb (byte ,arithmetic-size 0)
+                                   (ash (the (unsigned-byte ,size)
+                                             (- ,high (ash ,high ,(- (1+ significand-size)))))
+                                        (- (- ,size ,significand-size beta))))))
                       ;; Right endpoint
-                      (zi #+quaviver/bignum-elision
-                          ,@(ecase arithmetic-size
-                              (32
-                               `((ldb (byte ,arithmetic-size 0)
-                                      (ash (the (unsigned-byte 64)
-                                                (+ expt10 (ash expt10 ,(- significand-size))))
-                                           (- (- 64 ,significand-size beta))))))
-                              (64
-                               `((let ((expt10-high (aref expt10 0)))
-                                   (ldb (byte ,arithmetic-size 0)
-                                        (ash (the (unsigned-byte 64)
-                                                  (+ expt10-high (ash expt10-high ,(- significand-size))))
-                                             (- (- 64 ,significand-size beta))))))))
-                          #-quaviver/bignum-elision
-                          (ldb (byte ,arithmetic-size 0)
-                               (ash (the (unsigned-byte ,expt10-size)
-                                         (+ expt10 (ash expt10 ,(- significand-size))))
-                                    (- (- ,expt10-size ,significand-size beta))))))
+                      (zi ,(multiple-value-bind (high size) (word-high 'expt10 arithmetic-size)
+                             `(ldb (byte ,arithmetic-size 0)
+                                   (ash (the (unsigned-byte ,size)
+                                             (+ ,high (ash ,high ,(- significand-size))))
+                                        (- (- ,size ,significand-size beta)))))))
                  (declare ((signed-byte 32) -k beta)
                           ((quaviver/math::word ,arithmetic-size 2) expt10)
                           #+quaviver/bignum-elision
@@ -549,24 +526,11 @@
                    (return-from %dragonbox
                      (values significand (1+ -k) sign)))
                  (setf significand
-                       #+quaviver/bignum-elision
-                       ,@(ecase arithmetic-size
-                           (32
-                            `((ash (the (unsigned-byte ,arithmetic-size)
-                                        (1+ (ldb (byte ,arithmetic-size 0)
-                                                 (ash expt10 (- (- 63 ,significand-size beta))))))
-                                   -1)))
-                           (64
-                            `((let ((expt10-high (aref expt10 0)))
-                                (ash (the (unsigned-byte ,arithmetic-size)
-                                          (1+ (ldb (byte ,arithmetic-size 0)
-                                                   (ash expt10-high (- (- 63 ,significand-size beta))))))
-                                     -1)))))
-                       #-quaviver/bignum-elision
-                       (ash (the (unsigned-byte ,arithmetic-size)
-                                 (1+ (ldb (byte ,arithmetic-size 0)
-                                          (ash expt10 (- (- ,expt10-size ,significand-size 1 beta))))))
-                            -1))
+                       ,(multiple-value-bind (high size) (word-high 'expt10 arithmetic-size)
+                          `(ash (the (unsigned-byte ,arithmetic-size)
+                                     (1+ (ldb (byte ,arithmetic-size 0)
+                                              (ash ,high (- (- ,size ,significand-size 1 beta))))))
+                                -1)))
                  (cond ((and (prefer-round-down-p ,client significand)
                              (<= ,(- (- (floor-log5-expt2-minus-log5-3 (+ significand-size 3)))
                                      2 (1- significand-size))
