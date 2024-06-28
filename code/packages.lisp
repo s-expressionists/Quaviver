@@ -33,3 +33,6 @@
     (:no-error (result)
       (declare (ignore result))
       (pushnew :quaviver/long-float *features*))))
+
+#+sbcl
+(pushnew :quaviver/bignum-elision *features*)
