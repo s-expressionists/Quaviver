@@ -12,7 +12,6 @@ set -o pipefail
 set -o errexit
 
 verbose=
-stderr="/dev/null"
 
 abcl() {
   printf -- "--- ABCL ----------------------------------------------------------------------\n"
@@ -55,19 +54,30 @@ sbcl() {
   fi
 }
 
+run() {
+  local implementation="$1"
+  "$implementation" \
+    --eval '(require "asdf")' \
+    --eval '(asdf:load-system "quaviver/benchmark")' \
+    --eval '(quaviver/benchmark:float-integer)' \
+    --eval '(quaviver/benchmark:integer-float)' \
+    --eval '(uiop:quit)'
+}
+
 bench() {
   local ret=0
+  local impl_ret=0
   for implementation in "$@"; do
     case "$implementation" in
     abcl|ccl|clasp|ecl|sbcl)
       if command -v "$implementation" >/dev/null; then
-        if ! "$implementation" \
-          --eval '(require "asdf")' \
-          --eval '(asdf:load-system "quaviver/benchmark")' \
-          --eval '(quaviver/benchmark:float-integer)' \
-          --eval '(quaviver/benchmark:integer-float)' \
-          --eval '(uiop:quit)' \
-          2>"$stderr"; then
+        impl_ret=0
+        if test -n "$verbose"; then
+          run "$implementation" || impl_ret=1
+        else
+          run "$implementation" 2>/dev/null || impl_ret=1
+        fi
+        if test "$impl_ret" -ne 0; then
           printf >&2 "bench: benchmark failed: %s\n" "$implementation"
           ret=1
         fi
@@ -94,7 +104,6 @@ while test "$#" -gt 0; do
     ;;
   -v)
     verbose="verbose"
-    stderr="&2"
     shift
     ;;
   -?*)
