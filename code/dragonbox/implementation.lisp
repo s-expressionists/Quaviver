@@ -11,141 +11,6 @@
 
 (in-package #:quaviver/dragonbox)
 
-;;; Bignum elision
-;;;
-;;; TODO Link
-
-;;; Maybe U+/128, U*/128 and U*/128-upper64 or something.
-
-(defmacro umul96-upper64 (x y)
-  (let ((xg (gensym (string 'x)))
-        (yg (gensym (string 'y))))
-    `(let ((,xg ,x)
-           (,yg ,y))
-       (declare ((unsigned-byte 32) ,xg)
-                ((unsigned-byte 64) ,yg))
-       (ldb (byte 64 0)
-            (+ (* ,xg (ldb (byte 32 32) ,yg))
-               (ash (* ,xg (ldb (byte 32 0) ,yg)) -32))))))
-
-(defmacro umul96-lower64 (x y)
-  (let ((xg (gensym (string 'x)))
-        (yg (gensym (string 'y))))
-    `(let ((,xg ,x)
-           (,yg ,y))
-       (declare ((unsigned-byte 32) ,xg)
-                ((unsigned-byte 64) ,yg))
-       ;; Don't suppose there's a way to do overflow multiplication?
-       ;; I think SBCL optimizes this properly!!
-       (ldb (byte 64 0) (* ,xg ,yg)))))
-
-(defmacro u128+ (hi lo n)
-  (let ((hig (gensym (string 'hi)))
-        (log (gensym (string 'lo)))
-        (ng (gensym (string 'n))))
-    `(let* ((,hig ,hi)
-            (,log ,lo)
-            (,ng ,n)
-            (sum (ldb (byte 64 0) (+ ,log ,ng))))
-       (declare ((unsigned-byte 64) ,hig ,log ,ng))
-       (values (ldb (byte 64 0) (+ ,hig (if (< sum ,log) 1 0)))
-               sum))))
-
-(defmacro umul128 (x y)
-  (let ((xg (gensym (string 'x)))
-        (yg (gensym (string 'y))))
-    `(let* ((,xg ,x)
-            (,yg ,y)
-            (a (ldb (byte 32 32) ,xg))
-            (b (ldb (byte 32 0) ,xg))
-            (c (ldb (byte 32 32) ,yg))
-            (d (ldb (byte 32 0) ,yg))
-            (ac (* a c))
-            (bc (* b c))
-            (ad (* a d))
-            (bd (* b d))
-            (intermediate (+ (ldb (byte 32 32) bd)
-                             (ldb (byte 32 0) ad)
-                             (ldb (byte 32 0) bc))))
-       (declare ((unsigned-byte 64) ,xg ,yg))
-       #+(or) (+ (ash ac 64) (ash bc 32) (ash ad 32) bd)
-       (values (ldb (byte 64 0)
-                    (+ ac
-                       (ldb (byte 32 32) intermediate)
-                       (ldb (byte 32 32) ad)
-                       (ldb (byte 32 32) bc)))
-               (ldb (byte 64 0)
-                    (+ (ash (ldb (byte 32 0) intermediate)
-                            32)
-                       (ldb (byte 32 0) bd)))))))
-
-#+(or)                                  ; tests
-(progn
-  (let ((x (ash 1 32))
-        (y (ash 1 32)))
-    (list (* x y) (umul128 x y)))
-
-  (let ((x (ash 1 31))
-        (y 2))
-    (list (* x y) (umul128 x y)))
-
-  (let ((x 123456789012345)
-        (y 2))
-    (list (* x y) (umul128 x y)))
-
-  (let ((x 123456789012345)
-        (y 123456789012345))
-    (list (* x y) (umul128 x y))))
-
-;;; TODO: Simplify these.
-(defmacro umul128-upper64 (x y)
-  (let ((xg (gensym (string 'x)))
-        (yg (gensym (string 'y))))
-    `(let* ((,xg ,x)
-            (,yg ,y)
-            (a (ldb (byte 32 32) ,xg))
-            (b (ldb (byte 32 0) ,xg))
-            (c (ldb (byte 32 32) ,yg))
-            (d (ldb (byte 32 0) ,yg))
-            (ac (* a c))
-            (bc (* b c))
-            (ad (* a d))
-            (bd (* b d))
-            (intermediate (+ (ldb (byte 32 32) bd)
-                             (ldb (byte 32 0) ad)
-                             (ldb (byte 32 0) bc))))
-       (declare ((unsigned-byte 64) ,xg ,yg))
-       #+(or) (+ (ash ac 64) (ash bc 32) (ash ad 32) bd) ; TODO: Test if faster
-       (ldb (byte 64 0)
-            (+ ac
-               (ldb (byte 32 32) intermediate)
-               (ldb (byte 32 32) ad)
-               (ldb (byte 32 32) bc))))))
-
-(defmacro umul192-upper128 (x yh yl)
-  (let ((xg (gensym (string 'x)))
-        (yhg (gensym (string 'yh)))
-        (ylg (gensym (string 'yl))))
-    `(let ((,xg ,x)
-           (,yhg ,yh)
-           (,ylg ,yl))
-       (declare ((unsigned-byte 64) ,xg ,yhg ,ylg))
-       (multiple-value-bind (rh rl) (umul128 ,xg ,yhg)
-         (u128+ rh rl (umul128-upper64 ,xg ,ylg))))))
-
-(defmacro umul192-lower128 (x yh yl)
-  (let ((xg (gensym (string 'x)))
-        (yhg (gensym (string 'yh)))
-        (ylg (gensym (string 'yl))))
-    `(let* ((,xg ,x)
-            (,yhg ,yh)
-            (,ylg ,yl)
-            (high (ldb (byte 64 0) (* ,xg ,yhg))))
-       (declare ((unsigned-byte 64) ,xg ,yhg ,ylg))
-       (multiple-value-bind (rh rl) (umul128 ,xg ,ylg)
-         (values (ldb (byte 64 0) (+ high rh))
-                 rl)))))
-
 ;;; Logarithms
 
 ;;; Grammar:
@@ -249,14 +114,14 @@
          `(ldb (byte 32 32) (* (the (unsigned-byte ,size) ,number) 429496730)))
         ((and (= size 64) (= power 1) (<= max-number 4611686018427387908))
          #+quaviver/bignum-elision
-         `(umul128-upper64 ,number 1844674407370955162)
+         `(quaviver/math::umul128-upper64 ,number 1844674407370955162)
          #-quaviver/bignum-elision
          `(ldb (byte 64 64) (* (the (unsigned-byte ,size) ,number) 1844674407370955162)))
         ((and (= size 32) (= power 2))
          `(ldb (byte 27 37) (* (the (unsigned-byte ,size) ,number) 1374389535)))
         ((and (= size 64) (= power 3) (<= max-number 15534100272597517998))
          #+quaviver/bignum-elision
-         `(ash (umul128-upper64 ,number 4722366482869645214) -8)
+         `(ash (quaviver/math::umul128-upper64 ,number 4722366482869645214) -8)
          #-quaviver/bignum-elision
          `(ldb (byte 56 72) (* (the (unsigned-byte ,size) ,number) 4722366482869645214)))
         (t
@@ -516,7 +381,7 @@
       (32
        `(let* ((,ug ,u)
                (,expt10g ,expt10)
-               (r (umul96-upper64 ,ug ,expt10g)))
+               (r (quaviver/math::umul96-upper64 ,ug ,expt10g)))
           (declare ((unsigned-byte ,arithmetic-size) ,ug)
                    (,expt10-type ,expt10g))
           (values (ldb (byte 32 32) r)              ; integer part
@@ -527,7 +392,7 @@
           (declare ((unsigned-byte ,arithmetic-size) ,ug)
                    (,expt10-type ,expt10g))
           (multiple-value-bind (rh rl)
-              (umul192-upper128 ,ug (aref ,expt10g 0) (aref ,expt10g 1))
+              (quaviver/math::umul192-upper128 ,ug (aref ,expt10g 0) (aref ,expt10g 1))
             (values rh (zerop rl))))))  ; integer part, integer-p
     #-quaviver/bignum-elision
     `(let* ((,ug ,u)
@@ -552,7 +417,7 @@
        `(let* ((,ug ,u)
                (,expt10g ,expt10)
                (,betag ,beta)
-               (r (umul96-lower64 ,ug ,expt10g)))
+               (r (quaviver/math::umul96-lower64 ,ug ,expt10g)))
           (declare ((unsigned-byte ,arithmetic-size) ,ug)
                    (,expt10-type ,expt10g)
                    ((integer 1 32) ,betag)) ; inclusive
@@ -566,7 +431,7 @@
                    (,expt10-type ,expt10g)
                    ((integer 1 (64)) ,betag)) ; exclusive
           (multiple-value-bind (rh rl)
-              (umul192-lower128 ,ug (aref ,expt10g 0) (aref ,expt10g 1))
+              (quaviver/math::umul192-lower128 ,ug (aref ,expt10g 0) (aref ,expt10g 1))
             (values (logbitp (- 64 ,betag) rh) ; parity-p
                     (and (zerop (ldb (byte (- 64 ,betag) ,betag) rh)) ; integer-p
                          (zerop (ldb (byte 64 (- 64 ,betag)) rl))))))))
@@ -916,37 +781,13 @@
                                      (floor-by-expt10-small r ,kappa ,arithmetic-size)))
                 (values significand (+ -k ,kappa) sign)))))))))
 
-;;; TODO: Test simple vector and svref too.
-
-#+quaviver/bignum-elision
-(defvar *expt10/values/64*
-  (make-array (length quaviver/math::*expt10/values/64*)
-              :initial-contents
-              (loop for x across quaviver/math::*expt10/values/64*
-                    collect (make-array 2 :element-type '(unsigned-byte 64)
-                                          :initial-contents
-                                          (list (ldb (byte 64 64) x)
-                                                (ldb (byte 64 0) x))))))
-
-#+quaviver/bignum-elision
-(declaim (ftype (function ((signed-byte 32))
-                          (values (simple-array (unsigned-byte 64) (2)) &optional))
-                expt10/64)
-         (inline expt10/64))
-#+quaviver/bignum-elision
-(defun expt10/64 (power)
-  (svref *expt10/values/64*
-         (- (- quaviver/math::+expt10/min-exponent/64+) power)))
-
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
   (%nearest client value single-float quaviver/math:expt10/32))
 
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
-  (%nearest client value double-float
-            #+quaviver/bignum-elision expt10/64
-            #-quaviver/bignum-elision quaviver/math:expt10/64))
+  (%nearest client value double-float quaviver/math:expt10/64))
 
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
@@ -954,6 +795,4 @@
 
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
-  (%directed client value double-float
-             #+quaviver/bignum-elision expt10/64
-             #-quaviver/bignum-elision quaviver/math:expt10/64))
+  (%directed client value double-float quaviver/math:expt10/64))
