@@ -5,15 +5,22 @@
 
 # Usage:
 #
-#   bench [IMPLEMENTATION...]
+#   bench [-v] [IMPLEMENTATION...]
 
 set -o nounset
 set -o pipefail
 set -o errexit
 
+verbose=
+stderr="/dev/null"
+
 abcl() {
   printf -- "--- ABCL ----------------------------------------------------------------------\n"
-  command abcl --noinform "$@" 2>&1 | awk '!keep && /^ +float-integer/ { keep=1; print "" } keep { print }'
+  if test -n "$verbose"; then
+    command abcl --noinform "$@"
+  else
+    command abcl --noinform "$@" 2>&1 | awk '!keep && /^ +float-integer/ { keep=1; print "" } keep { print }'
+  fi
 }
 
 ccl() {
@@ -23,17 +30,29 @@ ccl() {
 
 clasp() {
   printf -- "--- Clasp ---------------------------------------------------------------------\n"
-  command clasp --noinform --disable-debugger "$@" | sed '/^;/d'
+  if test -n "$verbose"; then
+    command clasp --noinform --disable-debugger "$@"
+  else
+    command clasp --noinform --disable-debugger "$@" | sed '/^;/d'
+  fi
 }
 
 ecl() {
   printf -- "--- ECL -----------------------------------------------------------------------\n"
-  command ecl "$@" | sed '/^;;;/d'
+  if test -n "$verbose"; then
+    command ecl "$@"
+  else
+    command ecl "$@" | sed '/^;;;/d'
+  fi
 }
 
 sbcl() {
   printf -- "--- SBCL ----------------------------------------------------------------------\n"
-  command sbcl --noinform --disable-debugger "$@" 2>&1 | awk '!keep && /^ +float-integer/ { keep=1; print "" } keep { print }'
+  if test -n "$verbose"; then
+    command sbcl --noinform --disable-debugger "$@"
+  else
+    command sbcl --noinform --disable-debugger "$@" 2>&1 | awk '!keep && /^ +float-integer/ { keep=1; print "" } keep { print }'
+  fi
 }
 
 bench() {
@@ -48,7 +67,7 @@ bench() {
           --eval '(quaviver/benchmark:float-integer)' \
           --eval '(quaviver/benchmark:integer-float)' \
           --eval '(uiop:quit)' \
-          2>/dev/null; then
+          2>"$stderr"; then
           printf >&2 "bench: benchmark failed: %s\n" "$implementation"
           ret=1
         fi
@@ -66,6 +85,27 @@ bench() {
   done
   return "$ret"
 }
+
+while test "$#" -gt 0; do
+  case "$1" in
+  --)
+    shift
+    break
+    ;;
+  -v)
+    verbose="verbose"
+    stderr="&2"
+    shift
+    ;;
+  -?*)
+    printf >&2 "bench: unknown option: %s\n" "$1"
+    exit 1
+    ;;
+  *)
+    break
+    ;;
+  esac
+done
 
 if test "$#" -le 0; then
   for implementation in abcl ccl clasp ecl sbcl; do
