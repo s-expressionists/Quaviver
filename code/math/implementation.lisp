@@ -198,11 +198,14 @@
   #+(or ecl cmucl) (%round-to-odd-2 g cp 32))
 
 (defun round-to-odd/64 (g cp)
+  #+quaviver/bignum-elision
   (multiple-value-bind (ph pl)
       (umul192-upper128 cp (aref g 0) (aref g 1))
     (if (ldb-test (byte 63 1) pl)
         (logior ph 1)
-        ph)))
+        ph))
+  #-quaviver/bignum-elision
+  (%round-to-odd-2 g cp 64))
 
 (defun round-to-odd/128 (g cp)
   (%round-to-odd-2 g cp 128))
