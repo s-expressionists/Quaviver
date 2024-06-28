@@ -308,8 +308,6 @@
   (defgeneric kappa (type))
   (defgeneric min-k (type))
   (defgeneric max-k (type))
-  (defgeneric expt10-size (type))
-  (defgeneric expt10-type (type))
 
   ;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3189-L3193
   (defmethod kappa (type)
@@ -341,18 +339,6 @@
       (max (- (floor-log10-expt2-minus-log10-4/3 min-exponent))
            (- (kappa type) (floor-log10-expt2 min-exponent)))))
 
-  (defmethod expt10-size (type)
-    (ash (quaviver:arithmetic-size type) 1))
-
-  (defmethod expt10-type ((type (eql 'single-float)))
-    `(unsigned-byte ,(expt10-size type)))
-
-  (defmethod expt10-type ((type (eql 'double-float)))
-    #+quaviver/bignum-elision
-    '(simple-array (unsigned-byte 64) (2))
-    #-quaviver/bignum-elision
-    `(unsigned-byte ,(expt10-size type)))
-
   (defun count-factors (number divisor)
     (assert (> number 0))
     (assert (> divisor 1))
@@ -361,20 +347,23 @@
           while (zerop remainder)
           count 1)))
 
-(defmacro compute-delta (expt10 beta arithmetic-size expt10-type)
-  #+quaviver/bignum-elision
-  (ecase arithmetic-size
-    (32 `(ldb (byte ,arithmetic-size 0) (ash ,expt10 (- (- ,(second expt10-type) 1 ,beta)))))
-    (64 `(ldb (byte ,arithmetic-size 0) (ash (aref ,expt10 0) (- (- 63 ,beta))))))
-  #-quaviver/bignum-elision
-  `(ldb (byte ,arithmetic-size 0) (ash ,expt10 (- (- ,(second expt10-type) 1 ,beta)))))
+(defmacro compute-delta (expt10 beta arithmetic-size)
+  (let ((expt10-size (ash arithmetic-size 1)))
+    #+quaviver/bignum-elision
+    (ecase arithmetic-size
+      (32 `(ldb (byte ,arithmetic-size 0) (ash ,expt10 (- (- ,expt10-size 1 ,beta)))))
+      (64 `(ldb (byte ,arithmetic-size 0) (ash (aref ,expt10 0) (- (- 63 ,beta))))))
+    #-quaviver/bignum-elision
+    `(ldb (byte ,arithmetic-size 0) (ash ,expt10 (- (- ,expt10-size 1 ,beta))))))
 
 ;;; Based on
 ;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3064-L3068
 ;;; and
 ;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3121-L3125
-(defmacro compute-mul (u expt10 arithmetic-size expt10-type)
-  (let ((ug (gensym (string 'u)))
+(defmacro compute-mul (u expt10 arithmetic-size)
+  (let (#-quaviver/bignum-elision
+        (expt10-size (ash arithmetic-size 1))
+        (ug (gensym (string 'u)))
         (expt10g (gensym (string 'expt10))))
     #+quaviver/bignum-elision
     (ecase arithmetic-size
@@ -383,14 +372,14 @@
                (,expt10g ,expt10)
                (r (quaviver/math::umul96-upper64 ,ug ,expt10g)))
           (declare ((unsigned-byte ,arithmetic-size) ,ug)
-                   (,expt10-type ,expt10g))
+                   ((quaviver/math::word ,arithmetic-size 2) ,expt10g))
           (values (ldb (byte 32 32) r)              ; integer part
                   (not (ldb-test (byte 32 0) r))))) ; integer-p
       (64
        `(let ((,ug ,u)
               (,expt10g ,expt10))
           (declare ((unsigned-byte ,arithmetic-size) ,ug)
-                   (,expt10-type ,expt10g))
+                   ((quaviver/math::word ,arithmetic-size 2) ,expt10g))
           (multiple-value-bind (rh rl)
               (quaviver/math::umul192-upper128 ,ug (aref ,expt10g 0) (aref ,expt10g 1))
             (values rh (zerop rl))))))  ; integer part, integer-p
@@ -399,16 +388,18 @@
             (,expt10g ,expt10)
             (r (* ,ug ,expt10g)))
        (declare ((unsigned-byte ,arithmetic-size) ,ug)
-                (,expt10-type ,expt10g))
-       (values (ldb (byte ,arithmetic-size ,(second expt10-type)) r) ; integer part
+                ((quaviver/math::word ,arithmetic-size 2) ,expt10g))
+       (values (ldb (byte ,arithmetic-size ,expt10-size) r) ; integer part
                (zerop (ldb (byte ,arithmetic-size ,arithmetic-size) r)))))) ; integer-p
 
 ;;; Based on
 ;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3076-L3085
 ;;; and
 ;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3134-L3144
-(defmacro compute-mul-parity (u expt10 beta arithmetic-size expt10-type)
-  (let ((ug (gensym (string 'u)))
+(defmacro compute-mul-parity (u expt10 beta arithmetic-size)
+  (let (#-quaviver/bignum-elision
+        (expt10-size (ash arithmetic-size 1))
+        (ug (gensym (string 'u)))
         (expt10g (gensym (string 'expt10)))
         (betag (gensym (string 'beta))))
     #+quaviver/bignum-elision
@@ -419,7 +410,7 @@
                (,betag ,beta)
                (r (quaviver/math::umul96-lower64 ,ug ,expt10g)))
           (declare ((unsigned-byte ,arithmetic-size) ,ug)
-                   (,expt10-type ,expt10g)
+                   ((quaviver/math::word ,arithmetic-size 2) ,expt10g)
                    ((integer 1 32) ,betag)) ; inclusive
           (values (logbitp (- 64 ,betag) r) ; parity-p
                   (not (ldb-test (byte 32 (- 32 ,betag)) r))))) ; integer-p
@@ -428,7 +419,7 @@
                (,expt10g ,expt10)
                (,betag ,beta))
           (declare ((unsigned-byte ,arithmetic-size) ,ug)
-                   (,expt10-type ,expt10g)
+                   ((quaviver/math::word ,arithmetic-size 2) ,expt10g)
                    ((integer 1 (64)) ,betag)) ; exclusive
           (multiple-value-bind (rh rl)
               (quaviver/math::umul192-lower128 ,ug (aref ,expt10g 0) (aref ,expt10g 1))
@@ -441,11 +432,11 @@
             (,betag ,beta)
             (r (* ,ug ,expt10g)))
        (declare ((unsigned-byte ,arithmetic-size) ,ug)
-                (,expt10-type ,expt10g)
+                ((quaviver/math::word ,arithmetic-size 2) ,expt10g)
                 ,(ecase arithmetic-size
-                   (32 `((integer 1 32) ,betag))            ; inclusive
-                   (64 `((integer 1 (64)) ,betag))))        ; exclusive
-       (values (logbitp (- ,(second expt10-type) ,betag) r) ; parity-p
+                   (32 `((integer 1 32) ,betag))     ; inclusive
+                   (64 `((integer 1 (64)) ,betag)))) ; exclusive
+       (values (logbitp (- ,expt10-size ,betag) r)   ; parity-p
                (zerop (ldb (byte ,arithmetic-size (- ,arithmetic-size ,betag)) r)))))) ; integer-p
 
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3247-L3551
@@ -458,9 +449,8 @@
                    (min-k min-k)
                    (max-k max-k))
       type
-    (let ((expt10-type (expt10-type type))
-          #-quaviver/bignum-elision
-          (expt10-size (expt10-size type)))
+    (let (#-quaviver/bignum-elision
+          (expt10-size (ash arithmetic-size 1)))
       `(block %dragonbox
          (let ((significand 0)
                (exponent 0)
@@ -532,7 +522,7 @@
                                          (+ expt10 (ash expt10 ,(- significand-size))))
                                     (- (- ,expt10-size ,significand-size beta))))))
                  (declare ((signed-byte 32) -k beta)
-                          (,expt10-type expt10)
+                          ((quaviver/math::word ,arithmetic-size 2) expt10)
                           #+quaviver/bignum-elision
                           (dynamic-extent expt10)
                           ((unsigned-byte ,arithmetic-size) xi zi))
@@ -595,18 +585,18 @@
                            ,kappa))
                     (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                     (expt10 (,expt10 -k))
-                    (deltai (compute-delta expt10 beta ,arithmetic-size ,expt10-type))
+                    (deltai (compute-delta expt10 beta ,arithmetic-size))
                     (zi 0)
                     (zi-integer-p nil)
                     (r 0))
                (declare ((signed-byte 32) -k beta)
-                        (,expt10-type expt10)
+                        ((quaviver/math::word ,arithmetic-size 2) expt10)
                         #+quaviver/bignum-elision
                         (dynamic-extent expt10)
                         ((unsigned-byte ,arithmetic-size) deltai zi r)
                         (boolean zi-integer-p))
                (multiple-value-setq (zi zi-integer-p)
-                 (compute-mul (ash (logior 2fc 1) beta) expt10 ,arithmetic-size ,expt10-type))
+                 (compute-mul (ash (logior 2fc 1) beta) expt10 ,arithmetic-size))
                ;; Step 2: Try larger divisor; remove trailing zeros if necessary
                (setf significand (floor-by-expt10 ; base 10 significand from here on out
                                   zi ,(1+ kappa) ,arithmetic-size
@@ -628,7 +618,7 @@
                        ((> r deltai) (return))
                        (t
                         (multiple-value-bind (xi-parity-p xi-integer-p)
-                            (compute-mul-parity (1- 2fc) expt10 beta ,arithmetic-size ,expt10-type)
+                            (compute-mul-parity (1- 2fc) expt10 beta ,arithmetic-size)
                           (when (zerop (logior (if xi-parity-p 1 0)
                                                (logand (if xi-integer-p 1 0)
                                                        (if include-left-endpoint-p 1 0))))
@@ -654,7 +644,7 @@
                           (incf significand dist)
                           (when divisible-p
                             (multiple-value-bind (yi-parity-p yi-integer-p)
-                                (compute-mul-parity 2fc expt10 beta ,arithmetic-size ,expt10-type)
+                                (compute-mul-parity 2fc expt10 beta ,arithmetic-size)
                               (cond ((not (eq yi-parity-p approx-y-parity-p))
                                      (decf significand))
                                     ((and (prefer-round-down-p ,client significand)
@@ -672,7 +662,7 @@
                    (min-k min-k)
                    (max-k max-k))
       type
-    (let ((expt10-type (expt10-type type)))
+    (let ()
       `(block %dragonbox
          (let ((significand 0)
                (exponent 0)
@@ -695,18 +685,18 @@
                             ,kappa))
                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                      (expt10 (,expt10 -k))
-                     (deltai (compute-delta expt10 beta ,arithmetic-size ,expt10-type))
+                     (deltai (compute-delta expt10 beta ,arithmetic-size))
                      (xi 0)
                      (xi-integer-p nil)
                      (r 0))
                 (declare ((signed-byte 32) -k beta)
-                         (,expt10-type expt10)
+                         ((quaviver/math::word ,arithmetic-size 2) expt10)
                          #+quaviver/bignum-elision
                          (dynamic-extent expt10)
                          ((unsigned-byte ,arithmetic-size) deltai xi r)
                          (boolean xi-integer-p))
                 (multiple-value-setq (xi xi-integer-p)
-                  (compute-mul (ash 2fc beta) expt10 ,arithmetic-size ,expt10-type))
+                  (compute-mul (ash 2fc beta) expt10 ,arithmetic-size))
                 ,@(when (eq type 'single-float)
                     `((when (<= exponent -80)
                         (setf xi-integer-p nil))))
@@ -724,7 +714,7 @@
                   (cond ((> r deltai) (return))
                         ((= r deltai)
                          (multiple-value-bind (zi-parity-p zi-integer-p)
-                             (compute-mul-parity (+ 2fc 2) expt10 beta ,arithmetic-size ,expt10-type)
+                             (compute-mul-parity (+ 2fc 2) expt10 beta ,arithmetic-size)
                            (when (or zi-parity-p zi-integer-p)
                              (return)))))
                   (return-from %dragonbox
@@ -752,11 +742,11 @@
                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                      (expt10 (,expt10 -k))
                      (deltai (compute-delta expt10 (- beta (if shorter-interval-p 1 0))
-                                            ,arithmetic-size ,expt10-type))
-                     (zi (nth-value 0 (compute-mul (ash 2fc beta) expt10 ,arithmetic-size ,expt10-type)))
+                                            ,arithmetic-size))
+                     (zi (nth-value 0 (compute-mul (ash 2fc beta) expt10 ,arithmetic-size)))
                      (r 0))
                 (declare ((signed-byte 32) -k beta)
-                         (,expt10-type expt10)
+                         ((quaviver/math::word ,arithmetic-size 2) expt10)
                          #+quaviver/bignum-elision
                          (dynamic-extent expt10)
                          ((unsigned-byte ,arithmetic-size) deltai zi r))
@@ -770,7 +760,7 @@
                         ((= r deltai)
                          (multiple-value-bind (xi-parity-p xi-integer-p)
                              (compute-mul-parity (- 2fc (if shorter-interval-p 1 2))
-                                                 expt10 beta ,arithmetic-size ,expt10-type)
+                                                 expt10 beta ,arithmetic-size)
                            (declare (ignore xi-integer-p))
                            (unless xi-parity-p
                              (return)))))
