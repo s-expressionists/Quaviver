@@ -4,10 +4,12 @@
     ((bits-var client type significand exponent sign) &body body)
   (with-accessors ((storage-size storage-size)
                    (significand-bytespec significand-bytespec)
+                   (significand-byte-form significand-byte-form)
                    (exponent-bytespec exponent-bytespec)
-                   (sign-bytespec sign-bytespec)
-                   (nan-payload-bytespec nan-payload-bytespec)
-                   (nan-type-bytespec nan-type-bytespec)
+                   (exponent-byte-form exponent-byte-form)
+                   (sign-byte-form sign-byte-form)
+                   (nan-payload-byte-form nan-payload-byte-form)
+                   (nan-type-byte-form nan-type-byte-form)
                    (hidden-bit-p hidden-bit-p)
                    (exponent-bias exponent-bias)
                    (min-exponent min-exponent)
@@ -24,17 +26,17 @@
            ,@declarations
            (declare (type (unsigned-byte ,storage-size) ,bits-var))
            (when (minusp ,sign)
-             (setf (ldb ',sign-bytespec ,bits-var) 1))
+             (setf (ldb ,sign-byte-form ,bits-var) 1))
            (cond ((keywordp exponent)
-                  (setf (ldb ',exponent-bytespec ,bits-var)
+                  (setf (ldb ,exponent-byte-form ,bits-var)
                         ,(1- (ash 1 (byte-size exponent-bytespec))))
                   (ecase exponent
                     (:infinity)
                     (:quiet-nan
-                     (setf (ldb ',nan-type-bytespec ,bits-var) 1
-                           (ldb ',nan-payload-bytespec ,bits-var) ,significand-var))
+                     (setf (ldb ,nan-type-byte-form ,bits-var) 1
+                           (ldb ,nan-payload-byte-form ,bits-var) ,significand-var))
                     (:signaling-nan
-                     (setf (ldb ',nan-payload-bytespec ,bits-var)
+                     (setf (ldb ,nan-payload-byte-form ,bits-var)
                            (if (zerop ,significand-var) 1 ,significand-var)))))
                  ((zerop ,significand-var))
                  (t
@@ -55,9 +57,9 @@
                         (t
                          (incf ,exponent-var ,exponent-bias)
                          (cond ((plusp ,exponent-var)
-                                (setf (ldb ',significand-bytespec ,bits-var)
+                                (setf (ldb ,significand-byte-form ,bits-var)
                                       ,significand-var
-                                      (ldb ',exponent-bytespec ,bits-var)
+                                      (ldb ,exponent-byte-form ,bits-var)
                                       ,exponent-var))
                                (t ; Unadjusted subnormal
                                 (setf (ldb (byte (+ ,(byte-size significand-bytespec)

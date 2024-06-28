@@ -16,13 +16,23 @@
 
 (defgeneric significand-bytespec (type))
 
+(defgeneric significand-byte-form (type))
+
 (defgeneric exponent-bytespec (type))
+
+(defgeneric exponent-byte-form (type))
 
 (defgeneric sign-bytespec (type))
 
+(defgeneric sign-byte-form (type))
+
 (defgeneric nan-payload-bytespec (type))
 
+(defgeneric nan-payload-byte-form (type))
+
 (defgeneric nan-type-bytespec (type))
+
+(defgeneric nan-type-byte-form (type))
 
 (defgeneric hidden-bit-p (type))
 
