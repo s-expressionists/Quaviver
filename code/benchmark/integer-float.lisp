@@ -12,6 +12,9 @@
      :types (single-float double-float long-float))
     (:label "Liebler"
      :initargs (quaviver/liebler:client)
+     :types (single-float double-float long-float))
+    (:label "Native"
+     :initargs (quaviver/native:client)
      :types (single-float double-float long-float))))
 
 (defun random-float (type)
