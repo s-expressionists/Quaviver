@@ -85,7 +85,8 @@
                 :pathname "code/native/"
                 :serial t
                 :components ((:file "packages")
-                             (:file "implementation")))))
+                             (:file "float-integer")
+                             (:file "integer-float")))))
 
 (defsystem "quaviver/burger-dybvig"
   :description "Burger Dybvig algorithm for Quaviver"
