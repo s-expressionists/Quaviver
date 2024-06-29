@@ -11,6 +11,7 @@ set -o nounset
 set -o pipefail
 set -o errexit
 
+tag=
 verbose=
 
 abcl() {
@@ -59,8 +60,9 @@ run() {
   "$implementation" \
     --eval '(require "asdf")' \
     --eval '(asdf:load-system "quaviver/benchmark")' \
-    --eval '(quaviver/benchmark:float-integer)' \
-    --eval '(quaviver/benchmark:integer-float)' \
+    --eval '(defvar *benchmark-name* (format nil "~A~A" (uiop:implementation-identifier) "'"$tag"'"))' \
+    --eval '(quaviver/benchmark:float-integer :name *benchmark-name*)' \
+    --eval '(quaviver/benchmark:integer-float :name *benchmark-name*)' \
     --eval '(uiop:quit)'
 }
 
@@ -101,6 +103,14 @@ while test "$#" -gt 0; do
   --)
     shift
     break
+    ;;
+  -t)
+    if test "$#" -lt 2; then
+      printf >&2 "bench: missing argument for option: %s\n" "$1"
+      exit 1
+    fi
+    tag="-$2"
+    shift 2
     ;;
   -v)
     verbose="verbose"
