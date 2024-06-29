@@ -8,3 +8,6 @@
            #:round-to-odd/128
            #:floor-log-expt
            #:ceiling-log-expt))
+
+#+sbcl
+(pushnew :quaviver/bignum-elision *features*)
