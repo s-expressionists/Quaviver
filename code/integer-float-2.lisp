@@ -154,5 +154,7 @@
     (client (result-type (eql 'long-float)) (base (eql 2)) significand exponent sign)
   (%integer-encode-float
       (bits client long-float significand exponent sign)
-    #+ecl
+    #+quaviver.bits/long-float
+    (quaviver.bits:bits-long-float bits)
+    #+(and ecl (not quaviver.bits/long-float))
     (system:bits-long-float bits)))

@@ -115,4 +115,7 @@
 (defmethod float-integer (client (base (eql 2)) (value long-float))
   (declare (ignore client))
   (%integer-decode-float long-float
+                         #+quaviver.bits/long-float
+                         (quaviver.bits:long-float-bits value)
+                         #+(and ecl (not quaviver.bits/long-float))
                          (system:long-float-bits value)))
