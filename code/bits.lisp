@@ -106,7 +106,7 @@
   #+clasp
   (ext:double-float-to-bits value)
   #+cmucl
-  (let ((upper (sb32-ub32 (kernel:double-float-high-bits value)))
+  (let ((upper (ldb (byte 32 0) (kernel:double-float-high-bits value)))
         (lower (kernel:double-float-low-bits value)))
     (logior (ash upper 32) lower))
   #+ecl
