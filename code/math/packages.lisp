@@ -9,6 +9,3 @@
            #:floor-log-expt
            #:floor-log2-expt10
            #:floor-log10-expt2))
-
-#+sbcl
-(pushnew :quaviver/bignum-elision *features*)
