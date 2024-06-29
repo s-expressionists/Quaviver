@@ -26,7 +26,7 @@
                                 expt10)
                           (type boolean
                                 lower-boundary-is-closer is-even)
-                          (type (integer 1 4)
+                          (type (integer 0 4)
                                 h))
                  (setf significand (ash significand 2))
                  (let ((lower (,round-to-odd expt10
