@@ -12,46 +12,11 @@
 
 (defclass client () ())
 
-(declaim (inline ub32-sb32))
-(defun ub32-sb32 (ub32)
-  (if (logbitp 31 ub32)
-      (- ub32 #.(ash 1 32))
-      ub32))
-
-(declaim (inline sb32-ub32))
-(defun sb32-ub32 (sb32)
-  (ldb (byte 32 0) sb32))
-
-;;; Based on NIBBLES::IEEE-SINGLE-REF/BE [1].
-;;;
-;;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L60
 (defmethod quaviver:bits-float
     ((client client) (result-type (eql 'single-float)) (bits integer))
-  #+abcl
-  (system:make-single-float bits)
-  #+allegro
-  (let ((upper (ldb (byte 16 16) bits))
-        (lower (ldb (byte 16 0) bits)))
-    (excl:shorts-to-single-float upper lower))
-  #+ccl
-  (ccl::host-single-float-from-unsigned-byte-32 bits)
-  #+clasp
-  (ext:bits-to-single-float bits)
-  #+cmu
-  (kernel:make-single-float (ub32-sb32 bits))
-  #+ecl
-  (system:bits-single-float bits)
-  #+lispworks
-  (let ((v (sys:make-typed-aref-vector 4)))
-    (declare (optimize (speed 3) (float 0) (safety 0))
-             (dynamic-extent v))
-    (setf (sys:typed-aref '(unsigned-byte 32) v 0) bits)
-    (sys:typed-aref 'single-float v 0))
-  #+mezzano
-  (mezzano.extensions:ieee-binary32-to-single-float bits)
-  #+sbcl
-  (sb-kernel:make-single-float (ub32-sb32 bits))
-  #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
+  #+quaviver.bits/single-float
+  (quaviver.bits:bits-single-float bits)
+  #-quaviver.bits/single-float
   ;; Based on NIBBLES::MAKE-SINGLE-FLOAT [1].
   ;;
   ;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L5
@@ -64,51 +29,11 @@
           (exponent (if (zerop exponent-bits) -126 (- exponent-bits 127))))
       (* sign (scale-float (float significand 1f0) (- exponent 23))))))
 
-;;; Based on NIBBLES::IEEE-DOUBLE-REF/BE [1].
-;;;
-;;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L231
 (defmethod quaviver:bits-float
     ((client client) (result-type (eql 'double-float)) (bits integer))
-  #+abcl
-  (system:make-double-float bits)
-  #+allegro
-  (let ((us3 (ldb (byte 16 48) bits))
-        (us2 (ldb (byte 16 32) bits))
-        (us1 (ldb (byte 16 16) bits))
-        (us0 (ldb (byte 16 0) bits)))
-    (excl:shorts-to-double-float us3 us2 us1 us0))
-  #+ccl
-  (let ((upper (ldb (byte 32 32) bits))
-        (lower (ldb (byte 32 0) bits)))
-    (ccl::double-float-from-bits upper lower))
-  #+clasp
-  (ext:bits-to-double-float bits)
-  #+cmu
-  (let ((upper (ub32-sb32 (ldb (byte 32 32) bits)))
-        (lower (ldb (byte 32 0) bits)))
-    (kernel:make-double-float upper lower))
-  #+ecl
-  (system:bits-double-float bits)
-  #+lispworks
-  (let ((upper (ldb (byte 32 32) bits))
-        (lower (ldb (byte 32 0) bits))
-        (v (sys:make-typed-aref-vector 8)))
-    (declare (optimize (speed 3) (float 0) (safety 0))
-             (dynamic-extent v))
-    #+little-endian
-    (setf (sys:typed-aref '(unsigned-byte 32) v 0) lower
-          (sys:typed-aref '(unsigned-byte 32) v 4) upper)
-    #-little-endian
-    (setf (sys:typed-aref '(unsigned-byte 32) v 0) upper
-          (sys:typed-aref '(unsigned-byte 32) v 4) lower)
-    (sys:typed-aref 'double-float v 0))
-  #+mezzano
-  (mezzano.extensions:ieee-binary64-to-double-float bits)
-  #+sbcl
-  (let ((upper (ub32-sb32 (ldb (byte 32 32) bits)))
-        (lower (ldb (byte 32 0) bits)))
-    (sb-kernel:make-double-float upper lower))
-  #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
+  #+quaviver.bits/double-float
+  (quaviver.bits:bits-double-float bits)
+  #-quaviver.bits/double-float
   ;; Based on NIBBLES::MAKE-DOUBLE-FLOAT [1].
   ;;
   ;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L14
@@ -121,34 +46,10 @@
           (exponent (if (zerop exponent-bits) -1022 (- exponent-bits 1023))))
       (* sign (scale-float (float significand 1d0) (- exponent 52))))))
 
-;;; Based on NIBBLES::IEEE-SINGLE-SET/BE [1].
-;;;
-;;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L93
 (defmethod quaviver:float-bits ((client client) (value single-float))
-  #+abcl
-  (system:single-float-bits value)
-  #+allegro
-  (multiple-value-bind (upper lower) (excl:single-float-to-shorts value)
-    (logior (ash upper 16) lower))
-  #+ccl
-  (ccl::single-float-bits value)
-  #+clasp
-  (ext:single-float-to-bits value)
-  #+cmu
-  (sb32-ub32 (kernel:single-float-bits value))
-  #+ecl
-  (system:single-float-bits value)
-  #+lispworks
-  (let ((v (sys:make-typed-aref-vector 4)))
-    (declare (optimize (speed 3) (float 0) (safety 0))
-             (dynamic-extent v))
-    (setf (sys:typed-aref 'single-float v 0) value)
-    (sys:typed-aref '(unsigned-byte 32) v 0))
-  #+mezzano
-  (mezzano.extensions:single-float-to-ieee-binary32 value)
-  #+sbcl
-  (sb32-ub32 (sb-kernel:single-float-bits value))
-  #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
+  #+quaviver.bits/single-float
+  (quaviver.bits:single-float-bits value)
+  #-quaviver.bits/single-float
   ;; Based on NIBBLES::SINGLE-FLOAT-BITS [1].
   ;;
   ;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L26
@@ -161,48 +62,10 @@
         (setf exponent-bits 0))
       (logior (ash sign-bit 31) (ash exponent-bits 23) (ldb (byte 23 0) significand-bits)))))
 
-;;; Based on NIBBLES::IEEE-DOUBLE-SET/BE [1].
-;;;
-;;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/vectors.lisp#L290
 (defmethod quaviver:float-bits ((client client) (value double-float))
-  #+abcl
-  (let ((upper (system:double-float-high-bits value))
-        (lower (system:double-float-low-bits value)))
-    (logior (ash upper 32) lower))
-  #+allegro
-  (multiple-value-bind (us3 us2 us1 us0) (excl:double-float-to-shorts value)
-    (logior (ash us3 48) (ash us2 32) (ash us1 16) us0))
-  #+ccl
-  (multiple-value-bind (upper lower) (ccl::double-float-bits value)
-    (logior (ash upper 32) lower))
-  #+clasp
-  (ext:double-float-to-bits value)
-  #+cmu
-  (let ((upper (sb32-ub32 (kernel:double-float-high-bits value)))
-        (lower (kernel:double-float-low-bits value)))
-    (logior (ash upper 32) lower))
-  #+ecl
-  (system:double-float-bits value)
-  #+lispworks
-  (let ((v (sys:make-typed-aref-vector 8)))
-    (declare (optimize (speed 3) (float 0) (safety 0))
-             (dynamic-extent v))
-    (setf (sys:typed-aref 'double-float v 0) value)
-    #+little-endian
-    (let ((upper (sys:typed-aref '(unsigned-byte 32) v 4))
-          (lower (sys:typed-aref '(unsigned-byte 32) v 0)))
-      (logior (ash upper 32) lower))
-    #-little-endian
-    (let ((upper (sys:typed-aref '(unsigned-byte 32) v 0))
-          (lower (sys:typed-aref '(unsigned-byte 32) v 4)))
-      (logior (ash upper 32) lower)))
-  #+mezzano
-  (mezzano.extensions:double-float-to-ieee-binary64 value)
-  #+sbcl
-  (let ((upper (sb32-ub32 (sb-kernel:double-float-high-bits value)))
-        (lower (sb-kernel:double-float-low-bits value)))
-    (logior (ash upper 32) lower))
-  #-(or abcl allegro ccl clasp cmu ecl lispworks mezzano sbcl)
+  #+quaviver.bits/double-float
+  (quaviver.bits:double-float-bits value)
+  #-quaviver.bits/double-float
   ;; Based on NIBBLES::DOUBLE-FLOAT-BITS [1].
   ;;
   ;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L37

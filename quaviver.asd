@@ -10,8 +10,7 @@
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
-  :depends-on ("alexandria"
-               "trivial-features")
+  :depends-on ("trivial-features")
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")

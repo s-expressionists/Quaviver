@@ -1,12 +1,3 @@
-#+(and ecl long-float)
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (pushnew :quaviver/long-float *features*)
-  (handler-case
-      (system:long-float-bits 0l0)
-    (error (condition)
-      (declare (ignore condition))
-      (pushnew :quaviver.bits/long-float *features*))))
-
 (defpackage #:quaviver
   (:use #:common-lisp)
   (:export #:bits-float
@@ -35,5 +26,14 @@
 
 (defpackage #:quaviver.bits
   (:use #:common-lisp)
-  (:export #:bits-long-float
-           #:long-float-bits))
+  (:export #:short-float-bits
+           #:bits-short-float
+           #:single-float-bits
+           #:bits-single-float
+           #:double-float-bits
+           #:bits-double-float
+           #:long-float-bits
+           #:bits-long-float))
+
+#+(and ecl long-float)
+(pushnew :quaviver/long-float *features*)
