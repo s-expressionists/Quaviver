@@ -1,6 +1,6 @@
 (in-package #:quaviver)
 
-(defmacro %integer-encode-float (client type significand exponent sign bits-float)
+(defmacro %integer-encode-float (client type significand exponent sign)
   (with-accessors ((storage-size storage-size)
                    (significand-bytespec significand-bytespec)
                    (significand-byte-form significand-byte-form)
@@ -68,24 +68,21 @@
                                                (- ,(1+ (byte-position significand-bytespec))
                                                   ,exponent-var))
                                          ,significand-var))))))))
-         (,bits-float ,bits-var)))))
+         (quaviver:bits-float nil ,type ,bits-var)))))
 
 (defmethod integer-float
     (client (result-type (eql 'single-float)) (base (eql 2)) significand exponent sign)
   (%integer-encode-float client single-float
-                         significand exponent sign
-                         quaviver.bits:bits-single-float))
+                         significand exponent sign))
 
 #+(or abcl allegro ccl clasp cmucl ecl lispworks mezzano sbcl)
 (defmethod integer-float
     (client (result-type (eql 'double-float)) (base (eql 2)) significand exponent sign)
   (%integer-encode-float client double-float
-                         significand exponent sign
-                         quaviver.bits:bits-double-float))
+                         significand exponent sign))
 
 #+quaviver/long-float
 (defmethod integer-float
     (client (result-type (eql 'long-float)) (base (eql 2)) significand exponent sign)
   (%integer-encode-float client long-float
-                         significand exponent sign
-                         quaviver.bits:bits-long-float))
+                         significand exponent sign))

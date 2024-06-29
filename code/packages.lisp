@@ -24,16 +24,5 @@
            #:significand-size
            #:arithmetic-size))
 
-(defpackage #:quaviver.bits
-  (:use #:common-lisp)
-  (:export #:short-float-bits
-           #:bits-short-float
-           #:single-float-bits
-           #:bits-single-float
-           #:double-float-bits
-           #:bits-double-float
-           #:long-float-bits
-           #:bits-long-float))
-
 #+(and ecl long-float)
 (pushnew :quaviver/long-float *features*)

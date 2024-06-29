@@ -13,7 +13,7 @@
                    (hidden-bit-p hidden-bit-p)
                    (exponent-bias exponent-bias))
       type
-    `(let* ((bits ,value)
+    `(let* ((bits (quaviver:float-bits nil ,value))
             (exponent (ldb ,exponent-byte-form bits))
             (sign (if (ldb-test ,sign-byte-form bits) -1 1)))
        (declare (type (unsigned-byte ,storage-size)
@@ -60,17 +60,14 @@
 #+(or abcl allegro clasp cmucl ecl lispworks sbcl)
 (defmethod float-integer (client (base (eql 2)) (value single-float))
   (declare (ignore client))
-  (%integer-decode-float single-float
-                         (quaviver.bits:single-float-bits value)))
+  (%integer-decode-float single-float value))
 
 #+(or abcl allegro clasp cmucl ecl lispworks sbcl)
 (defmethod float-integer (client (base (eql 2)) (value double-float))
   (declare (ignore client))
-  (%integer-decode-float double-float
-                         (quaviver.bits:double-float-bits value)))
+  (%integer-decode-float double-float value))
 
 #+quaviver/long-float
 (defmethod float-integer (client (base (eql 2)) (value long-float))
   (declare (ignore client))
-  (%integer-decode-float long-float
-                         (quaviver.bits:long-float-bits value)))
+  (%integer-decode-float long-float value))

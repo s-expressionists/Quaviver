@@ -12,11 +12,9 @@
 
 (defclass client () ())
 
+#-(or abcl allegro ccl clasp cmucl ecl lispworks mezzano sbcl)
 (defmethod quaviver:bits-float
     ((client client) (result-type (eql 'single-float)) (bits integer))
-  #+quaviver.bits/single-float
-  (quaviver.bits:bits-single-float bits)
-  #-quaviver.bits/single-float
   ;; Based on NIBBLES::MAKE-SINGLE-FLOAT [1].
   ;;
   ;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L5
@@ -29,11 +27,9 @@
           (exponent (if (zerop exponent-bits) -126 (- exponent-bits 127))))
       (* sign (scale-float (float significand 1f0) (- exponent 23))))))
 
+#-(or abcl allegro ccl clasp cmucl ecl lispworks mezzano sbcl)
 (defmethod quaviver:bits-float
     ((client client) (result-type (eql 'double-float)) (bits integer))
-  #+quaviver.bits/double-float
-  (quaviver.bits:bits-double-float bits)
-  #-quaviver.bits/double-float
   ;; Based on NIBBLES::MAKE-DOUBLE-FLOAT [1].
   ;;
   ;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L14
@@ -46,10 +42,8 @@
           (exponent (if (zerop exponent-bits) -1022 (- exponent-bits 1023))))
       (* sign (scale-float (float significand 1d0) (- exponent 52))))))
 
+#-(or abcl allegro ccl clasp cmucl ecl lispworks mezzano sbcl)
 (defmethod quaviver:float-bits ((client client) (value single-float))
-  #+quaviver.bits/single-float
-  (quaviver.bits:single-float-bits value)
-  #-quaviver.bits/single-float
   ;; Based on NIBBLES::SINGLE-FLOAT-BITS [1].
   ;;
   ;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L26
@@ -62,10 +56,8 @@
         (setf exponent-bits 0))
       (logior (ash sign-bit 31) (ash exponent-bits 23) (ldb (byte 23 0) significand-bits)))))
 
+#-(or abcl allegro ccl clasp cmucl ecl lispworks mezzano sbcl)
 (defmethod quaviver:float-bits ((client client) (value double-float))
-  #+quaviver.bits/double-float
-  (quaviver.bits:double-float-bits value)
-  #-quaviver.bits/double-float
   ;; Based on NIBBLES::DOUBLE-FLOAT-BITS [1].
   ;;
   ;; [1]: https://github.com/sharplispers/nibbles/blob/6faa72064a361f916e5e545edde9ba5c65721a82/float.lisp#L37

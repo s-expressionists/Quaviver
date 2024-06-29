@@ -14,7 +14,8 @@
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")
-                             (:file "bits")
+                             (:file "bits-float")
+                             (:file "float-bits")
                              (:file "interface")
                              (:file "traits")
                              (:file "integer-float-2")
