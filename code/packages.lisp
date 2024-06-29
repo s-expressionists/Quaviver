@@ -28,6 +28,3 @@
 
 #+(and ecl long-float)
 (pushnew :quaviver/long-float *features*)
-
-#+sbcl
-(pushnew :quaviver/bignum-elision *features*)
