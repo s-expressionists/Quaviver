@@ -11,6 +11,7 @@ set -o nounset
 set -o pipefail
 set -o errexit
 
+nobench=
 tag=
 verbose=
 
@@ -104,6 +105,10 @@ while test "$#" -gt 0; do
     shift
     break
     ;;
+  -n)
+    nobench="nobench"
+    shift
+    ;;
   -t)
     if test "$#" -lt 2; then
       printf >&2 "bench: missing argument for option: %s\n" "$1"
@@ -125,6 +130,15 @@ while test "$#" -gt 0; do
     ;;
   esac
 done
+
+if test -n "$nobench"; then
+  command sbcl --noinform --disable-debugger \
+    --eval '(require "asdf")' \
+    --eval '(asdf:load-system "quaviver/benchmark")' \
+    --eval '(quaviver/benchmark:report)' \
+    --eval '(uiop:quit)'
+  exit
+fi
 
 if test "$#" -le 0; then
   for implementation in abcl ccl clasp ecl sbcl; do
