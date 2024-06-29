@@ -17,7 +17,7 @@
                 (q (+ k (integer-length ,significand) ,(- significand-size)))
                 (shift (- ,arithmetic-size (integer-length ,significand))))
            (declare (type fixnum k shift ,exponent ,sign)
-                    (type quaviver/math::word ,significand))
+                    (type (quaviver/math::word ,arithmetic-size) ,significand))
            ;; The following overflow and underflow checks are not
            ;; strict checks. Stricter checks will happen in
            ;; integer-float/2. These are here to protect the expt10
