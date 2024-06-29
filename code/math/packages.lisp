@@ -7,5 +7,4 @@
            #:round-to-odd/64
            #:round-to-odd/128
            #:floor-log-expt
-           #:floor-log2-expt10
-           #:floor-log10-expt2))
+           #:ceiling-log-expt))
