@@ -14,7 +14,7 @@
          (let ((k (quaviver/math:floor-log-expt 2 10 ,exponent))
                (shift (- ,arithmetic-size (integer-length ,significand))))
            (declare (type fixnum k shift ,exponent ,sign)
-                    (type quaviver/math::word ,significand))
+                    (type (quaviver/math::word ,arithmetic-size) ,significand))
            (setf ,significand (,round-to-odd (,expt10 (- ,exponent))
                                              (ash ,significand shift))
                  k (- k -1 shift)
