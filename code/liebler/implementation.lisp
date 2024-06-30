@@ -14,7 +14,7 @@
          (quaviver:integer-float ,client ',result-type 2
                                  ,significand ,exponent ,sign)
          (let* ((k (quaviver/math:floor-log-expt 2 10 ,exponent))
-                (q (+ k (- (integer-length ,exponent) ,significand-size)))
+                (q (+ k (integer-length ,significand) ,(- significand-size)))
                 (shift (- ,arithmetic-size (integer-length ,significand))))
            ;; The following overflow and underflow checks are not
            ;; strict checks. Stricter checks will happen in

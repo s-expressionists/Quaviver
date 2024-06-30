@@ -167,7 +167,8 @@
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
-  :depends-on ("quaviver")
+  :depends-on ("quaviver"
+               "quaviver/math")
   :components ((:module "code"
                 :pathname "code/jaffer/"
                 :serial t
