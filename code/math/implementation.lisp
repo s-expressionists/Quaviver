@@ -1,6 +1,6 @@
 (in-package #:quaviver/math)
 
-(deftype word (arithmetic-size &optional (count 1))
+(deftype arithmetic-word (arithmetic-size &optional (count 1))
   #+quaviver/bignum-elision
   (ecase arithmetic-size
     (32 (case count
@@ -142,16 +142,16 @@
          (ftype (function ((unsigned-byte 256) (unsigned-byte 128))
                           (unsigned-byte 128))
                 round-to-odd/128)
-         (ftype (function ((unsigned-byte 32) (word 32 2) &optional (integer 0 (32)))
+         (ftype (function ((unsigned-byte 32) (arithmetic-word 32 2) &optional (integer 0 (32)))
                           (values (unsigned-byte 32) boolean &optional))
                 floor-multiply/32-64q64)
-         (ftype (function ((unsigned-byte 32) (word 32 2) &optional (integer 0 (32)))
+         (ftype (function ((unsigned-byte 32) (arithmetic-word 32 2) &optional (integer 0 (32)))
                           (values boolean boolean &optional))
                 floor-multiply/evenp/32-64q64)
-         (ftype (function ((unsigned-byte 64) (word 64 2) &optional (integer 0 (64)))
+         (ftype (function ((unsigned-byte 64) (arithmetic-word 64 2) &optional (integer 0 (64)))
                           (values (unsigned-byte 64) boolean &optional))
                 floor-multiply/64-128q128)
-         (ftype (function ((unsigned-byte 64) (word 64 2) &optional (integer 0 (64)))
+         (ftype (function ((unsigned-byte 64) (arithmetic-word 64 2) &optional (integer 0 (64)))
                           (values boolean boolean &optional))
                 floor-multiply/evenp/64-128q128)
          (ftype (function (fixnum) (unsigned-byte 64))

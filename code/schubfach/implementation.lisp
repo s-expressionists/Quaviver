@@ -34,7 +34,7 @@
                       (k (quaviver/math:floor-log-expt 10 2 exponent lower-boundary-is-closer))
                       (h (+ exponent 1 (quaviver/math:floor-log-expt 2 10 (- k))))
                       (expt10 (,expt10 k)))
-                 (declare (type (quaviver/math::word ,arithmetic-size 2)
+                 (declare (type (quaviver/math:arithmetic-word ,arithmetic-size 2)
                                 expt10)
                           (type boolean
                                 lower-boundary-is-closer is-even)
