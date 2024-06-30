@@ -68,7 +68,7 @@
                                                (- ,(1+ (byte-position significand-bytespec))
                                                   ,exponent-var))
                                          ,significand-var))))))))
-         (quaviver:bits-float nil ,type ,bits-var)))))
+         (quaviver:bits-float nil ',type ,bits-var)))))
 
 (defmethod integer-float
     (client (result-type (eql 'single-float)) (base (eql 2)) significand exponent sign)
