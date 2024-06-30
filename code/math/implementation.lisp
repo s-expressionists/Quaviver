@@ -131,17 +131,15 @@
 
 ;;; Rest
 
-(declaim (ftype (function ((unsigned-byte 64) (unsigned-byte 32))
+(declaim (ftype (function ((unsigned-byte 32) (arithmetic-word 32 2))
                           (unsigned-byte 32))
-                round-to-odd/32)
-         (ftype (function (#+quaviver/bignum-elision (simple-array (unsigned-byte 64) (2))
-                           #-quaviver/bignum-elision (unsigned-byte 128)
-                           (unsigned-byte 64))
+                round-to-odd/32-64)
+         (ftype (function ((unsigned-byte 64) (arithmetic-word 64 2))
                           (unsigned-byte 64))
-                round-to-odd/64)
-         (ftype (function ((unsigned-byte 256) (unsigned-byte 128))
+                round-to-odd/64-128)
+         (ftype (function ((unsigned-byte 128) (arithmetic-word 128 2))
                           (unsigned-byte 128))
-                round-to-odd/128)
+                round-to-odd/128-256)
          (ftype (function ((unsigned-byte 32) (arithmetic-word 32 2) &optional (integer 0 (32)))
                           (values (unsigned-byte 32) boolean &optional))
                 floor-multiply/32-64q64)
@@ -154,19 +152,17 @@
          (ftype (function ((unsigned-byte 64) (arithmetic-word 64 2) &optional (integer 0 (64)))
                           (values boolean boolean &optional))
                 floor-multiply/evenp/64-128q128)
-         (ftype (function (fixnum) (unsigned-byte 64))
+         (ftype (function (fixnum) (arithmetic-word 32 2))
                 expt10/32)
-         (ftype (function (fixnum)
-                          #+quaviver/bignum-elision (simple-array (unsigned-byte 64) (2))
-                          #-quaviver/bignum-elision (unsigned-byte 128))
+         (ftype (function (fixnum) (arithmetic-word 64 2))
                 expt10/64)
-         (ftype (function (fixnum) (unsigned-byte 256))
+         (ftype (function (fixnum) (arithmetic-word 128 2))
                 expt10/128)
          (ftype (function (fixnum fixnum fixnum &optional boolean) fixnum)
                 floor-log-expt ceiling-log-expt)
-         (inline round-to-odd/32
-                 round-to-odd/64
-                 round-to-odd/128
+         (inline round-to-odd/32-64
+                 round-to-odd/64-128
+                 round-to-odd/128-256
                  floor-multiply/32-64q64
                  floor-multiply/evenp/32-64q64
                  floor-multiply/64-128q128
@@ -177,29 +173,29 @@
                  floor-log-expt
                  ceiling-log-expt))
 
-(defmacro %round-to-odd-1 (g cp size)
-  `(let ((p (* ,g ,cp)))
+(defmacro %round-to-odd-1 (cp g size)
+  `(let ((p (* ,cp ,g)))
      (logior (ldb (byte ,size ,(ash size 1)) p)
              (if (> (ldb (byte ,size ,size) p) 1) 1 0))))
 
-(defmacro %round-to-odd-2 (g cp size)
-  `(let ((p (ash (* ,g ,cp) ,(- size))))
+(defmacro %round-to-odd-2 (cp g size)
+  `(let ((p (ash (* ,cp ,g) ,(- size))))
      (if (ldb-test (byte ,(1- size) 1) p)
          (logior (ash p ,(- size)) 1)
          (ash p ,(- size)))))
 
-(defun round-to-odd/32 (g cp)
+(defun round-to-odd/32-64 (cp g)
   #+quaviver/bignum-elision
   (let ((p (*/32-64/hi64 cp g)))
     (if (ldb-test (byte 31 1) p)
         (logior (ash p -32) 1)
         (ash p -32)))
   #+(and (not quaviver/bignum-elision) (not (or ecl cmucl)))
-  (%round-to-odd-1 g cp 32)
+  (%round-to-odd-1 cp g 32)
   #+(and (not quaviver/bignum-elision) (or ecl cmucl))
-  (%round-to-odd-2 g cp 32))
+  (%round-to-odd-2 cp g 32))
 
-(defun round-to-odd/64 (g cp)
+(defun round-to-odd/64-128 (cp g)
   #+quaviver/bignum-elision
   (multiple-value-bind (ph pl)
       (*/64-128/hi128 cp (aref g 0) (aref g 1))
@@ -207,10 +203,10 @@
         (logior ph 1)
         ph))
   #-quaviver/bignum-elision
-  (%round-to-odd-2 g cp 64))
+  (%round-to-odd-2 cp g 64))
 
-(defun round-to-odd/128 (g cp)
-  (%round-to-odd-2 g cp 128))
+(defun round-to-odd/128-256 (cp g)
+  (%round-to-odd-2 cp g 128))
 
 ;;; The FLOOR-MULTIPLY operations return the same type as the initial argument.
 ;;;

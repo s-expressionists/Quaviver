@@ -41,17 +41,17 @@
                           (type (integer 0 4)
                                 h))
                  (setf significand (ash significand 2))
-                 (let ((lower (,round-to-odd expt10
-                                             (ash (if lower-boundary-is-closer
+                 (let ((lower (,round-to-odd (ash (if lower-boundary-is-closer
                                                       (1- significand)
                                                       (- significand 2))
-                                                  h)))
-                       (upper (,round-to-odd expt10
-                                             (ash (+ significand 2)
-                                                  h))))
+                                                  h)
+                                             expt10))
+                       (upper (,round-to-odd (ash (+ significand 2)
+                                                  h)
+                                             expt10)))
                    (declare (type (unsigned-byte ,word-size)
                                   lower upper))
-                   (setf significand (,round-to-odd expt10 (ash significand h)))
+                   (setf significand (,round-to-odd (ash significand h) expt10))
                    (let ((s (ash significand -2)))
                      (declare (type (unsigned-byte ,word-size)
                                     s))
@@ -111,23 +111,23 @@
   (%schubfach client value
               short-float
               quaviver/math:expt10/32
-              quaviver/math:round-to-odd/32))
+              quaviver/math:round-to-odd/32-64))
 
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value single-float))
   (%schubfach client value
               single-float
               quaviver/math:expt10/32
-              quaviver/math:round-to-odd/32))
+              quaviver/math:round-to-odd/32-64))
 
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value double-float))
   (%schubfach client value
               double-float
               quaviver/math:expt10/64
-              quaviver/math:round-to-odd/64))
+              quaviver/math:round-to-odd/64-128))
 
 #+quaviver/long-float
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value long-float))
   (%schubfach client value
               long-float
               quaviver/math:expt10/128
-              quaviver/math:round-to-odd/128))
+              quaviver/math:round-to-odd/128-256))
