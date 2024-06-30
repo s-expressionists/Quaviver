@@ -194,10 +194,10 @@
     (if (ldb-test (byte 31 1) p)
         (logior (ash p -32) 1)
         (ash p -32)))
-  #-quaviver/bignum-elision
-  (progn
-    #-(or ecl cmucl) (%round-to-odd-1 g cp 32)
-    #+(or ecl cmucl) (%round-to-odd-2 g cp 32)))
+  #+(and (not quaviver/bignum-elision) (not (or ecl cmucl)))
+  (%round-to-odd-1 g cp 32)
+  #+(and (not quaviver/bignum-elision) (or ecl cmucl))
+  (%round-to-odd-2 g cp 32))
 
 (defun round-to-odd/64 (g cp)
   #+quaviver/bignum-elision
