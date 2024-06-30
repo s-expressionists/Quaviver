@@ -17,138 +17,117 @@
 ;;; Bignum elision
 ;;;
 ;;; From Dragonbox.
-;;; TODO Link
+;;;
+;;; TODO: Link to sources.
+;;; TODO: Make parameter order more consistent based on width?
+;;; TODO: Better name for WORD-HIGH operation.
 
-;;; Maybe U+/128, U*/128 and U*/128-upper64 or something.
+(declaim (ftype (function ((unsigned-byte 64) (unsigned-byte 64))
+                          (values (unsigned-byte 64) &optional))
+                +/64-64)
+         (ftype (function ((unsigned-byte 64) (unsigned-byte 64) (unsigned-byte 64))
+                          (values (unsigned-byte 64) (unsigned-byte 64) &optional))
+                +/128-64)
+         (ftype (function ((unsigned-byte 32) (unsigned-byte 64))
+                          (values (unsigned-byte 64) &optional))
+                */32-64/hi64
+                */32-64/lo64)
+         (ftype (function ((unsigned-byte 64) (unsigned-byte 64))
+                          (values (unsigned-byte 64) (unsigned-byte 64) &optional))
+                */64-64)
+         (ftype (function ((unsigned-byte 64) (unsigned-byte 64))
+                          (values (unsigned-byte 64) &optional))
+                */64-64/hi64
+                */64-64/lo64)
+         (ftype (function ((unsigned-byte 64) (unsigned-byte 64) (unsigned-byte 64))
+                          (values (unsigned-byte 64) (unsigned-byte 64) &optional))
+                */64-128/hi128
+                */64-128/lo128)
+         (inline +/64-64
+                 +/128-64
+                 */32-64/hi64
+                 */32-64/lo64
+                 */64-64
+                 */64-64/hi64
+                 */64-64/lo64
+                 */64-128/hi128
+                 */64-128/lo128))
 
-(defmacro umul96-upper64 (x y)
-  (let ((xg (gensym (string 'x)))
-        (yg (gensym (string 'y))))
-    `(let ((,xg ,x)
-           (,yg ,y))
-       (declare ((unsigned-byte 32) ,xg)
-                ((unsigned-byte 64) ,yg))
-       (ldb (byte 64 0)
-            (+ (* ,xg (ldb (byte 32 32) ,yg))
-               (ash (* ,xg (ldb (byte 32 0) ,yg)) -32))))))
+(defun +/64-64 (x y)
+  (ldb (byte 64 0) (+ x y)))
 
-(defmacro umul96-lower64 (x y)
-  (let ((xg (gensym (string 'x)))
-        (yg (gensym (string 'y))))
-    `(let ((,xg ,x)
-           (,yg ,y))
-       (declare ((unsigned-byte 32) ,xg)
-                ((unsigned-byte 64) ,yg))
-       ;; Don't suppose there's a way to do overflow multiplication?
-       ;; I think SBCL optimizes this properly!!
-       (ldb (byte 64 0) (* ,xg ,yg)))))
+(defun +/128-64 (xh xl y)
+  (let ((rl (+/64-64 xl y)))
+    (values (+/64-64 xh (if (< rl xl) 1 0))
+            rl)))
 
-(defmacro u128+ (hi lo n)
-  (let ((hig (gensym (string 'hi)))
-        (log (gensym (string 'lo)))
-        (ng (gensym (string 'n))))
-    `(let* ((,hig ,hi)
-            (,log ,lo)
-            (,ng ,n)
-            (sum (ldb (byte 64 0) (+ ,log ,ng))))
-       (declare ((unsigned-byte 64) ,hig ,log ,ng))
-       (values (ldb (byte 64 0) (+ ,hig (if (< sum ,log) 1 0)))
-               sum))))
+(defun */32-64/hi64 (x y)
+  (+/64-64 (* x (ldb (byte 32 32) y))
+           (ash (* x (ldb (byte 32 0) y))
+                -32)))
 
-(defmacro umul128 (x y)
-  (let ((xg (gensym (string 'x)))
-        (yg (gensym (string 'y))))
-    `(let* ((,xg ,x)
-            (,yg ,y)
-            (a (ldb (byte 32 32) ,xg))
-            (b (ldb (byte 32 0) ,xg))
-            (c (ldb (byte 32 32) ,yg))
-            (d (ldb (byte 32 0) ,yg))
-            (ac (* a c))
-            (bc (* b c))
-            (ad (* a d))
-            (bd (* b d))
-            (intermediate (+ (ldb (byte 32 32) bd)
-                             (ldb (byte 32 0) ad)
-                             (ldb (byte 32 0) bc))))
-       (declare ((unsigned-byte 64) ,xg ,yg))
-       #+(or) (+ (ash ac 64) (ash bc 32) (ash ad 32) bd)
-       (values (ldb (byte 64 0)
-                    (+ ac
-                       (ldb (byte 32 32) intermediate)
-                       (ldb (byte 32 32) ad)
-                       (ldb (byte 32 32) bc)))
-               (ldb (byte 64 0)
-                    (+ (ash (ldb (byte 32 0) intermediate)
-                            32)
-                       (ldb (byte 32 0) bd)))))))
+(defun */32-64/lo64 (x y)
+  ;; SBCL elides bignums.
+  (ldb (byte 64 0) (* x y)))
 
-#+(or)                                  ; tests
-(progn
-  (let ((x (ash 1 32))
-        (y (ash 1 32)))
-    (list (* x y) (umul128 x y)))
+(defun */64-64 (x y)
+  (let* ((a (ldb (byte 32 32) x))
+         (b (ldb (byte 32 0) x))
+         (c (ldb (byte 32 32) y))
+         (d (ldb (byte 32 0) y))
+         (ac (* a c))
+         (bc (* b c))
+         (ad (* a d))
+         (bd (* b d))
+         (u (+ (ldb (byte 32 32) bd)
+               (ldb (byte 32 0) ad)
+               (ldb (byte 32 0) bc))))
+    (declare ((unsigned-byte 32) a b c d)
+             ((unsigned-byte 64) ac bc ad bd u))
+    ;; (+ (ash ac 64) (ash ad 32) (ash bc 32) bd)
+    (values (ldb (byte 64 0)
+                 (+ ac
+                    (ldb (byte 32 32) u)
+                    (ldb (byte 32 32) ad)
+                    (ldb (byte 32 32) bc)))
+            (+/64-64 (ash (ldb (byte 32 0) u)
+                          32)
+                     (ldb (byte 32 0) bd)))))
 
-  (let ((x (ash 1 31))
-        (y 2))
-    (list (* x y) (umul128 x y)))
+(defun */64-64/hi64 (x y)
+  (let* ((a (ldb (byte 32 32) x))
+         (b (ldb (byte 32 0) x))
+         (c (ldb (byte 32 32) y))
+         (d (ldb (byte 32 0) y))
+         (ac (* a c))
+         (bc (* b c))
+         (ad (* a d))
+         (bd (* b d))
+         (u (+ (ldb (byte 32 32) bd)
+               (ldb (byte 32 0) ad)
+               (ldb (byte 32 0) bc))))
+    (declare ((unsigned-byte 32) a b c d)
+             ((unsigned-byte 64) ac bc ad bd u))
+    ;; (+ (ash ac 64) (ash ad 32) (ash bc 32) bd)
+    (ldb (byte 64 0)
+         (+ ac
+            (ldb (byte 32 32) u)
+            (ldb (byte 32 32) ad)
+            (ldb (byte 32 32) bc)))))
 
-  (let ((x 123456789012345)
-        (y 2))
-    (list (* x y) (umul128 x y)))
+(defun */64-64/lo64 (x y)
+  ;; SBCL elides bignums.
+  (ldb (byte 64 0) (* x y)))
 
-  (let ((x 123456789012345)
-        (y 123456789012345))
-    (list (* x y) (umul128 x y))))
+(defun */64-128/hi128 (x yh yl)
+  (multiple-value-bind (rh rl) (*/64-64 x yh)
+    (+/128-64 rh rl (*/64-64/hi64 x yl))))
 
-;;; TODO: Simplify these.
-(defmacro umul128-upper64 (x y)
-  (let ((xg (gensym (string 'x)))
-        (yg (gensym (string 'y))))
-    `(let* ((,xg ,x)
-            (,yg ,y)
-            (a (ldb (byte 32 32) ,xg))
-            (b (ldb (byte 32 0) ,xg))
-            (c (ldb (byte 32 32) ,yg))
-            (d (ldb (byte 32 0) ,yg))
-            (ac (* a c))
-            (bc (* b c))
-            (ad (* a d))
-            (bd (* b d))
-            (intermediate (+ (ldb (byte 32 32) bd)
-                             (ldb (byte 32 0) ad)
-                             (ldb (byte 32 0) bc))))
-       (declare ((unsigned-byte 64) ,xg ,yg))
-       #+(or) (+ (ash ac 64) (ash bc 32) (ash ad 32) bd) ; TODO: Test if faster
-       (ldb (byte 64 0)
-            (+ ac
-               (ldb (byte 32 32) intermediate)
-               (ldb (byte 32 32) ad)
-               (ldb (byte 32 32) bc))))))
-
-(defmacro umul192-upper128 (x yh yl)
-  (let ((xg (gensym (string 'x)))
-        (yhg (gensym (string 'yh)))
-        (ylg (gensym (string 'yl))))
-    `(let ((,xg ,x)
-           (,yhg ,yh)
-           (,ylg ,yl))
-       (declare ((unsigned-byte 64) ,xg ,yhg ,ylg))
-       (multiple-value-bind (rh rl) (umul128 ,xg ,yhg)
-         (u128+ rh rl (umul128-upper64 ,xg ,ylg))))))
-
-(defmacro umul192-lower128 (x yh yl)
-  (let ((xg (gensym (string 'x)))
-        (yhg (gensym (string 'yh)))
-        (ylg (gensym (string 'yl))))
-    `(let* ((,xg ,x)
-            (,yhg ,yh)
-            (,ylg ,yl)
-            (high (ldb (byte 64 0) (* ,xg ,yhg))))
-       (declare ((unsigned-byte 64) ,xg ,yhg ,ylg))
-       (multiple-value-bind (rh rl) (umul128 ,xg ,ylg)
-         (values (ldb (byte 64 0) (+ high rh))
-                 rl)))))
+(defun */64-128/lo128 (x yh yl)
+  (multiple-value-bind (rh rl) (*/64-64 x yl)
+    (values (+/64-64 (*/64-64/lo64 x yh)
+                     rh)
+            rl)))
 
 ;;; Rest
 
@@ -195,7 +174,7 @@
 
 (defun round-to-odd/32 (g cp)
   #+quaviver/bignum-elision
-  (let ((p (umul96-upper64 cp g)))
+  (let ((p (*/32-64/hi64 cp g)))
     (if (ldb-test (byte 31 1) p)
         (logior (ash p -32) 1)
         (ash p -32)))
@@ -207,7 +186,7 @@
 (defun round-to-odd/64 (g cp)
   #+quaviver/bignum-elision
   (multiple-value-bind (ph pl)
-      (umul192-upper128 cp (aref g 0) (aref g 1))
+      (*/64-128/hi128 cp (aref g 0) (aref g 1))
     (if (ldb-test (byte 63 1) pl)
         (logior ph 1)
         ph))

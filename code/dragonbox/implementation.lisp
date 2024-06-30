@@ -114,14 +114,14 @@
          `(ldb (byte 32 32) (* (the (unsigned-byte ,size) ,number) 429496730)))
         ((and (= size 64) (= power 1) (<= max-number 4611686018427387908))
          #+quaviver/bignum-elision
-         `(quaviver/math::umul128-upper64 ,number 1844674407370955162)
+         `(quaviver/math::*/64-64/hi64 ,number 1844674407370955162)
          #-quaviver/bignum-elision
          `(ldb (byte 64 64) (* (the (unsigned-byte ,size) ,number) 1844674407370955162)))
         ((and (= size 32) (= power 2))
          `(ldb (byte 27 37) (* (the (unsigned-byte ,size) ,number) 1374389535)))
         ((and (= size 64) (= power 3) (<= max-number 15534100272597517998))
          #+quaviver/bignum-elision
-         `(ash (quaviver/math::umul128-upper64 ,number 4722366482869645214) -8)
+         `(ash (quaviver/math::*/64-64/hi64 ,number 4722366482869645214) -8)
          #-quaviver/bignum-elision
          `(ldb (byte 56 72) (* (the (unsigned-byte ,size) ,number) 4722366482869645214)))
         (t
@@ -374,7 +374,7 @@
       (32
        `(let* ((,ug ,u)
                (,expt10g ,expt10)
-               (r (quaviver/math::umul96-upper64 ,ug ,expt10g)))
+               (r (quaviver/math::*/32-64/hi64 ,ug ,expt10g)))
           (declare ((unsigned-byte ,arithmetic-size) ,ug)
                    ((quaviver/math::word ,arithmetic-size 2) ,expt10g))
           (values (ldb (byte 32 32) r)              ; integer part
@@ -385,7 +385,7 @@
           (declare ((unsigned-byte ,arithmetic-size) ,ug)
                    ((quaviver/math::word ,arithmetic-size 2) ,expt10g))
           (multiple-value-bind (rh rl)
-              (quaviver/math::umul192-upper128 ,ug (aref ,expt10g 0) (aref ,expt10g 1))
+              (quaviver/math::*/64-128/hi128 ,ug (aref ,expt10g 0) (aref ,expt10g 1))
             (values rh (zerop rl))))))  ; integer part, integer-p
     #-quaviver/bignum-elision
     `(let* ((,ug ,u)
@@ -412,7 +412,7 @@
        `(let* ((,ug ,u)
                (,expt10g ,expt10)
                (,betag ,beta)
-               (r (quaviver/math::umul96-lower64 ,ug ,expt10g)))
+               (r (quaviver/math::*/32-64/lo64 ,ug ,expt10g)))
           (declare ((unsigned-byte ,arithmetic-size) ,ug)
                    ((quaviver/math::word ,arithmetic-size 2) ,expt10g)
                    ((integer 1 32) ,betag)) ; inclusive
@@ -426,7 +426,7 @@
                    ((quaviver/math::word ,arithmetic-size 2) ,expt10g)
                    ((integer 1 (64)) ,betag)) ; exclusive
           (multiple-value-bind (rh rl)
-              (quaviver/math::umul192-lower128 ,ug (aref ,expt10g 0) (aref ,expt10g 1))
+              (quaviver/math::*/64-128/lo128 ,ug (aref ,expt10g 0) (aref ,expt10g 1))
             (values (logbitp (- 64 ,betag) rh) ; parity-p
                     (and (zerop (ldb (byte (- 64 ,betag) ,betag) rh)) ; integer-p
                          (zerop (ldb (byte 64 (- 64 ,betag)) rl))))))))
