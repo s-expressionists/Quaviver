@@ -6,6 +6,10 @@
            #:round-to-odd/32
            #:round-to-odd/64
            #:round-to-odd/128
+           #:floor-multiply/32-64q64
+           #:floor-multiply/evenp/32-64q64
+           #:floor-multiply/64-128q128
+           #:floor-multiply/evenp/64-128q128
            #:floor-log-expt
            #:ceiling-log-expt))
 
