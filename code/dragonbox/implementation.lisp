@@ -417,7 +417,6 @@
                                         (- (- ,size ,significand-size beta)))))))
                  (declare ((signed-byte 32) -k beta)
                           ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
-                          #+quaviver/bignum-elision
                           (dynamic-extent expt10)
                           ((unsigned-byte ,arithmetic-size) xi zi))
                  (when (and (not include-right-endpoint-p)
@@ -472,7 +471,6 @@
                     (r 0))
                (declare ((signed-byte 32) -k beta)
                         ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
-                        #+quaviver/bignum-elision
                         (dynamic-extent expt10)
                         ((unsigned-byte ,arithmetic-size) deltai zi r)
                         (boolean zi-integer-p))
@@ -572,7 +570,6 @@
                      (r 0))
                 (declare ((signed-byte 32) -k beta)
                          ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
-                         #+quaviver/bignum-elision
                          (dynamic-extent expt10)
                          ((unsigned-byte ,arithmetic-size) deltai xi r)
                          (boolean xi-integer-p))
@@ -628,7 +625,6 @@
                      (r 0))
                 (declare ((signed-byte 32) -k beta)
                          ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
-                         #+quaviver/bignum-elision
                          (dynamic-extent expt10)
                          ((unsigned-byte ,arithmetic-size) deltai zi r))
                 ;; Step 2: Try larger divisor; remove trailing zeros if necessary
