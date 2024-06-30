@@ -142,6 +142,18 @@
          (ftype (function ((unsigned-byte 256) (unsigned-byte 128))
                           (unsigned-byte 128))
                 round-to-odd/128)
+         (ftype (function ((unsigned-byte 32) (word 32 2) &optional (integer 0 (32)))
+                          (values (unsigned-byte 32) boolean &optional))
+                floor-multiply/32-64q64)
+         (ftype (function ((unsigned-byte 32) (word 32 2) &optional (integer 0 (32)))
+                          (values boolean boolean &optional))
+                floor-multiply/evenp/32-64q64)
+         (ftype (function ((unsigned-byte 64) (word 64 2) &optional (integer 0 (64)))
+                          (values (unsigned-byte 64) boolean &optional))
+                floor-multiply/64-128q128)
+         (ftype (function ((unsigned-byte 64) (word 64 2) &optional (integer 0 (64)))
+                          (values boolean boolean &optional))
+                floor-multiply/evenp/64-128q128)
          (ftype (function (fixnum) (unsigned-byte 64))
                 expt10/32)
          (ftype (function (fixnum)
@@ -155,6 +167,10 @@
          (inline round-to-odd/32
                  round-to-odd/64
                  round-to-odd/128
+                 floor-multiply/32-64q64
+                 floor-multiply/evenp/32-64q64
+                 floor-multiply/64-128q128
+                 floor-multiply/evenp/64-128q128
                  expt10/32
                  expt10/64
                  expt10/128
@@ -195,6 +211,78 @@
 
 (defun round-to-odd/128 (g cp)
   (%round-to-odd-2 g cp 128))
+
+;;; The FLOOR-MULTIPLY operations return the same type as the initial argument.
+;;;
+;;; floor(2^pre * x * y)
+;;;
+;;; Also, pre-shift and x guarantee that 2^pre * x remains within the size of x.
+;;;
+;;; The pre-shift is <32 here unlike Dragonbox.
+;;; Also, I've relaxed it to min 0.
+;;; Relax it even more, e.g., no min?
+;;;
+;;; Also, zerop ldb vs not ldb-test triggers different compiler notes on
+;;; SBCL.
+;;; Investigate.
+;;; They are currently inconsistent here.
+;;; Also the LDB calls in the evenp versions seem like the size could be
+;;; constrained.
+;;;
+;;; Based on
+;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3064-L3068
+;;; and
+;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3121-L3125
+
+(defmacro %floor-multiply/n-2nq2n (x y pre-shift size)
+  `(let ((r (* (the (unsigned-byte ,size) (ash ,x ,pre-shift))
+               ,y)))
+     (values (ldb (byte ,size ,(* size 2)) r)      ; integer part
+             (zerop (ldb (byte ,size ,size) r))))) ; integer-p
+
+(defun floor-multiply/32-64q64 (x y &optional (pre-shift 0))
+  #+quaviver/bignum-elision
+  (let ((r (*/32-64/hi64 (ash x pre-shift) y)))
+    (values (ldb (byte 32 32) r)             ; integer part
+            (not (ldb-test (byte 32 0) r)))) ; integer-p
+  #-quaviver/bignum-elision
+  (%floor-multiply/n-2nq2n x y pre-shift 32))
+
+(defun floor-multiply/64-128q128 (x y &optional (pre-shift 0))
+  #+quaviver/bignum-elision
+  (multiple-value-bind (rh rl)
+      (*/64-128/hi128 (ash x pre-shift) (aref y 0) (aref y 1))
+    (values rh (zerop rl))) ; integer part, integer-p
+  #-quaviver/bignum-elision
+  (%floor-multiply/n-2nq2n x y pre-shift 64))
+
+;;; FLOOR-MULTIPLY/EVENP variants based on
+;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3076-L3085
+;;; and
+;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3134-L3144
+
+(defmacro %floor-multiply/evenp/n-2nq2n (x y pre-shift size)
+  `(let* ((r (* ,x ,y)))
+     (values (logbitp (- ,(* size 2) ,pre-shift) r) ; even-p
+             (zerop (ldb (byte ,size (- ,size ,pre-shift)) r))))) ; integer-p
+
+(defun floor-multiply/evenp/32-64q64 (x y &optional (pre-shift 0))
+  #+quaviver/bignum-elision
+  (let ((r (*/32-64/lo64 x y)))
+    (values (logbitp (- 64 pre-shift) r)                    ; even-p
+            (not (ldb-test (byte 32 (- 32 pre-shift)) r)))) ; integer-p
+  #-quaviver/bignum-elision
+  (%floor-multiply/evenp/n-2nq2n x y pre-shift 32))
+
+(defun floor-multiply/evenp/64-128q128 (x y &optional (pre-shift 0))
+  #+quaviver/bignum-elision
+  (multiple-value-bind (rh rl)
+      (*/64-128/lo128 x (aref y 0) (aref y 1))
+    (values (logbitp (- 64 pre-shift) rh) ; even-p
+            (and (zerop (ldb (byte (- 64 pre-shift) pre-shift) rh)) ; integer-p
+                 (zerop (ldb (byte 64 (- 64 pre-shift)) rl)))))
+  #-quaviver/bignum-elision
+  (%floor-multiply/evenp/n-2nq2n x y pre-shift 64))
 
 (defconstant +expt10/min-exponent/32+ -53)
 
