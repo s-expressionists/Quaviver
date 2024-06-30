@@ -1,6 +1,7 @@
 (defpackage #:quaviver/math
   (:use #:common-lisp)
-  (:export #:expt10/32
+  (:export #:arithmetic-word
+           #:expt10/32
            #:expt10/64
            #:expt10/128
            #:round-to-odd/32

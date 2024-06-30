@@ -416,7 +416,7 @@
                                              (+ ,high (ash ,high ,(- significand-size))))
                                         (- (- ,size ,significand-size beta)))))))
                  (declare ((signed-byte 32) -k beta)
-                          ((quaviver/math::word ,arithmetic-size 2) expt10)
+                          ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                           #+quaviver/bignum-elision
                           (dynamic-extent expt10)
                           ((unsigned-byte ,arithmetic-size) xi zi))
@@ -471,7 +471,7 @@
                     (zi-integer-p nil)
                     (r 0))
                (declare ((signed-byte 32) -k beta)
-                        ((quaviver/math::word ,arithmetic-size 2) expt10)
+                        ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                         #+quaviver/bignum-elision
                         (dynamic-extent expt10)
                         ((unsigned-byte ,arithmetic-size) deltai zi r)
@@ -571,7 +571,7 @@
                      (xi-integer-p nil)
                      (r 0))
                 (declare ((signed-byte 32) -k beta)
-                         ((quaviver/math::word ,arithmetic-size 2) expt10)
+                         ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                          #+quaviver/bignum-elision
                          (dynamic-extent expt10)
                          ((unsigned-byte ,arithmetic-size) deltai xi r)
@@ -627,7 +627,7 @@
                      (zi (nth-value 0 (,floor-multiply 2fc expt10 beta)))
                      (r 0))
                 (declare ((signed-byte 32) -k beta)
-                         ((quaviver/math::word ,arithmetic-size 2) expt10)
+                         ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                          #+quaviver/bignum-elision
                          (dynamic-extent expt10)
                          ((unsigned-byte ,arithmetic-size) deltai zi r))
