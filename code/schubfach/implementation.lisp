@@ -36,6 +36,7 @@
                       (expt10 (,expt10 k)))
                  (declare (type (quaviver/math:arithmetic-word ,arithmetic-size 2)
                                 expt10)
+                          (dynamic-extent expt10)
                           (type boolean
                                 lower-boundary-is-closer is-even)
                           (type (integer 0 4)
