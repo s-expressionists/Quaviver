@@ -131,7 +131,13 @@
 
 ;;; Rest
 
-(declaim (ftype (function ((unsigned-byte 32) (arithmetic-word 32 2))
+(declaim (ftype (function ((arithmetic-word 32 2) (integer 0 32))
+                          (values (arithmetic-word 32) &optional))
+                shr/64/hi32)
+         (ftype (function ((arithmetic-word 64 2) (integer 0 64))
+                          (values (arithmetic-word 64) &optional))
+                shr/128/hi64)
+         (ftype (function ((unsigned-byte 32) (arithmetic-word 32 2))
                           (unsigned-byte 32))
                 round-to-odd/32-64)
          (ftype (function ((unsigned-byte 64) (arithmetic-word 64 2))
@@ -160,7 +166,9 @@
                 expt10/128)
          (ftype (function (fixnum fixnum fixnum &optional boolean) fixnum)
                 floor-log-expt ceiling-log-expt)
-         (inline round-to-odd/32-64
+         (inline shr/64/hi32
+                 shr/128/hi64
+                 round-to-odd/32-64
                  round-to-odd/64-128
                  round-to-odd/128-256
                  floor-multiply/32-64q64
@@ -172,6 +180,15 @@
                  expt10/128
                  floor-log-expt
                  ceiling-log-expt))
+
+(defun shr/64/hi32 (x count)
+  (ash x (- (+ 32 count))))
+
+(defun shr/128/hi64 (x count)
+  #+quaviver/bignum-elision
+  (ash (aref x 0) (- count))
+  #-quaviver/bignum-elision
+  (ash x (- (+ 64 count))))
 
 (defmacro %round-to-odd-1 (cp g size)
   `(let ((p (* ,cp ,g)))
