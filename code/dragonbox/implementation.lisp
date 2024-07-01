@@ -493,11 +493,10 @@
                    (return-from %dragonbox
                      (values significand (1+ -k) sign)))
                  (setf significand
-                       ,(multiple-value-bind (high size) (word-high 'expt10 arithmetic-size)
-                          `(ash (the (unsigned-byte ,arithmetic-size)
-                                     (1+ (ldb (byte ,arithmetic-size 0)
-                                              (ash ,high (- (- ,size ,significand-size 1 beta))))))
-                                -1)))
+                       (ash (the (unsigned-byte ,arithmetic-size)
+                                 (1+ (the (unsigned-byte ,arithmetic-size)
+                                          (,hi/2n expt10 (+ ,significand-size 1 beta)))))
+                            -1))
                  (cond ((and (prefer-round-down-p ,client significand)
                              (<= ,(- (- (floor-log5-expt2-minus-log5-3 (+ significand-size 3)))
                                      2 (1- significand-size))
