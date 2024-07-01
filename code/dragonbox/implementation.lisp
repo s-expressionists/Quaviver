@@ -156,7 +156,7 @@
                   :toward-zero)))
   (:default-initargs
    :decimal-binary-rounding :to-even
-   :binary-decimal-rounding :to-even))
+   :binary-decimal-rounding :away-from-zero))
 
 (defmethod initialize-instance :after
     ((client nearest-client) &key decimal-binary-rounding binary-decimal-rounding)
