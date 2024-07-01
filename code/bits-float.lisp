@@ -59,7 +59,7 @@
     (ccl::double-float-from-bits upper lower))
   #+clasp
   (ext:bits-to-double-float value)
-  #+cmu
+  #+cmucl
   (let ((upper (ub32-sb32 (ldb (byte 32 32) value)))
         (lower (ldb (byte 32 0) value)))
     (kernel:make-double-float upper lower))
