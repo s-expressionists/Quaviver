@@ -1,7 +1,16 @@
 (in-package #:quaviver/schubfach)
 
+(deftype rounding ()
+  `(member :toward-zero :away-from-zero))
+
 (defclass client (quaviver/trailing-zeros:client)
-  ())
+  ((rounding :accessor rounding
+             :initarg :rounding
+             :initform :away-from-zero)))
+
+(defmethod initialize-instance :after ((client client) &rest initargs &key)
+  (declare (ignore initargs))
+  (check-type (rounding client) rounding))
 
 (defmacro %schubfach (client value type expt10 round-to-odd)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
@@ -65,12 +74,10 @@
                                    k
                                    sign))))
                      (let* ((mid (+ (ash s 2) 2))
-                            (round-up (>= significand mid)
-                                      ;; yitzchak: changed this to match
-                                      ;; Burger-Dybvig rounding
-                                      #+(or)(or (> significand mid)
-                                                (and (= significand mid)
-                                                     (logbitp s 0)))))
+                            (round-up (or (> significand mid)
+                                          (and (= significand mid)
+                                               (or (eq (rounding ,client) :away-from-zero)
+                                                   (logbitp s 0))))))
                        (declare (type (unsigned-byte ,word-size)
                                       mid))
                        (values (if round-up (1+ s) s)
