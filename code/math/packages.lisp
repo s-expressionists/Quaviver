@@ -1,6 +1,8 @@
 (defpackage #:quaviver/math
   (:use #:common-lisp)
   (:export #:arithmetic-word
+           #:shr/64/hi32
+           #:shr/128/hi64
            #:expt10/32
            #:expt10/64
            #:expt10/128
