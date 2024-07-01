@@ -56,7 +56,7 @@
   #+ccl
   (let ((upper (ldb (byte 32 32) value))
         (lower (ldb (byte 32 0) value)))
-    (ccl::double-float-from-value upper lower))
+    (ccl::double-float-from-bits upper lower))
   #+clasp
   (ext:bits-to-double-float value)
   #+cmu
