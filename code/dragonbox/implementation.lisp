@@ -345,16 +345,7 @@
     (loop with remainder
           do (multiple-value-setq (number remainder) (floor number divisor))
           while (zerop remainder)
-          count 1))
-
-  ;; The -HIGH suffix is misleading for 32 bits and bignum.
-  (defun word-high (var arithmetic-size)
-    #+quaviver/bignum-elision
-    (ecase arithmetic-size
-      (32 (values var (ash arithmetic-size 1)))
-      (64 (values `(aref ,var 0) 64)))
-    #-quaviver/bignum-elision
-    (values var (ash arithmetic-size 1))))
+          count 1)))
 
 ;;; The beta bounds methods serve only to manually determine the limits
 ;;; of beta so that the computations can be optimized appropriately.
@@ -455,17 +446,13 @@
                       (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                       (expt10 (,expt10 -k))
                       ;; Left endpoint
-                      (xi ,(multiple-value-bind (high size) (word-high 'expt10 arithmetic-size)
-                             `(ldb (byte ,arithmetic-size 0)
-                                   (ash (the (unsigned-byte ,size)
-                                             (- ,high (ash ,high ,(- (1+ significand-size)))))
-                                        (- (- ,size ,significand-size beta))))))
+                      (xi (let ((hi64 (,hi/2n expt10 64)))
+                            (quaviver/math:hi/64 (- hi64 (ash hi64 ,(- (1+ significand-size))))
+                                                 (+ ,significand-size beta))))
                       ;; Right endpoint
-                      (zi ,(multiple-value-bind (high size) (word-high 'expt10 arithmetic-size)
-                             `(ldb (byte ,arithmetic-size 0)
-                                   (ash (the (unsigned-byte ,size)
-                                             (+ ,high (ash ,high ,(- significand-size))))
-                                        (- (- ,size ,significand-size beta)))))))
+                      (zi (let ((hi64 (,hi/2n expt10 64)))
+                            (quaviver/math:hi/64 (+ hi64 (ash hi64 ,(- significand-size)))
+                                                 (+ ,significand-size beta)))))
                  (declare ((signed-byte 32) -k beta)
                           ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                           (dynamic-extent expt10)
