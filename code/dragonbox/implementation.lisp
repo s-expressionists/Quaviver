@@ -356,6 +356,61 @@
     #-quaviver/bignum-elision
     (values var (ash arithmetic-size 1))))
 
+;;; The beta bounds methods serve only to manually determine the limits
+;;; of beta so that the computations can be optimized appropriately.
+
+(defgeneric beta-bounds/nearest/shorter-interval (type))
+(defgeneric beta-bounds/nearest/normal-interval (type))
+(defgeneric beta-bounds/left-closed-directed (type))
+(defgeneric beta-bounds/right-closed-directed (type))
+
+(defmethod beta-bounds/nearest/shorter-interval (type)
+  (loop for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
+        for beta = (+ exponent (floor-log2-expt10 (- (floor-log10-expt2-minus-log10-4/3 exponent))))
+        minimize beta into min
+        maximize beta into max
+        finally (return (list min max))))
+
+(defmethod beta-bounds/nearest/normal-interval (type)
+  (loop for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
+        for beta = (+ exponent (floor-log2-expt10 (- (kappa type)
+                                                     (floor-log10-expt2 exponent))))
+        minimize beta into min
+        maximize beta into max
+        finally (return (list min max))))
+
+(defmethod beta-bounds/left-closed-directed (type)
+  (beta-bounds/nearest/normal-interval type))
+
+(defmethod beta-bounds/right-closed-directed (type)
+  (loop for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
+        for beta-1 = (+ exponent (floor-log2-expt10 (- (kappa type)
+                                                       (floor-log10-expt2 exponent))))
+        for beta-2 = (+ exponent (floor-log2-expt10 (- (kappa type)
+                                                       (floor-log10-expt2 (1- exponent)))))
+        minimize (min beta-1 beta-2) into min
+        maximize (max beta-1 beta-2) into max
+        finally (return (list min max))))
+
+#+(or)
+(loop for type in '(single-float double-float)
+      collect (list type
+                    (list :nearest/shorter-interval (beta-bounds/nearest/shorter-interval type)
+                          :nearest/normal-interval (beta-bounds/nearest/normal-interval type)
+                          :left-closed-directed (beta-bounds/left-closed-directed type)
+                          :right-closed-directed (beta-bounds/right-closed-directed type))))
+#+(or) ; =>
+((SINGLE-FLOAT
+  (:NEAREST/SHORTER-INTERVAL (0 3)
+   :NEAREST/NORMAL-INTERVAL (3 6)
+   :LEFT-CLOSED-DIRECTED (3 6)
+   :RIGHT-CLOSED-DIRECTED (3 7)))
+ (DOUBLE-FLOAT
+  (:NEAREST/SHORTER-INTERVAL (0 3)
+   :NEAREST/NORMAL-INTERVAL (6 9)
+   :LEFT-CLOSED-DIRECTED (6 9)
+   :RIGHT-CLOSED-DIRECTED (6 10))))
+
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3247-L3551
 (defmacro %nearest (client value type expt10 hi/2n floor-multiply floor-multiply/evenp)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
