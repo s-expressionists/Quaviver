@@ -4,7 +4,10 @@
 (cl:in-package #:quaviver/compare)
 
 (defclass integer-float ()
-  ((client1 :accessor client1
+  ((name :reader test-name
+         :initarg :name
+         :initform nil)
+   (client1 :accessor client1
             :initarg :client1)
    (client2 :accessor client2
             :initarg :client2)
@@ -40,7 +43,7 @@
               (iterator-bits iterator))
       nil)))
 
-(defun integer-float/j.l/f (output &rest rest &key (coverage 1) &allow-other-keys)
+(defun integer-float/j.l/f (&rest rest &key (coverage 1) &allow-other-keys)
   (apply #'test
          (list (make-instance 'integer-float
                               :client1 (make-instance 'quaviver/jaffer:client)
@@ -48,7 +51,7 @@
                               :base 10))
          (list (make-instance 'bit-interval
                               :coverage coverage))
-         output rest))
+         rest))
 
 (defun integer-float/j.l/d (&rest rest &key (coverage (expt 2 -32)) &allow-other-keys)
   (apply #'test
@@ -59,4 +62,4 @@
          (list (make-instance 'bit-interval
                               :float-type 'double-float
                               :coverage coverage))
-         output rest))
+         rest))
