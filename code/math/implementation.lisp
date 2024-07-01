@@ -184,11 +184,26 @@
 (defun hi/64 (x count)
   (ash x (- count 64)))
 
+(define-compiler-macro hi/64 (&whole whole x count)
+  (case count
+    (0 0)
+    (64 `(the (arithmetic-word 64) ,x))
+    (otherwise whole)))
+
 (defun hi/hi64/128 (x count)
   #+quaviver/bignum-elision
   (hi/64 (aref x 0) count)
   #-quaviver/bignum-elision
   (ash x (- count 128)))
+
+(define-compiler-macro hi/hi64/128 (&whole whole x count)
+  #-quaviver/bignum-elision
+  (declare (ignore x))
+  (case count
+    (0 0)
+    #+quaviver/bignum-elision
+    (64 `(aref (the (arithmetic-word 64 2) ,x) 0))
+    (otherwise whole)))
 
 (defmacro %round-to-odd-1 (cp g size)
   `(let ((p (* ,cp ,g)))
