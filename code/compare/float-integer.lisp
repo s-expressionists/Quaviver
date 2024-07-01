@@ -57,7 +57,7 @@
               (iterator-bits iterator))
       nil)))
 
-(defun float-integer/bd.s/f (&rest rest &key (coverage 1))
+(defun float-integer/bd.s/f (output &rest rest &key (coverage 1) &allow-other-keys)
   (apply #'test
          (list (make-instance 'float-integer
                               :client1 (make-instance 'quaviver/burger-dybvig:client)
@@ -65,9 +65,9 @@
                               :base 10))
          (list (make-instance 'bit-interval
                               :coverage coverage))
-         rest))
+         output rest))
 
-(defun float-integer/bd.s/d (&rest rest &key (coverage (expt 2 -32)))
+(defun float-integer/bd.s/d (output &rest rest &key (coverage (expt 2 -32)) &allow-other-keys)
   (apply #'test
          (list (make-instance 'float-integer
                               :client1 (make-instance 'quaviver/burger-dybvig:client)
@@ -76,9 +76,9 @@
          (list (make-instance 'bit-interval
                               :float-type 'double-float
                               :coverage coverage))
-         rest))
+         output rest))
 
-(defun float-integer/s.d/f (&rest rest &key (coverage 1))
+(defun float-integer/s.d/f (output &rest rest &key (coverage 1) &allow-other-keys)
   (apply #'test
          (list (make-instance 'float-integer
                               :client1 (make-instance 'quaviver/schubfach:client)
@@ -86,9 +86,9 @@
                               :base 10))
          (list (make-instance 'bit-interval
                               :coverage coverage))
-         rest))
+         output rest))
 
-(defun float-integer/s.d/d (&rest rest &key (coverage (expt 2 -32)))
+(defun float-integer/s.d/d (output &rest rest &key (coverage (expt 2 -32)) &allow-other-keys)
   (apply #'test
          (list (make-instance 'float-integer
                               :client1 (make-instance 'quaviver/schubfach:client)
@@ -97,4 +97,4 @@
          (list (make-instance 'bit-interval
                               :float-type 'double-float
                               :coverage coverage))
-         rest))
+         output rest))

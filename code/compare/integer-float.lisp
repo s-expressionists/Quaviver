@@ -40,7 +40,7 @@
               (iterator-bits iterator))
       nil)))
 
-(defun integer-float/j.l/f (&rest rest &key (coverage 1))
+(defun integer-float/j.l/f (output &rest rest &key (coverage 1) &allow-other-keys)
   (apply #'test
          (list (make-instance 'integer-float
                               :client1 (make-instance 'quaviver/jaffer:client)
@@ -48,9 +48,9 @@
                               :base 10))
          (list (make-instance 'bit-interval
                               :coverage coverage))
-         rest))
+         output rest))
 
-(defun integer-float/j.l/d (&rest rest &key (coverage (expt 2 -32)))
+(defun integer-float/j.l/d (&rest rest &key (coverage (expt 2 -32)) &allow-other-keys)
   (apply #'test
          (list (make-instance 'integer-float
                               :client1 (make-instance 'quaviver/jaffer:client)
@@ -59,4 +59,4 @@
          (list (make-instance 'bit-interval
                               :float-type 'double-float
                               :coverage coverage))
-         rest))
+         output rest))
