@@ -16,6 +16,9 @@
          (let* ((k (quaviver/math:floor-log-expt 2 10 ,exponent))
                 (q (+ k (integer-length ,significand) ,(- significand-size)))
                 (shift (- ,arithmetic-size (integer-length ,significand))))
+           (declare (type fixnum k shift ,exponent ,sign)
+                    (type (quaviver/math:arithmetic-word ,arithmetic-size)
+                          ,significand))
            ;; The following overflow and underflow checks are not
            ;; strict checks. Stricter checks will happen in
            ;; integer-float/2. These are here to protect the expt10
@@ -32,8 +35,8 @@
                     :operation 'quaviver:integer-float
                     :operands (list ,client ',result-type 10
                                     ,significand ,exponent ,sign)))
-           (setf ,significand (,round-to-odd (,expt10 (- ,exponent))
-                                             (ash ,significand shift))
+           (setf ,significand (,round-to-odd (ash ,significand shift)
+                                             (,expt10 (- ,exponent)))
                  k (- k -1 shift)
                  shift (- ,significand-size (integer-length ,significand)))
            (quaviver:integer-float ,client ',result-type 2
@@ -46,14 +49,14 @@
   (%liebler client single-float
             significand exponent sign
             quaviver/math:expt10/32
-            quaviver/math:round-to-odd/32))
+            quaviver/math:round-to-odd/32-64))
 
 (defmethod quaviver:integer-float
     ((client client) (result-type (eql 'double-float)) (base (eql 10)) significand exponent sign)
   (%liebler client double-float
             significand exponent sign
             quaviver/math:expt10/64
-            quaviver/math:round-to-odd/64))
+            quaviver/math:round-to-odd/64-128))
 
 #+quaviver/long-float
 (defmethod quaviver:integer-float
@@ -61,4 +64,4 @@
   (%liebler client long-float
             significand exponent sign
             quaviver/math:expt10/128
-            quaviver/math:round-to-odd/128))
+            quaviver/math:round-to-odd/128-256))

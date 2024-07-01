@@ -113,10 +113,16 @@
   (cond ((and (= size 32) (= power 1) (<= max-number 1073741828))
          `(ldb (byte 32 32) (* (the (unsigned-byte ,size) ,number) 429496730)))
         ((and (= size 64) (= power 1) (<= max-number 4611686018427387908))
+         #+quaviver/bignum-elision
+         `(quaviver/math::*/64-64/hi64 ,number 1844674407370955162)
+         #-quaviver/bignum-elision
          `(ldb (byte 64 64) (* (the (unsigned-byte ,size) ,number) 1844674407370955162)))
         ((and (= size 32) (= power 2))
          `(ldb (byte 27 37) (* (the (unsigned-byte ,size) ,number) 1374389535)))
         ((and (= size 64) (= power 3) (<= max-number 15534100272597517998))
+         #+quaviver/bignum-elision
+         `(ash (quaviver/math::*/64-64/hi64 ,number 4722366482869645214) -8)
+         #-quaviver/bignum-elision
          `(ldb (byte 56 72) (* (the (unsigned-byte ,size) ,number) 4722366482869645214)))
         (t
          `(floor (the (unsigned-byte ,size) ,number) ,(expt 10 power)))))
@@ -341,43 +347,63 @@
           while (zerop remainder)
           count 1)))
 
-;;; Based on
-;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3064-L3068
-;;; and
-;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3121-L3125
-(defmacro compute-mul (u expt10 arithmetic-size expt10-size)
-  (let ((ug (gensym (string 'u)))
-        (expt10g (gensym (string 'expt10))))
-    `(let* ((,ug ,u)
-            (,expt10g ,expt10)
-            (r (* ,ug ,expt10g)))
-       (declare ((unsigned-byte ,arithmetic-size) ,ug)
-                ((unsigned-byte ,expt10-size) ,expt10g))
-       (values (ldb (byte ,arithmetic-size ,expt10-size) r) ; integer part
-               (zerop (ldb (byte ,arithmetic-size ,arithmetic-size) r)))))) ; integer-p
+;;; The beta bounds methods serve only to manually determine the limits
+;;; of beta so that the computations can be optimized appropriately.
 
-;;; Based on
-;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3076-L3085
-;;; and
-;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3134-L3144
-(defmacro compute-mul-parity (u expt10 beta arithmetic-size expt10-size)
-  (let ((ug (gensym (string 'u)))
-        (expt10g (gensym (string 'expt10)))
-        (betag (gensym (string 'beta))))
-    `(let* ((,ug ,u)
-            (,expt10g ,expt10)
-            (,betag ,beta)
-            (r (* ,ug ,expt10g)))
-       (declare ((unsigned-byte ,arithmetic-size) ,ug)
-                ((unsigned-byte ,expt10-size) ,expt10g)
-                ,(ecase arithmetic-size
-                   (32 `((integer 1 32) ,betag))     ; inclusive
-                   (64 `((integer 1 (64)) ,betag)))) ; exclusive
-       (values (logbitp (- ,expt10-size ,betag) r)   ; parity-p
-               (zerop (ldb (byte ,arithmetic-size (- ,arithmetic-size ,betag)) r)))))) ; integer-p
+(defgeneric beta-bounds/nearest/shorter-interval (type))
+(defgeneric beta-bounds/nearest/normal-interval (type))
+(defgeneric beta-bounds/left-closed-directed (type))
+(defgeneric beta-bounds/right-closed-directed (type))
+
+(defmethod beta-bounds/nearest/shorter-interval (type)
+  (loop for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
+        for beta = (+ exponent (floor-log2-expt10 (- (floor-log10-expt2-minus-log10-4/3 exponent))))
+        minimize beta into min
+        maximize beta into max
+        finally (return (list min max))))
+
+(defmethod beta-bounds/nearest/normal-interval (type)
+  (loop for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
+        for beta = (+ exponent (floor-log2-expt10 (- (kappa type)
+                                                     (floor-log10-expt2 exponent))))
+        minimize beta into min
+        maximize beta into max
+        finally (return (list min max))))
+
+(defmethod beta-bounds/left-closed-directed (type)
+  (beta-bounds/nearest/normal-interval type))
+
+(defmethod beta-bounds/right-closed-directed (type)
+  (loop for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
+        for beta-1 = (+ exponent (floor-log2-expt10 (- (kappa type)
+                                                       (floor-log10-expt2 exponent))))
+        for beta-2 = (+ exponent (floor-log2-expt10 (- (kappa type)
+                                                       (floor-log10-expt2 (1- exponent)))))
+        minimize (min beta-1 beta-2) into min
+        maximize (max beta-1 beta-2) into max
+        finally (return (list min max))))
+
+#+(or)
+(loop for type in '(single-float double-float)
+      collect (list type
+                    (list :nearest/shorter-interval (beta-bounds/nearest/shorter-interval type)
+                          :nearest/normal-interval (beta-bounds/nearest/normal-interval type)
+                          :left-closed-directed (beta-bounds/left-closed-directed type)
+                          :right-closed-directed (beta-bounds/right-closed-directed type))))
+#+(or) ; =>
+((SINGLE-FLOAT
+  (:NEAREST/SHORTER-INTERVAL (0 3)
+   :NEAREST/NORMAL-INTERVAL (3 6)
+   :LEFT-CLOSED-DIRECTED (3 6)
+   :RIGHT-CLOSED-DIRECTED (3 7)))
+ (DOUBLE-FLOAT
+  (:NEAREST/SHORTER-INTERVAL (0 3)
+   :NEAREST/NORMAL-INTERVAL (6 9)
+   :LEFT-CLOSED-DIRECTED (6 9)
+   :RIGHT-CLOSED-DIRECTED (6 10))))
 
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3247-L3551
-(defmacro %nearest (client value type expt10)
+(defmacro %nearest (client value type expt10 hi/2n floor-multiply floor-multiply/evenp)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
                    (significand-size quaviver:significand-size)
                    (min-exponent quaviver:min-exponent)
@@ -386,7 +412,7 @@
                    (min-k min-k)
                    (max-k max-k))
       type
-    (let ((expt10-size (ash arithmetic-size 1)))
+    (let ()
       `(block %dragonbox
          (let ((significand 0)
                (exponent 0)
@@ -419,16 +445,17 @@
                (let* ((-k (floor-log10-expt2-minus-log10-4/3 exponent ,min-exponent ,max-exponent))
                       (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                       (expt10 (,expt10 -k))
-                      (xi (ldb (byte ,arithmetic-size 0)
-                               (ash (the (unsigned-byte ,expt10-size)
-                                         (- expt10 (ash expt10 ,(- (1+ significand-size)))))
-                                    (- (- ,expt10-size ,significand-size beta)))))
-                      (zi (ldb (byte ,arithmetic-size 0)
-                               (ash (the (unsigned-byte ,expt10-size)
-                                         (+ expt10 (ash expt10 ,(- significand-size))))
-                                    (- (- ,expt10-size ,significand-size beta))))))
+                      ;; Left endpoint
+                      (xi (let ((hi64 (,hi/2n expt10 64)))
+                            (quaviver/math:hi/64 (- hi64 (ash hi64 ,(- (1+ significand-size))))
+                                                 (+ ,significand-size beta))))
+                      ;; Right endpoint
+                      (zi (let ((hi64 (,hi/2n expt10 64)))
+                            (quaviver/math:hi/64 (+ hi64 (ash hi64 ,(- significand-size)))
+                                                 (+ ,significand-size beta)))))
                  (declare ((signed-byte 32) -k beta)
-                          ((unsigned-byte ,expt10-size) expt10)
+                          ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
+                          (dynamic-extent expt10)
                           ((unsigned-byte ,arithmetic-size) xi zi))
                  (when (and (not include-right-endpoint-p)
                             (<= 0 exponent
@@ -454,8 +481,8 @@
                      (values significand (1+ -k) sign)))
                  (setf significand
                        (ash (the (unsigned-byte ,arithmetic-size)
-                                 (1+ (ldb (byte ,arithmetic-size 0)
-                                          (ash expt10 (- (- ,expt10-size ,significand-size 1 beta))))))
+                                 (1+ (the (unsigned-byte ,arithmetic-size)
+                                          (,hi/2n expt10 (+ ,significand-size 1 beta)))))
                             -1))
                  (cond ((and (prefer-round-down-p ,client significand)
                              (<= ,(- (- (floor-log5-expt2-minus-log5-3 (+ significand-size 3)))
@@ -475,17 +502,17 @@
                            ,kappa))
                     (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                     (expt10 (,expt10 -k))
-                    (deltai (ldb (byte ,arithmetic-size 0)
-                                 (ash expt10 (- (- ,expt10-size 1 beta)))))
+                    (deltai (,hi/2n expt10 (1+ beta)))
                     (zi 0)
                     (zi-integer-p nil)
                     (r 0))
                (declare ((signed-byte 32) -k beta)
-                        ((unsigned-byte ,expt10-size) expt10)
+                        ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
+                        (dynamic-extent expt10)
                         ((unsigned-byte ,arithmetic-size) deltai zi r)
                         (boolean zi-integer-p))
                (multiple-value-setq (zi zi-integer-p)
-                 (compute-mul (ash (logior 2fc 1) beta) expt10 ,arithmetic-size ,expt10-size))
+                 (,floor-multiply (logior 2fc 1) expt10 beta))
                ;; Step 2: Try larger divisor; remove trailing zeros if necessary
                (setf significand (floor-by-expt10 ; base 10 significand from here on out
                                   zi ,(1+ kappa) ,arithmetic-size
@@ -507,7 +534,7 @@
                        ((> r deltai) (return))
                        (t
                         (multiple-value-bind (xi-parity-p xi-integer-p)
-                            (compute-mul-parity (1- 2fc) expt10 beta ,arithmetic-size ,expt10-size)
+                            (,floor-multiply/evenp (1- 2fc) expt10 beta)
                           (when (zerop (logior (if xi-parity-p 1 0)
                                                (logand (if xi-integer-p 1 0)
                                                        (if include-left-endpoint-p 1 0))))
@@ -533,7 +560,7 @@
                           (incf significand dist)
                           (when divisible-p
                             (multiple-value-bind (yi-parity-p yi-integer-p)
-                                (compute-mul-parity 2fc expt10 beta ,arithmetic-size ,expt10-size)
+                                (,floor-multiply/evenp 2fc expt10 beta)
                               (cond ((not (eq yi-parity-p approx-y-parity-p))
                                      (decf significand))
                                     ((and (prefer-round-down-p ,client significand)
@@ -542,7 +569,7 @@
                (values significand (+ -k ,kappa) sign))))))))
 
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3553-L3799
-(defmacro %directed (client value type expt10)
+(defmacro %directed (client value type expt10 hi/2n floor-multiply floor-multiply/evenp)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
                    (significand-size quaviver:significand-size)
                    (min-exponent quaviver:min-exponent)
@@ -551,7 +578,7 @@
                    (min-k min-k)
                    (max-k max-k))
       type
-    (let ((expt10-size (ash arithmetic-size 1)))
+    (let ()
       `(block %dragonbox
          (let ((significand 0)
                (exponent 0)
@@ -574,17 +601,17 @@
                             ,kappa))
                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                      (expt10 (,expt10 -k))
-                     (deltai (ldb (byte ,arithmetic-size 0)
-                                  (ash expt10 (- (- ,expt10-size 1 beta)))))
+                     (deltai (,hi/2n expt10 (1+ beta)))
                      (xi 0)
                      (xi-integer-p nil)
                      (r 0))
                 (declare ((signed-byte 32) -k beta)
-                         ((unsigned-byte ,expt10-size) expt10)
+                         ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
+                         (dynamic-extent expt10)
                          ((unsigned-byte ,arithmetic-size) deltai xi r)
                          (boolean xi-integer-p))
                 (multiple-value-setq (xi xi-integer-p)
-                  (compute-mul (ash 2fc beta) expt10 ,arithmetic-size ,expt10-size))
+                  (,floor-multiply 2fc expt10 beta))
                 ,@(when (eq type 'single-float)
                     `((when (<= exponent -80)
                         (setf xi-integer-p nil))))
@@ -602,8 +629,7 @@
                   (cond ((> r deltai) (return))
                         ((= r deltai)
                          (multiple-value-bind (zi-parity-p zi-integer-p)
-                             (compute-mul-parity (+ 2fc 2) expt10 beta
-                                                 ,arithmetic-size ,expt10-size)
+                             (,floor-multiply/evenp (+ 2fc 2) expt10 beta)
                            (when (or zi-parity-p zi-integer-p)
                              (return)))))
                   (return-from %dragonbox
@@ -630,13 +656,12 @@
                             ,kappa))
                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                      (expt10 (,expt10 -k))
-                     (deltai (ldb (byte ,arithmetic-size 0)
-                                  (ash expt10 (- (- ,expt10-size (if shorter-interval-p 0 1) beta)))))
-                     (zi (nth-value 0 (compute-mul (ash 2fc beta) expt10
-                                                   ,arithmetic-size ,expt10-size)))
+                     (deltai (,hi/2n expt10 (1+ (- beta (if shorter-interval-p 1 0)))))
+                     (zi (nth-value 0 (,floor-multiply 2fc expt10 beta)))
                      (r 0))
                 (declare ((signed-byte 32) -k beta)
-                         ((unsigned-byte ,expt10-size) expt10)
+                         ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
+                         (dynamic-extent expt10)
                          ((unsigned-byte ,arithmetic-size) deltai zi r))
                 ;; Step 2: Try larger divisor; remove trailing zeros if necessary
                 (setf significand (floor-by-expt10 ; base 10 significand from here on out
@@ -647,8 +672,8 @@
                   (cond ((> r deltai) (return))
                         ((= r deltai)
                          (multiple-value-bind (xi-parity-p xi-integer-p)
-                             (compute-mul-parity (- 2fc (if shorter-interval-p 1 2))
-                                                 expt10 beta ,arithmetic-size ,expt10-size)
+                             (,floor-multiply/evenp (- 2fc (if shorter-interval-p 1 2))
+                                                    expt10 beta)
                            (declare (ignore xi-integer-p))
                            (unless xi-parity-p
                              (return)))))
@@ -661,16 +686,36 @@
 
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
-  (%nearest client value single-float quaviver/math:expt10/32))
+  (%nearest client value
+            single-float
+            quaviver/math:expt10/32
+            quaviver/math:hi/64
+            quaviver/math:floor-multiply/32-64q64
+            quaviver/math:floor-multiply/evenp/32-64q64))
 
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
-  (%nearest client value double-float quaviver/math:expt10/64))
+  (%nearest client value
+            double-float
+            quaviver/math:expt10/64
+            quaviver/math:hi/hi64/128
+            quaviver/math:floor-multiply/64-128q128
+            quaviver/math:floor-multiply/evenp/64-128q128))
 
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
-  (%directed client value single-float quaviver/math:expt10/32))
+  (%directed client value
+             single-float
+             quaviver/math:expt10/32
+             quaviver/math:hi/64
+             quaviver/math:floor-multiply/32-64q64
+             quaviver/math:floor-multiply/evenp/32-64q64))
 
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
-  (%directed client value double-float quaviver/math:expt10/64))
+  (%directed client value
+             double-float
+             quaviver/math:expt10/64
+             quaviver/math:hi/hi64/128
+             quaviver/math:floor-multiply/64-128q128
+             quaviver/math:floor-multiply/evenp/64-128q128))
