@@ -97,7 +97,7 @@
                                     s)
                                 k
                                 sign))
-                       (:otherwise ; ?11 or 010
+                       (otherwise ; ?11 or 010
                         (values (if (and (logbitp 1 significand)
                                          (or (logbitp 0 significand)
                                              (not (logbitp 2 significand))))
