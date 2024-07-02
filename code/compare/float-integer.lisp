@@ -81,21 +81,30 @@
                               :coverage coverage))
          rest))
 
-(defun float-integer/s.d/f (&rest rest &key (coverage 1) &allow-other-keys)
+(defun float-integer/s.d/f (&rest rest
+                            &key (coverage 1) (rounding :away-from-zero)
+                            &allow-other-keys)
   (apply #'test
          (list (make-instance 'float-integer
-                              :client1 (make-instance 'quaviver/schubfach:client)
-                              :client2 (make-instance 'quaviver/dragonbox:nearest-client)
+                              :client1 (make-instance 'quaviver/schubfach:client
+                                                      :rounding rounding)
+                              :client2 (make-instance 'quaviver/dragonbox:nearest-client
+                                                      :binary-decimal-rounding rounding)
                               :base 10))
          (list (make-instance 'bit-interval
+                              :end #xff
                               :coverage coverage))
          rest))
 
-(defun float-integer/s.d/d (&rest rest &key (coverage (expt 2 -32)) &allow-other-keys)
+(defun float-integer/s.d/d (&rest rest
+                            &key (coverage (expt 2 -32)) (rounding :away-from-zero)
+                            &allow-other-keys)
   (apply #'test
          (list (make-instance 'float-integer
-                              :client1 (make-instance 'quaviver/schubfach:client)
-                              :client2 (make-instance 'quaviver/dragonbox:nearest-client)
+                              :client1 (make-instance 'quaviver/schubfach:client
+                                                      :rounding rounding)
+                              :client2 (make-instance 'quaviver/dragonbox:nearest-client
+                                                      :binary-decimal-rounding rounding)
                               :base 10))
          (list (make-instance 'bit-interval
                               :float-type 'double-float
