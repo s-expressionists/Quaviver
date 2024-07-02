@@ -1,7 +1,10 @@
 (in-package #:quaviver/schubfach)
 
 (deftype rounding ()
-  `(member :toward-zero :away-from-zero))
+  `(member :to-even
+           :to-odd
+           :toward-zero
+           :away-from-zero))
 
 (defclass client (quaviver/trailing-zeros:client)
   ((rounding :accessor rounding
@@ -73,16 +76,35 @@
                            (values (if w-inside (1+ s) s)
                                    k
                                    sign))))
-                     (let* ((mid (+ (ash s 2) 2))
-                            (round-up (or (> significand mid)
-                                          (and (= significand mid)
-                                               (or (eq (rounding ,client) :away-from-zero)
-                                                   (logbitp s 0))))))
-                       (declare (type (unsigned-byte ,word-size)
-                                      mid))
-                       (values (if round-up (1+ s) s)
-                               k
-                               sign)))))))))))
+                     (case (rounding ,client)
+                       (:away-from-zero ; ?1?
+                        (values (if (logbitp 1 significand)
+                                    (1+ s)
+                                    s)
+                                k
+                                sign))
+                       (:toward-zero ; ?11
+                        (values (if (= (ldb (byte 2 0) significand) #b11)
+                                    (1+ s)
+                                    s)
+                                k
+                                sign))
+                       (:to-even l ; ?11 or 110
+                        (values (if (and (logbitp 1 significand)
+                                         (or (logbitp 0 significand)
+                                             (logbitp 2 significand)))
+                                    (1+ s)
+                                    s)
+                                k
+                                sign))
+                       (:otherwise ; ?11 or 010
+                        (values (if (and (logbitp 1 significand)
+                                         (or (logbitp 0 significand)
+                                             (not (logbitp 2 significand))))
+                                    (1+ s)
+                                    s)
+                                k
+                                sign))))))))))))
 
 #+clisp
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value short-float))
