@@ -129,52 +129,63 @@
   64)
 
 (defmethod storage-size ((type (eql 'long-float)))
-  #+quaviver/long-float 80
+  #+quaviver/long-float/x86-extended 80
+  #+quaviver/long-float/binary128 128
   #-quaviver/long-float 64)
 
 (defmethod significand-bytespec ((type (eql 'long-float)))
-  #+quaviver/long-float (byte 64 0)
+  #+quaviver/long-float/x86-extended (byte 64 0)
+  #+quaviver/long-float/binary128 (byte 112 0)
   #-quaviver/long-float (byte 52 0))
 
 (defmethod significand-byte-form ((type (eql 'long-float)))
-  #+quaviver/long-float `(byte 64 0)
+  #+quaviver/long-float/x86-extended `(byte 64 0)
+  #+quaviver/long-float/binary128 `(byte 112 0)
   #-quaviver/long-float `(byte 52 0))
 
 (defmethod exponent-bytespec ((type (eql 'long-float)))
-  #+quaviver/long-float (byte 15 64)
+  #+quaviver/long-float/x86-extended (byte 15 64)
+  #+quaviver/long-float/binary128 (byte 15 112)
   #-quaviver/long-float (byte 11 52))
 
 (defmethod exponent-byte-form ((type (eql 'long-float)))
-  #+quaviver/long-float `(byte 15 64)
+  #+quaviver/long-float/x86-extended `(byte 15 64)
+  #+quaviver/long-float/binary128 `(byte 15 112)
   #-quaviver/long-float `(byte 11 52))
 
 (defmethod sign-bytespec ((type (eql 'long-float)))
-  #+quaviver/long-float (byte 1 79)
+  #+quaviver/long-float/x86-extended (byte 1 79)
+  #+quaviver/long-float/binary128 (byte 1 127)
   #-quaviver/long-float (byte 1 63))
 
 (defmethod sign-byte-form ((type (eql 'long-float)))
-  #+quaviver/long-float `(byte 1 79)
+  #+quaviver/long-float/x86-extended `(byte 1 79)
+  #+quaviver/long-float/binary128 `(byte 1 127)
   #-quaviver/long-float `(byte 1 63))
 
 (defmethod nan-payload-bytespec ((type (eql 'long-float)))
-  #+quaviver/long-float (byte 63 0)
+  #+quaviver/long-float/x86-extended (byte 63 0)
+  #+quaviver/long-float/binary128 (byte 111 0)
   #-quaviver/long-float (byte 51 0))
 
 (defmethod nan-payload-byte-form ((type (eql 'long-float)))
-  #+quaviver/long-float `(byte 63 0)
+  #+quaviver/long-float/x86-extended `(byte 63 0)
+  #+quaviver/long-float/binary128 `(byte 111 0)
   #-quaviver/long-float `(byte 51 0))
 
 (defmethod nan-type-bytespec ((type (eql 'long-float)))
-  #+quaviver/long-float (byte 1 63)
+  #+quaviver/long-float/x86-extended (byte 1 63)
+  #+quaviver/long-float/binary128 (byte 1 111)
   #-quaviver/long-float (byte 1 51))
 
 (defmethod nan-type-byte-form ((type (eql 'long-float)))
-  #+quaviver/long-float `(byte 1 63)
+  #+quaviver/long-float/x86-extended `(byte 1 63)
+  #+quaviver/long-float/binary128 `(byte 1 111)
   #-quaviver/long-float `(byte 1 51))
 
 (defmethod hidden-bit-p ((type (eql 'long-float)))
-  #+quaviver/long-float nil
-  #-quaviver/long-float t)
+  #+quaviver/long-float/x86-extended nil
+  #-quaviver/long-float/x86-extended t)
 
 (defmethod arithmetic-size ((type (eql 'long-float)))
   #+quaviver/long-float 128

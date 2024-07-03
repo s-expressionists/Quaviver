@@ -27,4 +27,8 @@
            #:arithmetic-size))
 
 #+(and ecl long-float)
-(pushnew :quaviver/long-float *features*)
+(progn
+  (pushnew :quaviver/long-float *features*)
+  (ecase (float-digits 0l0)
+    (64 (pushnew :quaviver/long-float/x86-extended *features*))
+    (113 (pushnew :quaviver/long-float/binary128 *features*))))

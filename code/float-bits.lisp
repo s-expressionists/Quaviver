@@ -80,9 +80,7 @@
   (ffi:with-foreign-object (v 'long-float/uint128)
     (setf (ffi:get-slot-value v 'long-float/uint128 'f) value)
     (let ((u (ffi:get-slot-value v 'long-float/uint128 'u)))
-      (ldb (byte #+x86-64 80
-                 #-x86-64 128
-                 0)
+      (ldb (byte (quaviver:storage-size 'long-float) 0)
            (logior (ffi:deref-array u '(:array :uint64-t 2) 0)
                    (ash (ffi:deref-array u '(:array :uint64-t 2) 1)
                         64))))))
