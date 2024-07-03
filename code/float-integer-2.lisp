@@ -50,19 +50,17 @@
                                (- exponent ,exponent-bias)
                                sign)))))))))
 
-#-(or abcl allegro clasp cmucl ecl lispworks sbcl)
+#-(or abcl allegro ccl clasp cmucl ecl lispworks sbcl)
 (defmethod float-integer (client (base (eql 2)) value)
   (declare (ignore client))
-  ;; CCL has good behavior so use integer-decode-float. Fallback to
-  ;; integer-decode-float for unknown CL implementations.
   (integer-decode-float value))
 
-#+(or abcl allegro clasp cmucl ecl lispworks sbcl)
+#+(or abcl allegro ccl clasp cmucl ecl lispworks sbcl)
 (defmethod float-integer (client (base (eql 2)) (value single-float))
   (declare (ignore client))
   (%integer-decode-float single-float value))
 
-#+(or abcl allegro clasp cmucl ecl lispworks sbcl)
+#+(or abcl allegro ccl clasp cmucl ecl lispworks sbcl)
 (defmethod float-integer (client (base (eql 2)) (value double-float))
   (declare (ignore client))
   (%integer-decode-float double-float value))
