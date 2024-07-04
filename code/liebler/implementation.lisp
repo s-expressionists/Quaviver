@@ -16,7 +16,7 @@
          (let* ((k (quaviver/math:floor-log-expt 2 10 ,exponent))
                 (q (+ k (integer-length ,significand) ,(- significand-size)))
                 (shift (- ,arithmetic-size (integer-length ,significand))))
-           (declare (type (unsigned-byte ,arithmetic-size)
+           (declare (type (quaviver/math:arithmetic-word ,arithmetic-size)
                           ,significand)
                     (type fixnum ,exponent ,sign k shift))
            ;; The following overflow and underflow checks are not

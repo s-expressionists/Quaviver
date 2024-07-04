@@ -94,8 +94,8 @@
     (let ((prod (gensym (string 'prod))))
       `(progn
          ;; (assert (<= ,number ,(expt 10 (1+ power))))
-         (let ((,prod (* (the (unsigned-byte ,size) ,number) ,magic)))
-           (declare ((unsigned-byte 32) ,prod)) ; depends on the constants
+         (let ((,prod (* (the (quaviver/math:arithmetic-word ,size) ,number) ,magic)))
+           (declare ((quaviver/math:arithmetic-word 32) ,prod)) ; depends on the constants
            (values (ldb (byte ,(- size position) ,position) ,prod)
                    (< (ldb (byte ,position 0) ,prod)
                       ,magic)))))))
@@ -106,20 +106,21 @@
     `(progn
        ;; (assert (<= ,number ,(expt 10 (1+ power))))
        (ldb (byte ,(- size position) ,position)
-            (* (the (unsigned-byte ,size) ,number) ,magic)))))
+            (* (the (quaviver/math:arithmetic-word ,size) ,number) ,magic)))))
 
 (defmacro floor-by-expt10 (number power size max-number)
   (assert (not (minusp power)))
-  (cond ((and (= size 32) (= power 1) (<= max-number 1073741828))
-         `(ldb (byte 32 32) (* (the (unsigned-byte ,size) ,number) 429496730)))
-        ((and (= size 64) (= power 1) (<= max-number 4611686018427387908))
-         `(ldb (byte 64 64) (* (the (unsigned-byte ,size) ,number) 1844674407370955162)))
-        ((and (= size 32) (= power 2))
-         `(ldb (byte 27 37) (* (the (unsigned-byte ,size) ,number) 1374389535)))
-        ((and (= size 64) (= power 3) (<= max-number 15534100272597517998))
-         `(ldb (byte 56 72) (* (the (unsigned-byte ,size) ,number) 4722366482869645214)))
-        (t
-         `(floor (the (unsigned-byte ,size) ,number) ,(expt 10 power)))))
+  (let ((number `(the (quaviver/math:arithmetic-word ,size) ,number)))
+    (cond ((and (= size 32) (= power 1) (<= max-number 1073741828))
+           `(ldb (byte 32 32) (* ,number 429496730)))
+          ((and (= size 64) (= power 1) (<= max-number 4611686018427387908))
+           `(ldb (byte 64 64) (* ,number 1844674407370955162)))
+          ((and (= size 32) (= power 2))
+           `(ldb (byte 27 37) (* ,number 1374389535)))
+          ((and (= size 64) (= power 3) (<= max-number 15534100272597517998))
+           `(ldb (byte 56 72) (* ,number 4722366482869645214)))
+          (t
+           `(floor ,number ,(expt 10 power))))))
 
 ;;; Protocol
 
@@ -345,22 +346,22 @@
 ;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3064-L3068
 ;;; and
 ;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3121-L3125
-(defmacro compute-mul (u expt10 arithmetic-size expt10-size)
+(defmacro compute-mul (u expt10 arithmetic-size)
   (let ((ug (gensym (string 'u)))
         (expt10g (gensym (string 'expt10))))
     `(let* ((,ug ,u)
             (,expt10g ,expt10)
             (r (* ,ug ,expt10g)))
-       (declare ((unsigned-byte ,arithmetic-size) ,ug)
-                ((unsigned-byte ,expt10-size) ,expt10g))
-       (values (ldb (byte ,arithmetic-size ,expt10-size) r) ; integer part
+       (declare ((quaviver/math:arithmetic-word ,arithmetic-size) ,ug)
+                ((quaviver/math:arithmetic-word ,arithmetic-size 2) ,expt10g))
+       (values (ldb (byte ,arithmetic-size ,(ash arithmetic-size 1)) r) ; integer part
                (zerop (ldb (byte ,arithmetic-size ,arithmetic-size) r)))))) ; integer-p
 
 ;;; Based on
 ;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3076-L3085
 ;;; and
 ;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3134-L3144
-(defmacro compute-mul-parity (u expt10 beta arithmetic-size expt10-size)
+(defmacro compute-mul-parity (u expt10 beta arithmetic-size)
   (let ((ug (gensym (string 'u)))
         (expt10g (gensym (string 'expt10)))
         (betag (gensym (string 'beta))))
@@ -368,12 +369,12 @@
             (,expt10g ,expt10)
             (,betag ,beta)
             (r (* ,ug ,expt10g)))
-       (declare ((unsigned-byte ,arithmetic-size) ,ug)
-                ((unsigned-byte ,expt10-size) ,expt10g)
+       (declare ((quaviver/math:arithmetic-word ,arithmetic-size) ,ug)
+                ((quaviver/math:arithmetic-word ,arithmetic-size 2) ,expt10g)
                 ,(ecase arithmetic-size
                    (32 `((integer 1 32) ,betag))     ; inclusive
                    (64 `((integer 1 (64)) ,betag)))) ; exclusive
-       (values (logbitp (- ,expt10-size ,betag) r)   ; parity-p
+       (values (logbitp (- ,(ash arithmetic-size 1) ,betag) r) ; parity-p
                (zerop (ldb (byte ,arithmetic-size (- ,arithmetic-size ,betag)) r)))))) ; integer-p
 
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3247-L3551
@@ -386,13 +387,13 @@
                    (min-k min-k)
                    (max-k max-k))
       type
-    (let ((expt10-size (ash arithmetic-size 1)))
+    (progn                              ; for future LET bindings
       `(block %dragonbox
          (let ((significand 0)
                (exponent 0)
                (sign 0)
                (2fc 0))
-           (declare ((unsigned-byte ,arithmetic-size) significand 2fc)
+           (declare ((quaviver/math:arithmetic-word ,arithmetic-size) significand 2fc)
                     ((or (signed-byte 32) keyword) exponent)
                     ((integer -1 1) sign))
            (multiple-value-setq (significand exponent sign)
@@ -420,16 +421,17 @@
                       (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                       (expt10 (,expt10 -k))
                       (xi (ldb (byte ,arithmetic-size 0)
-                               (ash (the (unsigned-byte ,expt10-size)
+                               (ash (the (quaviver/math:arithmetic-word ,arithmetic-size 2)
                                          (- expt10 (ash expt10 ,(- (1+ significand-size)))))
-                                    (- (- ,expt10-size ,significand-size beta)))))
+                                    (- (- ,(ash arithmetic-size 1) ,significand-size beta)))))
                       (zi (ldb (byte ,arithmetic-size 0)
-                               (ash (the (unsigned-byte ,expt10-size)
+                               (ash (the (quaviver/math:arithmetic-word ,arithmetic-size 2)
                                          (+ expt10 (ash expt10 ,(- significand-size))))
-                                    (- (- ,expt10-size ,significand-size beta))))))
+                                    (- (- ,(ash arithmetic-size 1) ,significand-size beta))))))
                  (declare ((signed-byte 32) -k beta)
-                          ((unsigned-byte ,expt10-size) expt10)
-                          ((unsigned-byte ,arithmetic-size) xi zi))
+                          ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
+                          ((quaviver/math:arithmetic-word ,arithmetic-size) xi zi)
+                          (dynamic-extent expt10))
                  (when (and (not include-right-endpoint-p)
                             (<= 0 exponent
                                 ,(+ 2 (floor (log (/ (expt 10 (1+ (count-factors
@@ -449,13 +451,15 @@
                  (setf significand (floor-by-expt10
                                     zi 1 ,arithmetic-size
                                     ,(* 20 (1+ (floor (1+ (ash 1 significand-size)) 3)))))
-                 (when (>= (the (unsigned-byte ,arithmetic-size) (* 10 significand)) xi)
+                 (when (>= (the (quaviver/math:arithmetic-word ,arithmetic-size)
+                                (* 10 significand)) xi)
                    (return-from %dragonbox
                      (values significand (1+ -k) sign)))
                  (setf significand
-                       (ash (the (unsigned-byte ,arithmetic-size)
+                       (ash (the (quaviver/math:arithmetic-word ,arithmetic-size)
                                  (1+ (ldb (byte ,arithmetic-size 0)
-                                          (ash expt10 (- (- ,expt10-size ,significand-size 1 beta))))))
+                                          (ash expt10 (- (- ,(ash arithmetic-size 1)
+                                                            ,significand-size 1 beta))))))
                             -1))
                  (cond ((and (prefer-round-down-p ,client significand)
                              (<= ,(- (- (floor-log5-expt2-minus-log5-3 (+ significand-size 3)))
@@ -476,16 +480,17 @@
                     (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                     (expt10 (,expt10 -k))
                     (deltai (ldb (byte ,arithmetic-size 0)
-                                 (ash expt10 (- (- ,expt10-size 1 beta)))))
+                                 (ash expt10 (- (- ,(ash arithmetic-size 1) 1 beta)))))
                     (zi 0)
                     (zi-integer-p nil)
                     (r 0))
                (declare ((signed-byte 32) -k beta)
-                        ((unsigned-byte ,expt10-size) expt10)
-                        ((unsigned-byte ,arithmetic-size) deltai zi r)
-                        (boolean zi-integer-p))
+                        ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
+                        ((quaviver/math:arithmetic-word ,arithmetic-size) deltai zi r)
+                        (boolean zi-integer-p)
+                        (dynamic-extent expt10))
                (multiple-value-setq (zi zi-integer-p)
-                 (compute-mul (ash (logior 2fc 1) beta) expt10 ,arithmetic-size ,expt10-size))
+                 (compute-mul (ash (logior 2fc 1) beta) expt10 ,arithmetic-size))
                ;; Step 2: Try larger divisor; remove trailing zeros if necessary
                (setf significand (floor-by-expt10 ; base 10 significand from here on out
                                   zi ,(1+ kappa) ,arithmetic-size
@@ -507,7 +512,7 @@
                        ((> r deltai) (return))
                        (t
                         (multiple-value-bind (xi-parity-p xi-integer-p)
-                            (compute-mul-parity (1- 2fc) expt10 beta ,arithmetic-size ,expt10-size)
+                            (compute-mul-parity (1- 2fc) expt10 beta ,arithmetic-size)
                           (when (zerop (logior (if xi-parity-p 1 0)
                                                (logand (if xi-integer-p 1 0)
                                                        (if include-left-endpoint-p 1 0))))
@@ -523,17 +528,18 @@
                                (incf significand (if (and divisible-p zi-integer-p) (1- r) r))))
                             (t (incf significand (floor-by-expt10-small r ,kappa ,arithmetic-size)))))
                      (t
-                      (let* ((dist (+ (the (unsigned-byte ,arithmetic-size) (- r (ash deltai -1)))
+                      (let* ((dist (+ (the (quaviver/math:arithmetic-word ,arithmetic-size)
+                                           (- r (ash deltai -1)))
                                       ,(floor (expt 10 kappa) 2)))
                              (approx-y-parity-p
                                (logbitp 0 (logxor dist ,(floor (expt 10 kappa) 2)))))
-                        (declare ((unsigned-byte ,arithmetic-size) dist))
+                        (declare ((quaviver/math:arithmetic-word ,arithmetic-size) dist))
                         (multiple-value-bind (dist divisible-p)
                             (floor-by-expt10-divisible-p dist ,kappa ,arithmetic-size)
                           (incf significand dist)
                           (when divisible-p
                             (multiple-value-bind (yi-parity-p yi-integer-p)
-                                (compute-mul-parity 2fc expt10 beta ,arithmetic-size ,expt10-size)
+                                (compute-mul-parity 2fc expt10 beta ,arithmetic-size)
                               (cond ((not (eq yi-parity-p approx-y-parity-p))
                                      (decf significand))
                                     ((and (prefer-round-down-p ,client significand)
@@ -551,13 +557,13 @@
                    (min-k min-k)
                    (max-k max-k))
       type
-    (let ((expt10-size (ash arithmetic-size 1)))
+    (progn                              ; for future LET bindings
       `(block %dragonbox
          (let ((significand 0)
                (exponent 0)
                (sign 0)
                (2fc 0))
-           (declare ((unsigned-byte ,arithmetic-size) significand 2fc)
+           (declare ((quaviver/math:arithmetic-word ,arithmetic-size) significand 2fc)
                     ((or (signed-byte 32) keyword) exponent)
                     ((integer -1 1) sign))
            (multiple-value-setq (significand exponent sign)
@@ -575,16 +581,17 @@
                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                      (expt10 (,expt10 -k))
                      (deltai (ldb (byte ,arithmetic-size 0)
-                                  (ash expt10 (- (- ,expt10-size 1 beta)))))
+                                  (ash expt10 (- (- ,(ash arithmetic-size 1) 1 beta)))))
                      (xi 0)
                      (xi-integer-p nil)
                      (r 0))
                 (declare ((signed-byte 32) -k beta)
-                         ((unsigned-byte ,expt10-size) expt10)
-                         ((unsigned-byte ,arithmetic-size) deltai xi r)
-                         (boolean xi-integer-p))
+                         ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
+                         ((quaviver/math:arithmetic-word ,arithmetic-size) deltai xi r)
+                         (boolean xi-integer-p)
+                         (dynamic-extent expt10))
                 (multiple-value-setq (xi xi-integer-p)
-                  (compute-mul (ash 2fc beta) expt10 ,arithmetic-size ,expt10-size))
+                  (compute-mul (ash 2fc beta) expt10 ,arithmetic-size))
                 ,@(when (eq type 'single-float)
                     `((when (<= exponent -80)
                         (setf xi-integer-p nil))))
@@ -602,8 +609,7 @@
                   (cond ((> r deltai) (return))
                         ((= r deltai)
                          (multiple-value-bind (zi-parity-p zi-integer-p)
-                             (compute-mul-parity (+ 2fc 2) expt10 beta
-                                                 ,arithmetic-size ,expt10-size)
+                             (compute-mul-parity (+ 2fc 2) expt10 beta ,arithmetic-size)
                            (when (or zi-parity-p zi-integer-p)
                              (return)))))
                   (return-from %dragonbox
@@ -631,13 +637,14 @@
                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                      (expt10 (,expt10 -k))
                      (deltai (ldb (byte ,arithmetic-size 0)
-                                  (ash expt10 (- (- ,expt10-size (if shorter-interval-p 0 1) beta)))))
-                     (zi (nth-value 0 (compute-mul (ash 2fc beta) expt10
-                                                   ,arithmetic-size ,expt10-size)))
+                                  (ash expt10 (- (- ,(ash arithmetic-size 1)
+                                                    (if shorter-interval-p 0 1) beta)))))
+                     (zi (nth-value 0 (compute-mul (ash 2fc beta) expt10 ,arithmetic-size)))
                      (r 0))
                 (declare ((signed-byte 32) -k beta)
-                         ((unsigned-byte ,expt10-size) expt10)
-                         ((unsigned-byte ,arithmetic-size) deltai zi r))
+                         ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
+                         ((quaviver/math:arithmetic-word ,arithmetic-size) deltai zi r)
+                         (dynamic-extent expt10))
                 ;; Step 2: Try larger divisor; remove trailing zeros if necessary
                 (setf significand (floor-by-expt10 ; base 10 significand from here on out
                                    zi ,(1+ kappa) ,arithmetic-size
@@ -648,7 +655,7 @@
                         ((= r deltai)
                          (multiple-value-bind (xi-parity-p xi-integer-p)
                              (compute-mul-parity (- 2fc (if shorter-interval-p 1 2))
-                                                 expt10 beta ,arithmetic-size ,expt10-size)
+                                                 expt10 beta ,arithmetic-size)
                            (declare (ignore xi-integer-p))
                            (unless xi-parity-p
                              (return)))))
