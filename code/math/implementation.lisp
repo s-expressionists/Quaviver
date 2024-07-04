@@ -14,13 +14,13 @@
   #-quaviver/math/smallnum
   `(unsigned-byte ,(* arithmetic-size count)))
 
-(declaim (ftype (function ((arithmetic-word 32 2) (arithmetic-word 32))
+(declaim (ftype (function ((arithmetic-word 32) (arithmetic-word 32 2))
                           (values (arithmetic-word 32) &optional))
                 round-to-odd/32)
-         (ftype (function ((arithmetic-word 64 2) (arithmetic-word 64))
+         (ftype (function ((arithmetic-word 64) (arithmetic-word 64 2))
                           (values (arithmetic-word 64) &optional))
                 round-to-odd/64)
-         (ftype (function ((arithmetic-word 128 2) (arithmetic-word 128))
+         (ftype (function ((arithmetic-word 128) (arithmetic-word 128 2))
                           (values (arithmetic-word 128) &optional))
                 round-to-odd/128)
          (ftype (function (fixnum)
@@ -44,26 +44,26 @@
                  floor-log-expt
                  ceiling-log-expt))
 
-(defmacro %round-to-odd-1 (g cp size)
-  `(let ((p (* ,g ,cp)))
+(defmacro %round-to-odd-1 (cp g size)
+  `(let ((p (* ,cp ,g)))
      (logior (ldb (byte ,size ,(ash size 1)) p)
              (if (> (ldb (byte ,size ,size) p) 1) 1 0))))
 
-(defmacro %round-to-odd-2 (g cp size)
-  `(let ((p (ash (* ,g ,cp) ,(- size))))
+(defmacro %round-to-odd-2 (cp g size)
+  `(let ((p (ash (* ,cp ,g) ,(- size))))
      (if (ldb-test (byte ,(1- size) 1) p)
          (logior (ash p ,(- size)) 1)
          (ash p ,(- size)))))
 
-(defun round-to-odd/32 (g cp)
-  #-(or ecl cmucl) (%round-to-odd-1 g cp 32)
-  #+(or ecl cmucl) (%round-to-odd-2 g cp 32))
+(defun round-to-odd/32 (cp g)
+  #-(or ecl cmucl) (%round-to-odd-1 cp g 32)
+  #+(or ecl cmucl) (%round-to-odd-2 cp g 32))
 
-(defun round-to-odd/64 (g cp)
-  (%round-to-odd-2 g cp 64))
+(defun round-to-odd/64 (cp g)
+  (%round-to-odd-2 cp g 64))
 
-(defun round-to-odd/128 (g cp)
-  (%round-to-odd-2 g cp 128))
+(defun round-to-odd/128 (cp g)
+  (%round-to-odd-2 cp g 128))
 
 (defconstant +expt10/min-exponent/32+ -53)
 

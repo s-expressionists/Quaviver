@@ -35,8 +35,8 @@
                     :operation 'quaviver:integer-float
                     :operands (list ,client ',result-type 10
                                     ,significand ,exponent ,sign)))
-           (setf ,significand (,round-to-odd (,expt10 (- ,exponent))
-                                             (ash ,significand shift))
+           (setf ,significand (,round-to-odd (ash ,significand shift)
+                                             (,expt10 (- ,exponent)))
                  k (- k -1 shift)
                  shift (- ,significand-size (integer-length ,significand)))
            (quaviver:integer-float ,client ',result-type 2

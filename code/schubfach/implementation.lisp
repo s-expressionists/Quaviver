@@ -42,17 +42,17 @@
                                 expt10)
                           (dynamic-extent expt10))
                  (setf significand (ash significand 2))
-                 (let ((lower (,round-to-odd expt10
-                                             (ash (if lower-boundary-is-closer
+                 (let ((lower (,round-to-odd (ash (if lower-boundary-is-closer
                                                       (1- significand)
                                                       (- significand 2))
-                                                  h)))
-                       (upper (,round-to-odd expt10
-                                             (ash (+ significand 2)
-                                                  h))))
+                                                  h)
+                                             expt10))
+                       (upper (,round-to-odd (ash (+ significand 2)
+                                                  h)
+                                             expt10)))
                    (declare (type (unsigned-byte ,word-size)
                                   lower upper))
-                   (setf significand (,round-to-odd expt10 (ash significand h)))
+                   (setf significand (,round-to-odd (ash significand h) expt10))
                    (let ((s (ash significand -2)))
                      (declare (type (unsigned-byte ,word-size)
                                     s))
