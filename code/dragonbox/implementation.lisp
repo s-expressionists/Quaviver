@@ -399,7 +399,7 @@
    :RIGHT-CLOSED-DIRECTED (6 10))))
 
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3247-L3551
-(defmacro %nearest (client value type expt10 floor-multiply floor-multiply/evenp)
+(defmacro %nearest (client value type expt10 hi/2n floor-multiply floor-multiply/evenp)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
                    (significand-size quaviver:significand-size)
                    (min-exponent quaviver:min-exponent)
@@ -441,14 +441,14 @@
                (let* ((-k (floor-log10-expt2-minus-log10-4/3 exponent ,min-exponent ,max-exponent))
                       (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                       (expt10 (,expt10 -k))
-                      (xi (ldb (byte ,arithmetic-size 0)
-                               (ash (the (quaviver/math:arithmetic-word ,arithmetic-size 2)
-                                         (- expt10 (ash expt10 ,(- (1+ significand-size)))))
-                                    (- (- ,(ash arithmetic-size 1) ,significand-size beta)))))
-                      (zi (ldb (byte ,arithmetic-size 0)
-                               (ash (the (quaviver/math:arithmetic-word ,arithmetic-size 2)
-                                         (+ expt10 (ash expt10 ,(- significand-size))))
-                                    (- (- ,(ash arithmetic-size 1) ,significand-size beta))))))
+                      ;; Left endpoint
+                      (xi (let ((hi64 (,hi/2n expt10 64)))
+                            (quaviver/math:hi/64 (- hi64 (ash hi64 ,(- (1+ significand-size))))
+                                                 (+ ,significand-size beta))))
+                      ;; Right endpoint
+                      (zi (let ((hi64 (,hi/2n expt10 64)))
+                            (quaviver/math:hi/64 (+ hi64 (ash hi64 ,(- significand-size)))
+                                                 (+ ,significand-size beta)))))
                  (declare ((signed-byte 32) -k beta)
                           ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                           ((quaviver/math:arithmetic-word ,arithmetic-size) xi zi)
@@ -478,9 +478,8 @@
                      (values significand (1+ -k) sign)))
                  (setf significand
                        (ash (the (quaviver/math:arithmetic-word ,arithmetic-size)
-                                 (1+ (ldb (byte ,arithmetic-size 0)
-                                          (ash expt10 (- (- ,(ash arithmetic-size 1)
-                                                            ,significand-size 1 beta))))))
+                                 (1+ (the (quaviver/math:arithmetic-word ,arithmetic-size)
+                                          (,hi/2n expt10 (+ ,significand-size 1 beta)))))
                             -1))
                  (cond ((and (prefer-round-down-p ,client significand)
                              (<= ,(- (- (floor-log5-expt2-minus-log5-3 (+ significand-size 3)))
@@ -500,8 +499,7 @@
                            ,kappa))
                     (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                     (expt10 (,expt10 -k))
-                    (deltai (ldb (byte ,arithmetic-size 0)
-                                 (ash expt10 (- (- ,(ash arithmetic-size 1) 1 beta)))))
+                    (deltai (,hi/2n expt10 (1+ beta)))
                     (zi 0)
                     (zi-integer-p nil)
                     (r 0))
@@ -569,7 +567,7 @@
                (values significand (+ -k ,kappa) sign))))))))
 
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3553-L3799
-(defmacro %directed (client value type expt10 floor-multiply floor-multiply/evenp)
+(defmacro %directed (client value type expt10 hi/2n floor-multiply floor-multiply/evenp)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
                    (significand-size quaviver:significand-size)
                    (min-exponent quaviver:min-exponent)
@@ -601,8 +599,7 @@
                             ,kappa))
                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                      (expt10 (,expt10 -k))
-                     (deltai (ldb (byte ,arithmetic-size 0)
-                                  (ash expt10 (- (- ,(ash arithmetic-size 1) 1 beta)))))
+                     (deltai (,hi/2n expt10 (1+ beta)))
                      (xi 0)
                      (xi-integer-p nil)
                      (r 0))
@@ -657,9 +654,7 @@
                             ,kappa))
                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                      (expt10 (,expt10 -k))
-                     (deltai (ldb (byte ,arithmetic-size 0)
-                                  (ash expt10 (- (- ,(ash arithmetic-size 1)
-                                                    (if shorter-interval-p 0 1) beta)))))
+                     (deltai (,hi/2n expt10 (1+ (- beta (if shorter-interval-p 1 0)))))
                      (zi (nth-value 0 (,floor-multiply 2fc expt10 beta)))
                      (r 0))
                 (declare ((signed-byte 32) -k beta)
@@ -692,6 +687,7 @@
   (%nearest client value
             single-float
             quaviver/math:expt10/32
+            quaviver/math:hi/64
             quaviver/math:floor-multiply/32-64q64
             quaviver/math:floor-multiply/evenp/32-64q64))
 
@@ -700,6 +696,7 @@
   (%nearest client value
             double-float
             quaviver/math:expt10/64
+            quaviver/math:hi/hi64/128
             quaviver/math:floor-multiply/64-128q128
             quaviver/math:floor-multiply/evenp/64-128q128))
 
@@ -708,6 +705,7 @@
   (%directed client value
              single-float
              quaviver/math:expt10/32
+             quaviver/math:hi/64
              quaviver/math:floor-multiply/32-64q64
              quaviver/math:floor-multiply/evenp/32-64q64))
 
@@ -716,5 +714,6 @@
   (%directed client value
              double-float
              quaviver/math:expt10/64
+             quaviver/math:hi/hi64/128
              quaviver/math:floor-multiply/64-128q128
              quaviver/math:floor-multiply/evenp/64-128q128))

@@ -25,7 +25,13 @@
   #-quaviver/math/smallnum
   `(unsigned-byte ,(* arithmetic-size count)))
 
-(declaim (ftype (function ((arithmetic-word 32) (arithmetic-word 32 2))
+(declaim (ftype (function ((arithmetic-word 64) (integer 0 64))
+                          (values (arithmetic-word 64) &optional))
+                hi/64)
+         (ftype (function ((arithmetic-word 64 2) (integer 0 64))
+                          (values (arithmetic-word 64) &optional))
+                hi/hi64/128)
+         (ftype (function ((arithmetic-word 32) (arithmetic-word 32 2))
                           (values (arithmetic-word 32) &optional))
                 round-to-odd/32-64)
          (ftype (function ((arithmetic-word 64) (arithmetic-word 64 2))
@@ -58,7 +64,9 @@
          (ftype (function (fixnum fixnum fixnum &optional boolean)
                           (values fixnum &optional))
                 floor-log-expt ceiling-log-expt)
-         (inline round-to-odd/32-64
+         (inline hi/64
+                 hi/hi64/128
+                 round-to-odd/32-64
                  round-to-odd/64-128
                  round-to-odd/128-256
                  floor-multiply/32-64q64
@@ -70,6 +78,18 @@
                  expt10/128
                  floor-log-expt
                  ceiling-log-expt))
+
+(defun hi/64 (x count)
+  (ash x (- count 64)))
+
+(define-compiler-macro hi/64 (&whole whole x count)
+  (case count
+    (0 0)
+    (64 `(the (arithmetic-word 64) ,x))
+    (otherwise whole)))
+
+(defun hi/hi64/128 (x count)
+  (ash x (- count 128)))
 
 (defmacro %round-to-odd-1 (cp g size)
   `(let ((p (* ,cp ,g)))
