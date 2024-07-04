@@ -114,10 +114,16 @@
     (cond ((and (= size 32) (= power 1) (<= max-number 1073741828))
            `(ldb (byte 32 32) (* ,number 429496730)))
           ((and (= size 64) (= power 1) (<= max-number 4611686018427387908))
+           #+quaviver/math/smallnum
+           `(quaviver/math::*/64-64/hi64 ,number 1844674407370955162)
+           #-quaviver/math/smallnum
            `(ldb (byte 64 64) (* ,number 1844674407370955162)))
           ((and (= size 32) (= power 2))
            `(ldb (byte 27 37) (* ,number 1374389535)))
           ((and (= size 64) (= power 3) (<= max-number 15534100272597517998))
+           #+quaviver/math/smallnum
+           `(ash (quaviver/math::*/64-64/hi64 ,number 4722366482869645214) -8)
+           #-quaviver/math/smallnum
            `(ldb (byte 56 72) (* ,number 4722366482869645214)))
           (t
            `(floor ,number ,(expt 10 power))))))

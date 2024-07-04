@@ -25,6 +25,128 @@
   #-quaviver/math/smallnum
   `(unsigned-byte ,(* arithmetic-size count)))
 
+;;; Low-level, smallnum-optimized arithmetic operations
+;;;
+;;; These operations represent bignums as individual ub64 values.
+;;; They are not exported from quaviver/math.
+;;;
+;;; Some of these operations are ported from Dragonbox.
+
+(declaim (ftype (function ((unsigned-byte 64) (unsigned-byte 64))
+                          (values (unsigned-byte 64) &optional))
+                +/64-64)
+         (ftype (function ((unsigned-byte 64) (unsigned-byte 64) (unsigned-byte 64))
+                          (values (unsigned-byte 64) (unsigned-byte 64) &optional))
+                +/128-64)
+         (ftype (function ((unsigned-byte 32) (unsigned-byte 64))
+                          (values (unsigned-byte 64) &optional))
+                */32-64/hi64
+                */32-64/lo64)
+         (ftype (function ((unsigned-byte 64) (unsigned-byte 64))
+                          (values (unsigned-byte 64) (unsigned-byte 64) &optional))
+                */64-64)
+         (ftype (function ((unsigned-byte 64) (unsigned-byte 64))
+                          (values (unsigned-byte 64) &optional))
+                */64-64/hi64
+                */64-64/lo64)
+         (ftype (function ((unsigned-byte 64) (unsigned-byte 64) (unsigned-byte 64))
+                          (values (unsigned-byte 64) (unsigned-byte 64) &optional))
+                */64-128/hi128
+                */64-128/lo128)
+         (inline +/64-64
+                 +/128-64
+                 */32-64/hi64
+                 */32-64/lo64
+                 */64-64
+                 */64-64/hi64
+                 */64-64/lo64
+                 */64-128/hi128
+                 */64-128/lo128))
+
+(defun +/64-64 (x y)
+  (ldb (byte 64 0) (+ x y)))
+
+;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L646-L650
+(defun +/128-64 (xh xl y)
+  (let ((rl (+/64-64 xl y)))
+    (values (+/64-64 xh (if (< rl xl) 1 0))
+            rl)))
+
+;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L835-L848
+(defun */32-64/hi64 (x y)
+  (+/64-64 (* x (ldb (byte 32 32) y))
+           (ash (* x (ldb (byte 32 0) y))
+                -32)))
+
+(defun */32-64/lo64 (x y)
+  ;; SBCL elides bignums.
+  (ldb (byte 64 0) (* x y)))
+
+;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L737-L753
+(defun */64-64 (x y)
+  (let* ((a (ldb (byte 32 32) x))
+         (b (ldb (byte 32 0) x))
+         (c (ldb (byte 32 32) y))
+         (d (ldb (byte 32 0) y))
+         (ac (* a c))
+         (bc (* b c))
+         (ad (* a d))
+         (bd (* b d))
+         (u (+ (ldb (byte 32 32) bd)
+               (ldb (byte 32 0) ad)
+               (ldb (byte 32 0) bc))))
+    (declare ((unsigned-byte 32) a b c d)
+             ((unsigned-byte 64) ac bc ad bd u))
+    ;; (+ (ash ac 64) (ash ad 32) (ash bc 32) bd)
+    (values (ldb (byte 64 0)
+                 (+ ac
+                    (ldb (byte 32 32) u)
+                    (ldb (byte 32 32) ad)
+                    (ldb (byte 32 32) bc)))
+            (+/64-64 (ash (ldb (byte 32 0) u)
+                          32)
+                     (ldb (byte 32 0) bd)))))
+
+;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L783-L798
+(defun */64-64/hi64 (x y)
+  (let* ((a (ldb (byte 32 32) x))
+         (b (ldb (byte 32 0) x))
+         (c (ldb (byte 32 32) y))
+         (d (ldb (byte 32 0) y))
+         (ac (* a c))
+         (bc (* b c))
+         (ad (* a d))
+         (bd (* b d))
+         (u (+ (ldb (byte 32 32) bd)
+               (ldb (byte 32 0) ad)
+               (ldb (byte 32 0) bc))))
+    (declare ((unsigned-byte 32) a b c d)
+             ((unsigned-byte 64) ac bc ad bd u))
+    ;; (+ (ash ac 64) (ash ad 32) (ash bc 32) bd)
+    (ldb (byte 64 0)
+         (+ ac
+            (ldb (byte 32 32) u)
+            (ldb (byte 32 32) ad)
+            (ldb (byte 32 32) bc)))))
+
+(defun */64-64/lo64 (x y)
+  ;; SBCL elides bignums.
+  (ldb (byte 64 0) (* x y)))
+
+;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L826-L831
+(defun */64-128/hi128 (x yh yl)
+  (multiple-value-bind (rh rl) (*/64-64 x yh)
+    (+/128-64 rh rl (*/64-64/hi64 x yl))))
+
+;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L852-L857
+(defun */64-128/lo128 (x yh yl)
+  (multiple-value-bind (rh rl) (*/64-64 x yl)
+    (values (+/64-64 (*/64-64/lo64 x yh)
+                     rh)
+            rl)))
+
+;;; High-level arithmetic operations
+
 (declaim (ftype (function ((arithmetic-word 64) (integer 0 64))
                           (values (arithmetic-word 64) &optional))
                 hi/64)
@@ -89,7 +211,19 @@
     (otherwise whole)))
 
 (defun hi/hi64/128 (x count)
+  #+quaviver/math/smallnum
+  (hi/64 (aref x 0) count)
+  #-quaviver/math/smallnum
   (ash x (- count 128)))
+
+(define-compiler-macro hi/hi64/128 (&whole whole x count)
+  #-quaviver/math/smallnum
+  (declare (ignore x))
+  (case count
+    (0 0)
+    #+quaviver/math/smallnum
+    (64 `(aref (the (arithmetic-word 64 2) ,x) 0))
+    (otherwise whole)))
 
 (defmacro %round-to-odd-1 (cp g size)
   `(let ((p (* ,cp ,g)))
@@ -103,10 +237,24 @@
          (ash p ,(- size)))))
 
 (defun round-to-odd/32-64 (cp g)
-  #-(or ecl cmucl) (%round-to-odd-1 cp g 32)
-  #+(or ecl cmucl) (%round-to-odd-2 cp g 32))
+  #+quaviver/math/smallnum
+  (let ((p (*/32-64/hi64 cp g)))
+    (if (ldb-test (byte 31 1) p)
+        (logior (ash p -32) 1)
+        (ash p -32)))
+  #+(and (not quaviver/math/smallnum) (not (or ecl cmucl)))
+  (%round-to-odd-1 cp g 32)
+  #+(and (not quaviver/math/smallnum) (or ecl cmucl))
+  (%round-to-odd-2 cp g 32))
 
 (defun round-to-odd/64-128 (cp g)
+  #+quaviver/math/smallnum
+  (multiple-value-bind (ph pl)
+      (*/64-128/hi128 cp (aref g 0) (aref g 1))
+    (if (ldb-test (byte 63 1) pl)
+        (logior ph 1)
+        ph))
+  #-quaviver/math/smallnum
   (%round-to-odd-2 cp g 64))
 
 (defun round-to-odd/128-256 (cp g)
@@ -132,9 +280,19 @@
              (zerop (ldb (byte ,size ,size) r))))) ; integer-p
 
 (defun floor-multiply/32-64q64 (x y &optional (pre-shift 0))
+  #+quaviver/math/smallnum
+  (let ((r (*/32-64/hi64 (ash x pre-shift) y)))
+    (values (ldb (byte 32 32) r)             ; integer part
+            (not (ldb-test (byte 32 0) r)))) ; integer-p
+  #-quaviver/math/smallnum
   (%floor-multiply/n-2nq2n x y pre-shift 32))
 
 (defun floor-multiply/64-128q128 (x y &optional (pre-shift 0))
+  #+quaviver/math/smallnum
+  (multiple-value-bind (rh rl)
+      (*/64-128/hi128 (ash x pre-shift) (aref y 0) (aref y 1))
+    (values rh (zerop rl))) ; integer part, integer-p
+  #-quaviver/math/smallnum
   (%floor-multiply/n-2nq2n x y pre-shift 64))
 
 ;;; The FLOOR-MULTIPLY/EVENP operations compute the same thing as
@@ -152,9 +310,21 @@
              (zerop (ldb (byte ,size (- ,size ,pre-shift)) r))))) ; integer-p
 
 (defun floor-multiply/evenp/32-64q64 (x y &optional (pre-shift 0))
+  #+quaviver/math/smallnum
+  (let ((r (*/32-64/lo64 x y)))
+    (values (logbitp (- 64 pre-shift) r)                    ; even-p
+            (not (ldb-test (byte 32 (- 32 pre-shift)) r)))) ; integer-p
+  #-quaviver/math/smallnum
   (%floor-multiply/evenp/n-2nq2n x y pre-shift 32))
 
 (defun floor-multiply/evenp/64-128q128 (x y &optional (pre-shift 0))
+  #+quaviver/math/smallnum
+  (multiple-value-bind (rh rl)
+      (*/64-128/lo128 x (aref y 0) (aref y 1))
+    (values (logbitp (- 64 pre-shift) rh) ; even-p
+            (and (zerop (ldb (byte (- 64 pre-shift) pre-shift) rh)) ; integer-p
+                 (zerop (ldb (byte 64 (- 64 pre-shift)) rl)))))
+  #-quaviver/math/smallnum
   (%floor-multiply/evenp/n-2nq2n x y pre-shift 64))
 
 (defconstant +expt10/min-exponent/32+ -53)
@@ -173,6 +343,16 @@
 (defconstant +expt10/max-exponent/64+ 342)
 
 (defvar *expt10/values/64*
+  #+quaviver/math/smallnum
+  (let ((table (compute-expt +expt10/min-exponent/64+ +expt10/max-exponent/64+ 128)))
+    (make-array (length table)
+                :initial-contents
+                (loop for x across table
+                      collect (make-array 2 :element-type '(unsigned-byte 64)
+                                            :initial-contents
+                                            (list (ldb (byte 64 64) x)
+                                                  (ldb (byte 64 0) x))))))
+  #-quaviver/math/smallnum
   (compute-expt +expt10/min-exponent/64+ +expt10/max-exponent/64+ 128))
 
 (defun expt10/64 (power)
