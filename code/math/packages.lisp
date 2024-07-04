@@ -4,6 +4,8 @@
 (defpackage #:quaviver/math
   (:use #:common-lisp)
   (:export #:arithmetic-word
+           #:hi/64
+           #:hi/hi64/128
            #:expt10/32
            #:expt10/64
            #:expt10/128
