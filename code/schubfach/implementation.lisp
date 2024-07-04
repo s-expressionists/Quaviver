@@ -112,23 +112,23 @@
   (%schubfach client value
               short-float
               quaviver/math:expt10/32
-              quaviver/math:round-to-odd/32))
+              quaviver/math:round-to-odd/32-64))
 
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value single-float))
   (%schubfach client value
               single-float
               quaviver/math:expt10/32
-              quaviver/math:round-to-odd/32))
+              quaviver/math:round-to-odd/32-64))
 
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value double-float))
   (%schubfach client value
               double-float
               quaviver/math:expt10/64
-              quaviver/math:round-to-odd/64))
+              quaviver/math:round-to-odd/64-128))
 
 #+quaviver/long-float
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value long-float))
   (%schubfach client value
               long-float
               quaviver/math:expt10/128
-              quaviver/math:round-to-odd/128))
+              quaviver/math:round-to-odd/128-256))

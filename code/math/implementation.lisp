@@ -16,13 +16,13 @@
 
 (declaim (ftype (function ((arithmetic-word 32) (arithmetic-word 32 2))
                           (values (arithmetic-word 32) &optional))
-                round-to-odd/32)
+                round-to-odd/32-64)
          (ftype (function ((arithmetic-word 64) (arithmetic-word 64 2))
                           (values (arithmetic-word 64) &optional))
-                round-to-odd/64)
+                round-to-odd/64-128)
          (ftype (function ((arithmetic-word 128) (arithmetic-word 128 2))
                           (values (arithmetic-word 128) &optional))
-                round-to-odd/128)
+                round-to-odd/128-256)
          (ftype (function (fixnum)
                           (values (arithmetic-word 32 2) &optional))
                 expt10/32)
@@ -35,9 +35,9 @@
          (ftype (function (fixnum fixnum fixnum &optional boolean)
                           (values fixnum &optional))
                 floor-log-expt ceiling-log-expt)
-         (inline round-to-odd/32
-                 round-to-odd/64
-                 round-to-odd/128
+         (inline round-to-odd/32-64
+                 round-to-odd/64-128
+                 round-to-odd/128-256
                  expt10/32
                  expt10/64
                  expt10/128
@@ -55,14 +55,14 @@
          (logior (ash p ,(- size)) 1)
          (ash p ,(- size)))))
 
-(defun round-to-odd/32 (cp g)
+(defun round-to-odd/32-64 (cp g)
   #-(or ecl cmucl) (%round-to-odd-1 cp g 32)
   #+(or ecl cmucl) (%round-to-odd-2 cp g 32))
 
-(defun round-to-odd/64 (cp g)
+(defun round-to-odd/64-128 (cp g)
   (%round-to-odd-2 cp g 64))
 
-(defun round-to-odd/128 (cp g)
+(defun round-to-odd/128-256 (cp g)
   (%round-to-odd-2 cp g 128))
 
 (defconstant +expt10/min-exponent/32+ -53)
