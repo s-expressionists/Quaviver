@@ -34,12 +34,13 @@
                       (k (quaviver/math:floor-log-expt 10 2 exponent lower-boundary-is-closer))
                       (h (+ exponent 1 (quaviver/math:floor-log-expt 2 10 (- k))))
                       (expt10 (,expt10 k)))
-                 (declare (type (unsigned-byte ,(ash arithmetic-size 1))
-                                expt10)
-                          (type boolean
+                 (declare (type boolean
                                 lower-boundary-is-closer is-even)
                           (type (integer 0 4)
-                                h))
+                                h)
+                          (type (quaviver/math:arithmetic-word ,arithmetic-size 2)
+                                expt10)
+                          (dynamic-extent expt10))
                  (setf significand (ash significand 2))
                  (let ((lower (,round-to-odd expt10
                                              (ash (if lower-boundary-is-closer
