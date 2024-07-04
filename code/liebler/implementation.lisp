@@ -16,6 +16,9 @@
          (let* ((k (quaviver/math:floor-log-expt 2 10 ,exponent))
                 (q (+ k (integer-length ,significand) ,(- significand-size)))
                 (shift (- ,arithmetic-size (integer-length ,significand))))
+           (declare (type (unsigned-byte ,arithmetic-size)
+                          ,significand)
+                    (type fixnum ,exponent ,sign k shift))
            ;; The following overflow and underflow checks are not
            ;; strict checks. Stricter checks will happen in
            ;; integer-float/2. These are here to protect the expt10
