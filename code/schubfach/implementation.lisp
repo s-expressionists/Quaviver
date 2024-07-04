@@ -89,7 +89,7 @@
                                     s)
                                 k
                                 sign))
-                       (:to-even l ; ?11 or 110
+                       (:to-even ; ?11 or 110
                         (values (if (and (logbitp 1 significand)
                                          (or (logbitp 0 significand)
                                              (logbitp 2 significand)))
