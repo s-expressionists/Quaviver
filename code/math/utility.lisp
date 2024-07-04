@@ -1,3 +1,6 @@
+;;;; SPDX-FileCopyrightText: Copyright (c) 2024 s-expressionists
+;;;; SPDX-License-Identifier: MIT
+
 (in-package #:quaviver/math)
 
 (defun compute-expt (k-min k-max width &optional (base 10))

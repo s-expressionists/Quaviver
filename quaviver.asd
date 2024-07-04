@@ -25,7 +25,7 @@
 
 (defsystem "quaviver/math"
   :description "Math routines for Quaviver"
-  :license "MIT"
+  :license "MIT AND (Apache-2.0 WITH LLVM-exception OR BSL-1.0)"
   :author ("Robert Strandh"
            "Paul A. Patience"
            "Tarn W. Burton")

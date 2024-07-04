@@ -1,3 +1,14 @@
+;;;; SPDX-FileCopyrightText: Copyright (c) 2024 s-expressionists
+;;;; SPDX-License-Identifier: MIT AND (Apache-2.0 WITH LLVM-exception OR BSL-1.0)
+;;;;
+;;;; This file contains code ported from Dragonbox [1], which at the
+;;;; time of the port was copyright 2020–2024 Junekey Jeon and licensed
+;;;; under Apache-2.0 WITH LLVM-exception OR BSL-1.0.
+;;;;
+;;;; Any original code herein is licensed under the MIT license (Expat).
+;;;;
+;;;; [1]: https://github.com/jk-jeon/dragonbox
+
 (in-package #:quaviver/math)
 
 (deftype arithmetic-word (arithmetic-size &optional (count 1))
@@ -23,6 +34,18 @@
          (ftype (function ((arithmetic-word 128) (arithmetic-word 128 2))
                           (values (arithmetic-word 128) &optional))
                 round-to-odd/128-256)
+         (ftype (function ((arithmetic-word 32) (arithmetic-word 32 2) &optional (integer 0 (32)))
+                          (values (arithmetic-word 32) boolean &optional))
+                floor-multiply/32-64q64)
+         (ftype (function ((arithmetic-word 32) (arithmetic-word 32 2) &optional (integer 0 (32)))
+                          (values boolean boolean &optional))
+                floor-multiply/evenp/32-64q64)
+         (ftype (function ((arithmetic-word 64) (arithmetic-word 64 2) &optional (integer 0 (64)))
+                          (values (arithmetic-word 64) boolean &optional))
+                floor-multiply/64-128q128)
+         (ftype (function ((arithmetic-word 64) (arithmetic-word 64 2) &optional (integer 0 (64)))
+                          (values boolean boolean &optional))
+                floor-multiply/evenp/64-128q128)
          (ftype (function (fixnum)
                           (values (arithmetic-word 32 2) &optional))
                 expt10/32)
@@ -38,6 +61,10 @@
          (inline round-to-odd/32-64
                  round-to-odd/64-128
                  round-to-odd/128-256
+                 floor-multiply/32-64q64
+                 floor-multiply/evenp/32-64q64
+                 floor-multiply/64-128q128
+                 floor-multiply/evenp/64-128q128
                  expt10/32
                  expt10/64
                  expt10/128
@@ -64,6 +91,51 @@
 
 (defun round-to-odd/128-256 (cp g)
   (%round-to-odd-2 cp g 128))
+
+;;; The FLOOR-MULTIPLY operations compute
+;;;
+;;;   floor(2^pre * x * y)
+;;;
+;;; and return a second value which indicates whether the result is an
+;;; integer.
+;;; They require that 2^pre * x not exceed the size of x.
+;;;
+;;; Based on
+;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3064-L3068
+;;; and
+;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3121-L3125
+
+(defmacro %floor-multiply/n-2nq2n (x y pre-shift size)
+  `(let ((r (* (the (arithmetic-word ,size) (ash ,x ,pre-shift))
+               ,y)))
+     (values (ldb (byte ,size ,(* size 2)) r)      ; integer part
+             (zerop (ldb (byte ,size ,size) r))))) ; integer-p
+
+(defun floor-multiply/32-64q64 (x y &optional (pre-shift 0))
+  (%floor-multiply/n-2nq2n x y pre-shift 32))
+
+(defun floor-multiply/64-128q128 (x y &optional (pre-shift 0))
+  (%floor-multiply/n-2nq2n x y pre-shift 64))
+
+;;; The FLOOR-MULTIPLY/EVENP operations compute the same thing as
+;;; FLOOR-MULTIPLY, but return as first value whether the result is even
+;;; instead of the result itself.
+;;;
+;;; Based on
+;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3076-L3085
+;;; and
+;;; https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3134-L3144
+
+(defmacro %floor-multiply/evenp/n-2nq2n (x y pre-shift size)
+  `(let* ((r (* ,x ,y)))
+     (values (logbitp (- ,(* size 2) ,pre-shift) r) ; even-p
+             (zerop (ldb (byte ,size (- ,size ,pre-shift)) r))))) ; integer-p
+
+(defun floor-multiply/evenp/32-64q64 (x y &optional (pre-shift 0))
+  (%floor-multiply/evenp/n-2nq2n x y pre-shift 32))
+
+(defun floor-multiply/evenp/64-128q128 (x y &optional (pre-shift 0))
+  (%floor-multiply/evenp/n-2nq2n x y pre-shift 64))
 
 (defconstant +expt10/min-exponent/32+ -53)
 
