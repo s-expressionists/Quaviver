@@ -1,0 +1,74 @@
+#!/bin/sh
+# -*- mode: sh-script; sh-shell: ash; -*-
+# SPDX-FileCopyrightText: Copyright (c) 2024 s-expressionists
+# SPDX-License-Identifier: MIT
+
+set -o nounset
+set -o pipefail
+set -o errexit
+
+abcl() {
+  command abcl --noinform "$@"
+}
+
+ccl() {
+  command ccl --batch "$@"
+}
+
+clasp() {
+  command clasp --noinform --disable-debugger "$@"
+}
+
+ecl() {
+  command ecl "$@"
+}
+
+sbcl() {
+  command sbcl --noinform --disable-debugger "$@"
+}
+
+run() {
+  local implementation="$1"
+  local header="$2"
+  local smallnums="$3"
+  shift 3
+  # *ERROR-OUTPUT* on require for CCL.
+  if test "$smallnums" -ne 0; then
+    "$implementation" \
+      --eval '(pushnew :quaviver/math/smallnum *features*)' \
+      --eval '(let ((*error-output* (make-broadcast-stream))) (require "asdf"))' \
+      --eval "(let ((*standard-output* (make-broadcast-stream)) \
+                    (*error-output* (make-broadcast-stream))) \
+                (asdf:load-system \"quaviver/math\" :force t))" \
+      --eval '(format t "--- ~75,,,'\''-A~%~%" "'"$header"' ")' \
+      --eval "(loop for fun in (uiop:command-line-arguments) \
+                    unless (string-equal fun \"--\")
+                      do (disassemble (find-symbol (string-upcase fun) '#:quaviver/math)) \
+                         (terpri))" \
+      --eval '(uiop:quit)' \
+      -- "$@"
+  else
+    "$implementation" \
+      --eval '(let ((*error-output* (make-broadcast-stream))) (require "asdf"))' \
+      --eval "(let ((*standard-output* (make-broadcast-stream)) \
+                    (*error-output* (make-broadcast-stream))) \
+                (asdf:load-system \"quaviver/math\" :force t))" \
+      --eval '(format t "--- ~75,,,'\''-A~%~%" "'"$header"' ")' \
+      --eval "(loop for fun in (uiop:command-line-arguments) \
+                    unless (string-equal fun \"--\")
+                      do (disassemble (find-symbol (string-upcase fun) '#:quaviver/math)) \
+                         (terpri))" \
+      --eval '(uiop:quit)' \
+      -- "$@"
+  fi
+}
+
+# ABCL needs javap to disassemble.
+# ECL is unable to disassemble.
+
+run ccl "CCL bignums" 0 round-to-odd/32-64 round-to-odd/64-128
+run ccl "CCL smallnums" 1 round-to-odd/32-64 round-to-odd/64-128
+run clasp "Clasp bignums" 0 round-to-odd/32-64 round-to-odd/64-128
+run clasp "Clasp smallnums" 1 round-to-odd/32-64 round-to-odd/64-128
+run sbcl "SBCL bignums" 0 round-to-odd/32-64 round-to-odd/64-128
+run sbcl "SBCL smallnums" 1 round-to-odd/32-64 round-to-odd/64-128
