@@ -132,6 +132,8 @@
 
 (defgeneric decimal-binary-rounding (client))
 (defgeneric binary-decimal-rounding (client))
+(defgeneric compute-function/single-float (client))
+(defgeneric compute-function/double-float (client))
 
 ;;; Nearest client
 
@@ -156,34 +158,16 @@
                   :to-even
                   :to-odd
                   :away-from-zero
-                  :toward-zero)))
+                  :toward-zero))
+   (%compute-function/single-float
+    :initarg :compute-function/single-float
+    :reader compute-function/single-float)
+   (%compute-function/double-float
+    :initarg :compute-function/double-float
+    :reader compute-function/double-float))
   (:default-initargs
    :decimal-binary-rounding :to-even
    :binary-decimal-rounding :away-from-zero))
-
-(defmethod initialize-instance :after
-    ((client nearest-client) &key decimal-binary-rounding binary-decimal-rounding)
-  (case decimal-binary-rounding
-    ((:to-even
-      :to-odd
-      :toward-plus-infinity
-      :toward-minus-infinity
-      :away-from-zero
-      :toward-zero
-      :to-even-static-boundary
-      :to-odd-static-boundary
-      :toward-plus-infinity-static-boundary
-      :toward-minus-infinity-static-boundary))
-    (t
-     (error "Decimal to binary rounding mode ~S is unknown." decimal-binary-rounding)))
-  (case binary-decimal-rounding
-    ((:do-not-care
-      :to-even
-      :to-odd
-      :away-from-zero
-      :toward-zero))
-    (t
-     (error "Binary to decimal rounding mode ~S is unknown." binary-decimal-rounding))))
 
 ;;; Intervals based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L2439-L2708
 
@@ -276,19 +260,15 @@
     :type (member :toward-plus-infinity
                   :toward-minus-infinity
                   :away-from-zero
-                  :toward-zero)))
+                  :toward-zero))
+   (%compute-function/single-float
+    :initarg :compute-function/single-float
+    :reader compute-function/single-float)
+   (%compute-function/double-float
+    :initarg :compute-function/double-float
+    :reader compute-function/double-float))
   (:default-initargs
    :decimal-binary-rounding :away-from-zero))
-
-(defmethod initialize-instance :after
-    ((client directed-client) &key decimal-binary-rounding)
-  (case decimal-binary-rounding
-    ((:toward-plus-infinity
-      :toward-minus-infinity
-      :away-from-zero
-      :toward-zero))
-    (t
-     (error "Decimal to binary rounding mode ~S is unknown." decimal-binary-rounding))))
 
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L2710-L2763
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -774,56 +754,86 @@
   (define-directed/single-float)
   (define-directed/double-float))
 
-(defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value single-float))
-  (macrolet ((compute ()
+(defmethod initialize-instance :after
+    ((client nearest-client) &key decimal-binary-rounding binary-decimal-rounding)
+  (case decimal-binary-rounding
+    ((:to-even
+      :to-odd
+      :toward-plus-infinity
+      :toward-minus-infinity
+      :away-from-zero
+      :toward-zero
+      :to-even-static-boundary
+      :to-odd-static-boundary
+      :toward-plus-infinity-static-boundary
+      :toward-minus-infinity-static-boundary))
+    (t
+     (error "Decimal to binary rounding mode ~S is unknown." decimal-binary-rounding)))
+  (case binary-decimal-rounding
+    ((:do-not-care
+       :to-even
+       :to-odd
+       :away-from-zero
+       :toward-zero))
+    (t
+     (error "Binary to decimal rounding mode ~S is unknown." binary-decimal-rounding)))
+  (macrolet ((initialize ()
                `(ecase dbr
                   ,@(loop for dbr in *nearest-decimal-binary-roundings*
                           collect `(,dbr
                                     (ecase bdr
                                       ,@(loop for bdr in *nearest-binary-decimal-roundings*
-                                              for name = (intern (with-standard-io-syntax
-                                                                   (format nil "~A/~A/~A/~A"
-                                                                           '%nearest dbr bdr
-                                                                           'single-float)))
-                                              collect `(,bdr (,name client value)))))))))
+                                              for single-float-name
+                                                = (intern (with-standard-io-syntax
+                                                            (format nil "~A/~A/~A/~A"
+                                                                    '%nearest dbr bdr 'single-float)))
+                                              for double-float-name
+                                                = (intern (with-standard-io-syntax
+                                                            (format nil "~A/~A/~A/~A"
+                                                                    '%nearest dbr bdr 'double-float)))
+                                              collect `(,bdr
+                                                        (setf (slot-value client '%compute-function/single-float)
+                                                              (fdefinition ',single-float-name)
+                                                              (slot-value client '%compute-function/double-float)
+                                                              (fdefinition ',double-float-name))))))))))
     (let ((dbr (decimal-binary-rounding client))
           (bdr (binary-decimal-rounding client)))
-      (compute))))
+      (initialize))))
+
+(defmethod initialize-instance :after
+    ((client directed-client) &key decimal-binary-rounding)
+  (case decimal-binary-rounding
+    ((:toward-plus-infinity
+      :toward-minus-infinity
+      :away-from-zero
+      :toward-zero))
+    (t
+     (error "Decimal to binary rounding mode ~S is unknown." decimal-binary-rounding)))
+  (macrolet ((initialize ()
+               `(ecase dbr
+                  ,@(loop for dbr in *directed-decimal-binary-roundings*
+                          for single-float-name
+                            = (intern (with-standard-io-syntax
+                                        (format nil "~A/~A/~A" '%directed dbr 'single-float)))
+                          for double-float-name
+                            = (intern (with-standard-io-syntax
+                                        (format nil "~A/~A/~A" '%directed dbr 'double-float)))
+                          collect `(,dbr
+                                    (setf (slot-value client '%compute-function/single-float)
+                                          (fdefinition ',single-float-name)
+                                          (slot-value client '%compute-function/double-float)
+                                          (fdefinition ',double-float-name)))))))
+    (let ((dbr (decimal-binary-rounding client)))
+      (initialize))))
+
+(defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value single-float))
+  (funcall (compute-function/single-float client) client value))
 
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value double-float))
-  (macrolet ((compute ()
-               `(ecase dbr
-                  ,@(loop for dbr in *nearest-decimal-binary-roundings*
-                          collect `(,dbr
-                                    (ecase bdr
-                                      ,@(loop for bdr in *nearest-binary-decimal-roundings*
-                                              for name = (intern (with-standard-io-syntax
-                                                                   (format nil "~A/~A/~A/~A"
-                                                                           '%nearest dbr bdr
-                                                                           'double-float)))
-                                              collect `(,bdr (,name client value)))))))))
-    (let ((dbr (decimal-binary-rounding client))
-          (bdr (binary-decimal-rounding client)))
-      (compute))))
+  (funcall (compute-function/double-float client) client value))
 
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value single-float))
-  (macrolet ((compute ()
-               `(ecase dbr
-                  ,@(loop for dbr in *directed-decimal-binary-roundings*
-                          for name = (intern (with-standard-io-syntax
-                                               (format nil "~A/~A/~A"
-                                                       '%directed dbr 'single-float)))
-                          collect `(,dbr (,name client value))))))
-    (let ((dbr (decimal-binary-rounding client)))
-      (compute))))
+  (funcall (compute-function/single-float client) client value))
 
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value double-float))
-  (macrolet ((compute ()
-               `(ecase dbr
-                  ,@(loop for dbr in *directed-decimal-binary-roundings*
-                          for name = (intern (with-standard-io-syntax
-                                               (format nil "~A/~A/~A"
-                                                       '%directed dbr 'double-float)))
-                          collect `(,dbr (,name client value))))))
-    (let ((dbr (decimal-binary-rounding client)))
-      (compute))))
+  (funcall (compute-function/double-float client) client value))
