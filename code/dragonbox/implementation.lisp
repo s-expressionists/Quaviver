@@ -132,10 +132,8 @@
 
 (defgeneric decimal-binary-rounding (client))
 (defgeneric binary-decimal-rounding (client))
-(defgeneric normal-interval (client significand sign))
-(defgeneric shorter-interval (client significand sign))
-(defgeneric prefer-round-down-p (client significand))
-(defgeneric direction (client value))
+(defgeneric compute-function/single-float (client))
+(defgeneric compute-function/double-float (client))
 
 ;;; Nearest client
 
@@ -160,115 +158,98 @@
                   :to-even
                   :to-odd
                   :away-from-zero
-                  :toward-zero)))
+                  :toward-zero))
+   (%compute-function/single-float
+    :initarg :compute-function/single-float
+    :reader compute-function/single-float)
+   (%compute-function/double-float
+    :initarg :compute-function/double-float
+    :reader compute-function/double-float))
   (:default-initargs
    :decimal-binary-rounding :to-even
    :binary-decimal-rounding :away-from-zero))
 
-(defmethod initialize-instance :after
-    ((client nearest-client) &key decimal-binary-rounding binary-decimal-rounding)
-  (case decimal-binary-rounding
-    ((:to-even
-      :to-odd
-      :toward-plus-infinity
-      :toward-minus-infinity
-      :away-from-zero
-      :toward-zero
-      :to-even-static-boundary
-      :to-odd-static-boundary
-      :toward-plus-infinity-static-boundary
-      :toward-minus-infinity-static-boundary))
-    (t
-     (error "Decimal to binary rounding mode ~S is unknown." decimal-binary-rounding)))
-  (case binary-decimal-rounding
-    ((:do-not-care
-      :to-even
-      :to-odd
-      :away-from-zero
-      :toward-zero))
-    (t
-     (error "Binary to decimal rounding mode ~S is unknown." binary-decimal-rounding))))
-
 ;;; Intervals based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L2439-L2708
 
-(declaim (inline symmetric-interval))
-(defun symmetric-interval (closed-p)
-  (values closed-p closed-p))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (declaim (inline symmetric-interval))
+  (defun symmetric-interval (closed-p)
+    (values closed-p closed-p))
 
-(declaim (inline asymmetric-interval))
-(defun asymmetric-interval (left-closed-p)
-  (values left-closed-p (not left-closed-p)))
+  (declaim (inline asymmetric-interval))
+  (defun asymmetric-interval (left-closed-p)
+    (values left-closed-p (not left-closed-p)))
 
-(declaim (inline closed-interval))
-(defun closed-interval ()
-  (values t t))
+  (declaim (inline closed-interval))
+  (defun closed-interval ()
+    (values t t))
 
-(declaim (inline open-interval))
-(defun open-interval ()
-  (values nil nil))
+  (declaim (inline open-interval))
+  (defun open-interval ()
+    (values nil nil))
 
-(declaim (inline left-closed-right-open-interval))
-(defun left-closed-right-open-interval ()
-  (values t nil))
+  (declaim (inline left-closed-right-open-interval))
+  (defun left-closed-right-open-interval ()
+    (values t nil))
 
-(declaim (inline right-closed-left-open-interval))
-(defun right-closed-left-open-interval ()
-  (values nil t))
+  (declaim (inline right-closed-left-open-interval))
+  (defun right-closed-left-open-interval ()
+    (values nil t))
 
-(defmethod normal-interval ((client nearest-client) significand sign) ; base 2 significand
-  (ecase (decimal-binary-rounding client)
-    (:to-even
-     (symmetric-interval (evenp significand)))
-    (:to-odd
-     (symmetric-interval (oddp significand)))
-    (:toward-plus-infinity
-     (asymmetric-interval (plusp sign)))
-    (:toward-minus-infinity
-     (asymmetric-interval (minusp sign)))
-    (:away-from-zero
-     (left-closed-right-open-interval))
-    (:toward-zero
-     (right-closed-left-open-interval))
-    (:to-even-static-boundary
-     (if (evenp significand) (closed-interval) (open-interval)))
-    (:to-odd-static-boundary
-     (if (oddp significand) (closed-interval) (open-interval)))
-    (:toward-plus-infinity-static-boundary
-     (if (plusp sign) (left-closed-right-open-interval) (right-closed-left-open-interval)))
-    (:toward-minus-infinity-static-boundary
-     (if (minusp sign) (left-closed-right-open-interval) (right-closed-left-open-interval)))))
+  (defun normal-interval (decimal-binary-rounding significand sign) ; base 2 significand
+    (ecase decimal-binary-rounding
+      (:to-even
+       `(symmetric-interval (evenp ,significand)))
+      (:to-odd
+       `(symmetric-interval (oddp ,significand)))
+      (:toward-plus-infinity
+       `(asymmetric-interval (plusp ,sign)))
+      (:toward-minus-infinity
+       `(asymmetric-interval (minusp ,sign)))
+      (:away-from-zero
+       `(left-closed-right-open-interval))
+      (:toward-zero
+       `(right-closed-left-open-interval))
+      (:to-even-static-boundary
+       `(if (evenp ,significand) (closed-interval) (open-interval)))
+      (:to-odd-static-boundary
+       `(if (oddp ,significand) (closed-interval) (open-interval)))
+      (:toward-plus-infinity-static-boundary
+       `(if (plusp ,sign) (left-closed-right-open-interval) (right-closed-left-open-interval)))
+      (:toward-minus-infinity-static-boundary
+       `(if (minusp ,sign) (left-closed-right-open-interval) (right-closed-left-open-interval)))))
 
-(defmethod shorter-interval ((client nearest-client) significand sign) ; base 2 significand
-  (ecase (decimal-binary-rounding client)
-    (:to-even
-     (closed-interval))
-    (:to-odd
-     (open-interval))
-    (:toward-plus-infinity
-     (asymmetric-interval (plusp sign)))
-    (:toward-minus-infinity
-     (asymmetric-interval (minusp sign)))
-    (:away-from-zero
-     (left-closed-right-open-interval))
-    (:toward-zero
-     (right-closed-left-open-interval))
-    (:to-even-static-boundary
-     (if (evenp significand) (closed-interval) (open-interval)))
-    (:to-odd-static-boundary
-     (if (oddp significand) (closed-interval) (open-interval)))
-    (:toward-plus-infinity-static-boundary
-     (if (plusp sign) (left-closed-right-open-interval) (right-closed-left-open-interval)))
-    (:toward-minus-infinity-static-boundary
-     (if (minusp sign) (left-closed-right-open-interval) (right-closed-left-open-interval)))))
+  (defun shorter-interval (decimal-binary-rounding significand sign) ; base 2 significand
+    (ecase decimal-binary-rounding
+      (:to-even
+       `(closed-interval))
+      (:to-odd
+       `(open-interval))
+      (:toward-plus-infinity
+       `(asymmetric-interval (plusp ,sign)))
+      (:toward-minus-infinity
+       `(asymmetric-interval (minusp ,sign)))
+      (:away-from-zero
+       `(left-closed-right-open-interval))
+      (:toward-zero
+       `(right-closed-left-open-interval))
+      (:to-even-static-boundary
+       `(if (evenp ,significand) (closed-interval) (open-interval)))
+      (:to-odd-static-boundary
+       `(if (oddp ,significand) (closed-interval) (open-interval)))
+      (:toward-plus-infinity-static-boundary
+       `(if (plusp ,sign) (left-closed-right-open-interval) (right-closed-left-open-interval)))
+      (:toward-minus-infinity-static-boundary
+       `(if (minusp ,sign) (left-closed-right-open-interval) (right-closed-left-open-interval)))))
 
-;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L2766-L2822
-(defmethod prefer-round-down-p ((client nearest-client) significand) ; base 10 significand
-  (ecase (binary-decimal-rounding client)
-    (:do-not-care nil)
-    (:to-even (oddp significand))
-    (:to-odd (evenp significand))
-    (:away-from-zero nil)
-    (:toward-zero t)))
+  ;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L2766-L2822
+  (defun prefer-round-down-p (binary-decimal-rounding significand) ; base 10 significand
+    (ecase binary-decimal-rounding
+      (:do-not-care nil)
+      (:to-even `(oddp ,significand))
+      (:to-odd `(evenp ,significand))
+      (:away-from-zero nil)
+      (:toward-zero t))))
 
 ;;; Directed client
 
@@ -279,29 +260,26 @@
     :type (member :toward-plus-infinity
                   :toward-minus-infinity
                   :away-from-zero
-                  :toward-zero)))
+                  :toward-zero))
+   (%compute-function/single-float
+    :initarg :compute-function/single-float
+    :reader compute-function/single-float)
+   (%compute-function/double-float
+    :initarg :compute-function/double-float
+    :reader compute-function/double-float))
   (:default-initargs
    :decimal-binary-rounding :away-from-zero))
 
-(defmethod initialize-instance :after
-    ((client directed-client) &key decimal-binary-rounding)
-  (case decimal-binary-rounding
-    ((:toward-plus-infinity
-      :toward-minus-infinity
-      :away-from-zero
-      :toward-zero))
-    (t
-     (error "Decimal to binary rounding mode ~S is unknown." decimal-binary-rounding))))
-
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L2710-L2763
-(defmethod direction ((client directed-client) value)
-  (ecase (decimal-binary-rounding client)
-    (:toward-plus-infinity
-     (if (plusp value) :right-closed-directed :left-closed-directed))
-    (:toward-minus-infinity
-     (if (minusp value) :right-closed-directed :left-closed-directed))
-    (:away-from-zero :right-closed-directed)
-    (:toward-zero :left-closed-directed)))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun direction (decimal-binary-rounding value)
+    (ecase decimal-binary-rounding
+      (:toward-plus-infinity
+       `(if (plusp ,value) :right-closed-directed :left-closed-directed))
+      (:toward-minus-infinity
+       `(if (minusp ,value) :right-closed-directed :left-closed-directed))
+      (:away-from-zero :right-closed-directed)
+      (:toward-zero :left-closed-directed))))
 
 ;;; Computations
 
@@ -405,7 +383,8 @@
    :RIGHT-CLOSED-DIRECTED (6 10))))
 
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3247-L3551
-(defmacro %nearest (client value type expt10 hi/2n floor-multiply floor-multiply/evenp)
+(defmacro %nearest (client decimal-binary-rounding binary-decimal-rounding
+                    value type expt10 hi/2n floor-multiply floor-multiply/evenp)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
                    (significand-size quaviver:significand-size)
                    (min-exponent quaviver:min-exponent)
@@ -414,8 +393,14 @@
                    (min-k min-k)
                    (max-k max-k))
       type
-    (progn                              ; for future LET bindings
-      `(block %dragonbox
+    (let ((name (intern (with-standard-io-syntax
+                          (format nil "~A/~A/~A/~A"
+                                  '%nearest
+                                  decimal-binary-rounding
+                                  binary-decimal-rounding
+                                  type)))))
+      `(defun ,name (,client ,value)
+         (declare (optimize speed))
          (let ((significand 0)
                (exponent 0)
                (sign 0)
@@ -427,7 +412,7 @@
              (quaviver:float-integer ,client 2 ,value))
            (when (or (not (numberp exponent))
                      (zerop significand))
-             (return-from %dragonbox
+             (return-from ,name
                (values significand exponent sign)))
            (setf 2fc (ash significand 1))
            ;; Shorter interval case
@@ -443,7 +428,7 @@
            ;; subnormals (only (1- SIGNIFICAND-SIZE) cases to check).
            (when (eql significand ,(ash 1 (1- significand-size)))
              (multiple-value-bind (include-left-endpoint-p include-right-endpoint-p)
-                 (shorter-interval ,client significand sign)
+                 ,(shorter-interval decimal-binary-rounding 'significand 'sign)
                (let* ((-k (floor-log10-expt2-minus-log10-4/3 exponent ,min-exponent ,max-exponent))
                       (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
                       (expt10 (,expt10 -k))
@@ -480,14 +465,14 @@
                                     ,(* 20 (1+ (floor (1+ (ash 1 significand-size)) 3)))))
                  (when (>= (the (quaviver/math:arithmetic-word ,arithmetic-size)
                                 (* 10 significand)) xi)
-                   (return-from %dragonbox
+                   (return-from ,name
                      (values significand (1+ -k) sign)))
                  (setf significand
                        (ash (the (quaviver/math:arithmetic-word ,arithmetic-size)
                                  (1+ (the (quaviver/math:arithmetic-word ,arithmetic-size)
                                           (,hi/2n expt10 (+ ,significand-size 1 beta)))))
                             -1))
-                 (cond ((and (prefer-round-down-p ,client significand)
+                 (cond ((and ,(prefer-round-down-p binary-decimal-rounding 'significand)
                              (<= ,(- (- (floor-log5-expt2-minus-log5-3 (+ significand-size 3)))
                                      2 (1- significand-size))
                                  exponent
@@ -496,11 +481,11 @@
                         (decf significand))
                        ((< significand xi)
                         (incf significand)))
-                 (return-from %dragonbox
+                 (return-from ,name
                    (values significand -k sign)))))
            ;; Step 1: Schubfach multiplier calculation
            (multiple-value-bind (include-left-endpoint-p include-right-endpoint-p)
-               (normal-interval ,client significand sign)
+               ,(normal-interval decimal-binary-rounding 'significand 'sign)
              (let* ((-k (- (floor-log10-expt2 exponent ,min-exponent ,max-exponent)
                            ,kappa))
                     (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
@@ -526,14 +511,14 @@
                         (when (zerop (logior r
                                              (if zi-integer-p 0 1)
                                              (if include-right-endpoint-p 1 0)))
-                          (cond ((eq (binary-decimal-rounding ,client) :do-not-care)
-                                 (setf significand (1- (* 10 significand)))
-                                 (return-from %dragonbox
-                                   (values significand (+ -k ,kappa) sign)))
-                                (t
-                                 (decf significand)
-                                 (setf r ,(expt 10 (1+ kappa)))
-                                 (return)))))
+                          ,@(cond ((eq binary-decimal-rounding :do-not-care)
+                                   `((setf significand (1- (* 10 significand)))
+                                     (return-from ,name
+                                       (values significand (+ -k ,kappa) sign))))
+                                  (t
+                                   `((decf significand)
+                                     (setf r ,(expt 10 (1+ kappa)))
+                                     (return))))))
                        ((> r deltai) (return))
                        (t
                         (multiple-value-bind (xi-even-p xi-integer-p)
@@ -542,38 +527,39 @@
                                                (logand (if xi-integer-p 1 0)
                                                        (if include-left-endpoint-p 1 0))))
                             (return)))))
-                 (return-from %dragonbox
+                 (return-from ,name
                    (values significand (+ -k ,kappa 1) sign)))
                ;; Step 3: Find the significand with the smaller divisor
                (setf significand (* 10 significand))
-               (cond ((eq (binary-decimal-rounding ,client) :do-not-care)
-                      (cond ((not include-right-endpoint-p)
-                             (multiple-value-bind (r divisible-p)
-                                 (floor-by-expt10-divisible-p r ,kappa ,arithmetic-size)
-                               (incf significand (if (and divisible-p zi-integer-p) (1- r) r))))
-                            (t (incf significand (floor-by-expt10-small r ,kappa ,arithmetic-size)))))
+               ,(cond ((eq binary-decimal-rounding :do-not-care)
+                      `(cond ((not include-right-endpoint-p)
+                              (multiple-value-bind (r divisible-p)
+                                  (floor-by-expt10-divisible-p r ,kappa ,arithmetic-size)
+                                (incf significand (if (and divisible-p zi-integer-p) (1- r) r))))
+                             (t (incf significand (floor-by-expt10-small r ,kappa ,arithmetic-size)))))
                      (t
-                      (let* ((dist (+ (the (quaviver/math:arithmetic-word ,arithmetic-size)
-                                           (- r (ash deltai -1)))
-                                      ,(floor (expt 10 kappa) 2)))
-                             (approx-y-even-p
-                               (logbitp 0 (logxor dist ,(floor (expt 10 kappa) 2)))))
-                        (declare ((quaviver/math:arithmetic-word ,arithmetic-size) dist))
-                        (multiple-value-bind (dist divisible-p)
-                            (floor-by-expt10-divisible-p dist ,kappa ,arithmetic-size)
-                          (incf significand dist)
-                          (when divisible-p
-                            (multiple-value-bind (yi-even-p yi-integer-p)
-                                (,floor-multiply/evenp 2fc expt10 beta)
-                              (cond ((not (eq yi-even-p approx-y-even-p))
-                                     (decf significand))
-                                    ((and (prefer-round-down-p ,client significand)
-                                          yi-integer-p)
-                                     (decf significand)))))))))
+                      `(let* ((dist (+ (the (quaviver/math:arithmetic-word ,arithmetic-size)
+                                            (- r (ash deltai -1)))
+                                       ,(floor (expt 10 kappa) 2)))
+                              (approx-y-even-p
+                                (logbitp 0 (logxor dist ,(floor (expt 10 kappa) 2)))))
+                         (declare ((quaviver/math:arithmetic-word ,arithmetic-size) dist))
+                         (multiple-value-bind (dist divisible-p)
+                             (floor-by-expt10-divisible-p dist ,kappa ,arithmetic-size)
+                           (incf significand dist)
+                           (when divisible-p
+                             (multiple-value-bind (yi-even-p yi-integer-p)
+                                 (,floor-multiply/evenp 2fc expt10 beta)
+                               (cond ((not (eq yi-even-p approx-y-even-p))
+                                      (decf significand))
+                                     ((and ,(prefer-round-down-p binary-decimal-rounding 'significand)
+                                           yi-integer-p)
+                                      (decf significand)))))))))
                (values significand (+ -k ,kappa) sign))))))))
 
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3553-L3799
-(defmacro %directed (client value type expt10 hi/2n floor-multiply floor-multiply/evenp)
+(defmacro %directed (client decimal-binary-rounding
+                     value type expt10 hi/2n floor-multiply floor-multiply/evenp)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
                    (significand-size quaviver:significand-size)
                    (min-exponent quaviver:min-exponent)
@@ -582,8 +568,13 @@
                    (min-k min-k)
                    (max-k max-k))
       type
-    (progn                              ; for future LET bindings
-      `(block %dragonbox
+    (let ((name (intern (with-standard-io-syntax
+                          (format nil "~A/~A/~A"
+                                  '%directed
+                                  decimal-binary-rounding
+                                  type)))))
+      `(defun ,name (,client ,value)
+         (declare (optimize speed))
          (let ((significand 0)
                (exponent 0)
                (sign 0)
@@ -595,10 +586,10 @@
              (quaviver:float-integer ,client 2 ,value))
            (when (or (not (numberp exponent))
                      (zerop significand))
-             (return-from %dragonbox
+             (return-from ,name
                (values significand exponent sign)))
            (setf 2fc (ash significand 1))
-           (ecase (direction ,client ,value)
+           (ecase ,(direction decimal-binary-rounding 'value)
              (:left-closed-directed
               ;; Step 1: Schubfach multiplier calculation
               (let* ((-k (- (floor-log10-expt2 exponent ,min-exponent ,max-exponent)
@@ -636,7 +627,7 @@
                              (,floor-multiply/evenp (+ 2fc 2) expt10 beta)
                            (when (or zi-even-p zi-integer-p)
                              (return)))))
-                  (return-from %dragonbox
+                  (return-from ,name
                     (values significand (+ -k ,kappa 1) sign)))
                 ;; Step 3: Find the significand with the smaller divisor
                 (setf significand (- (* 10 significand)
@@ -681,45 +672,168 @@
                            (declare (ignore xi-integer-p))
                            (unless xi-even-p
                              (return)))))
-                  (return-from %dragonbox
+                  (return-from ,name
                     (values significand (+ -k ,kappa 1) sign)))
                 ;; Step 3: Find the significand with the smaller divisor
                 (setf significand (+ (* 10 significand)
                                      (floor-by-expt10-small r ,kappa ,arithmetic-size)))
                 (values significand (+ -k ,kappa) sign)))))))))
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *nearest-decimal-binary-roundings*
+    (list :to-even
+          :to-odd
+          :toward-plus-infinity
+          :toward-minus-infinity
+          :away-from-zero
+          :toward-zero
+          :to-even-static-boundary
+          :to-odd-static-boundary
+          :toward-plus-infinity-static-boundary
+          :toward-minus-infinity-static-boundary)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *nearest-binary-decimal-roundings*
+    (list :do-not-care
+          :to-even
+          :to-odd
+          :away-from-zero
+          :toward-zero)))
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defparameter *directed-decimal-binary-roundings*
+    (list :toward-plus-infinity
+          :toward-minus-infinity
+          :away-from-zero
+          :toward-zero)))
+
+(macrolet ((define-nearest/single-float ()
+             `(progn
+                ,@(loop for dbr in *nearest-decimal-binary-roundings*
+                        nconc (loop for bdr in *nearest-binary-decimal-roundings*
+                                    collect `(%nearest client ,dbr ,bdr
+                                                       value
+                                                       single-float
+                                                       quaviver/math:expt10/32
+                                                       quaviver/math:hi/64
+                                                       quaviver/math:floor-multiply/32-64q64
+                                                       quaviver/math:floor-multiply/evenp/32-64q64)))))
+           (define-nearest/double-float ()
+             `(progn
+                ,@(loop for dbr in *nearest-decimal-binary-roundings*
+                        nconc (loop for bdr in *nearest-binary-decimal-roundings*
+                                    collect `(%nearest client ,dbr ,bdr
+                                                       value
+                                                       double-float
+                                                       quaviver/math:expt10/64
+                                                       quaviver/math:hi/hi64/128
+                                                       quaviver/math:floor-multiply/64-128q128
+                                                       quaviver/math:floor-multiply/evenp/64-128q128)))))
+           (define-directed/single-float ()
+             `(progn
+                ,@(loop for dbr in *directed-decimal-binary-roundings*
+                        collect `(%directed client ,dbr
+                                            value
+                                            single-float
+                                            quaviver/math:expt10/32
+                                            quaviver/math:hi/64
+                                            quaviver/math:floor-multiply/32-64q64
+                                            quaviver/math:floor-multiply/evenp/32-64q64))))
+           (define-directed/double-float ()
+             `(progn
+                ,@(loop for dbr in *directed-decimal-binary-roundings*
+                        collect `(%directed client ,dbr
+                                            value
+                                            double-float
+                                            quaviver/math:expt10/64
+                                            quaviver/math:hi/hi64/128
+                                            quaviver/math:floor-multiply/64-128q128
+                                            quaviver/math:floor-multiply/evenp/64-128q128)))))
+  (define-nearest/single-float)
+  (define-nearest/double-float)
+  (define-directed/single-float)
+  (define-directed/double-float))
+
+(defmethod initialize-instance :after
+    ((client nearest-client) &key decimal-binary-rounding binary-decimal-rounding)
+  (case decimal-binary-rounding
+    ((:to-even
+      :to-odd
+      :toward-plus-infinity
+      :toward-minus-infinity
+      :away-from-zero
+      :toward-zero
+      :to-even-static-boundary
+      :to-odd-static-boundary
+      :toward-plus-infinity-static-boundary
+      :toward-minus-infinity-static-boundary))
+    (t
+     (error "Decimal to binary rounding mode ~S is unknown." decimal-binary-rounding)))
+  (case binary-decimal-rounding
+    ((:do-not-care
+       :to-even
+       :to-odd
+       :away-from-zero
+       :toward-zero))
+    (t
+     (error "Binary to decimal rounding mode ~S is unknown." binary-decimal-rounding)))
+  (macrolet ((initialize ()
+               `(ecase dbr
+                  ,@(loop for dbr in *nearest-decimal-binary-roundings*
+                          collect `(,dbr
+                                    (ecase bdr
+                                      ,@(loop for bdr in *nearest-binary-decimal-roundings*
+                                              for single-float-name
+                                                = (intern (with-standard-io-syntax
+                                                            (format nil "~A/~A/~A/~A"
+                                                                    '%nearest dbr bdr 'single-float)))
+                                              for double-float-name
+                                                = (intern (with-standard-io-syntax
+                                                            (format nil "~A/~A/~A/~A"
+                                                                    '%nearest dbr bdr 'double-float)))
+                                              collect `(,bdr
+                                                        (setf (slot-value client '%compute-function/single-float)
+                                                              (fdefinition ',single-float-name)
+                                                              (slot-value client '%compute-function/double-float)
+                                                              (fdefinition ',double-float-name))))))))))
+    (let ((dbr (decimal-binary-rounding client))
+          (bdr (binary-decimal-rounding client)))
+      (initialize))))
+
+(defmethod initialize-instance :after
+    ((client directed-client) &key decimal-binary-rounding)
+  (case decimal-binary-rounding
+    ((:toward-plus-infinity
+      :toward-minus-infinity
+      :away-from-zero
+      :toward-zero))
+    (t
+     (error "Decimal to binary rounding mode ~S is unknown." decimal-binary-rounding)))
+  (macrolet ((initialize ()
+               `(ecase dbr
+                  ,@(loop for dbr in *directed-decimal-binary-roundings*
+                          for single-float-name
+                            = (intern (with-standard-io-syntax
+                                        (format nil "~A/~A/~A" '%directed dbr 'single-float)))
+                          for double-float-name
+                            = (intern (with-standard-io-syntax
+                                        (format nil "~A/~A/~A" '%directed dbr 'double-float)))
+                          collect `(,dbr
+                                    (setf (slot-value client '%compute-function/single-float)
+                                          (fdefinition ',single-float-name)
+                                          (slot-value client '%compute-function/double-float)
+                                          (fdefinition ',double-float-name)))))))
+    (let ((dbr (decimal-binary-rounding client)))
+      (initialize))))
+
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value single-float))
-  (declare (optimize speed))
-  (%nearest client value
-            single-float
-            quaviver/math:expt10/32
-            quaviver/math:hi/64
-            quaviver/math:floor-multiply/32-64q64
-            quaviver/math:floor-multiply/evenp/32-64q64))
+  (funcall (compute-function/single-float client) client value))
 
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value double-float))
-  (declare (optimize speed))
-  (%nearest client value
-            double-float
-            quaviver/math:expt10/64
-            quaviver/math:hi/hi64/128
-            quaviver/math:floor-multiply/64-128q128
-            quaviver/math:floor-multiply/evenp/64-128q128))
+  (funcall (compute-function/double-float client) client value))
 
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value single-float))
-  (declare (optimize speed))
-  (%directed client value
-             single-float
-             quaviver/math:expt10/32
-             quaviver/math:hi/64
-             quaviver/math:floor-multiply/32-64q64
-             quaviver/math:floor-multiply/evenp/32-64q64))
+  (funcall (compute-function/single-float client) client value))
 
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value double-float))
-  (declare (optimize speed))
-  (%directed client value
-             double-float
-             quaviver/math:expt10/64
-             quaviver/math:hi/hi64/128
-             quaviver/math:floor-multiply/64-128q128
-             quaviver/math:floor-multiply/evenp/64-128q128))
+  (funcall (compute-function/double-float client) client value))
