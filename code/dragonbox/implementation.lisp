@@ -413,8 +413,14 @@
                    (min-k min-k)
                    (max-k max-k))
       type
-    (progn                              ; for future LET bindings
-      `(block %dragonbox
+    (let ((name (intern (with-standard-io-syntax
+                          (format nil "~A/~A/~A/~A"
+                                  '%nearest
+                                  decimal-binary-rounding
+                                  binary-decimal-rounding
+                                  type)))))
+      `(defun ,name (,client ,value)
+         (declare (optimize speed))
          (let ((significand 0)
                (exponent 0)
                (sign 0)
@@ -426,7 +432,7 @@
              (quaviver:float-integer ,client 2 ,value))
            (when (or (not (numberp exponent))
                      (zerop significand))
-             (return-from %dragonbox
+             (return-from ,name
                (values significand exponent sign)))
            (setf 2fc (ash significand 1))
            ;; Shorter interval case
@@ -479,7 +485,7 @@
                                     ,(* 20 (1+ (floor (1+ (ash 1 significand-size)) 3)))))
                  (when (>= (the (quaviver/math:arithmetic-word ,arithmetic-size)
                                 (* 10 significand)) xi)
-                   (return-from %dragonbox
+                   (return-from ,name
                      (values significand (1+ -k) sign)))
                  (setf significand
                        (ash (the (quaviver/math:arithmetic-word ,arithmetic-size)
@@ -495,7 +501,7 @@
                         (decf significand))
                        ((< significand xi)
                         (incf significand)))
-                 (return-from %dragonbox
+                 (return-from ,name
                    (values significand -k sign)))))
            ;; Step 1: Schubfach multiplier calculation
            (multiple-value-bind (include-left-endpoint-p include-right-endpoint-p)
@@ -527,7 +533,7 @@
                                              (if include-right-endpoint-p 1 0)))
                           ,@(cond ((eq binary-decimal-rounding :do-not-care)
                                    `((setf significand (1- (* 10 significand)))
-                                     (return-from %dragonbox
+                                     (return-from ,name
                                        (values significand (+ -k ,kappa) sign))))
                                   (t
                                    `((decf significand)
@@ -541,7 +547,7 @@
                                                (logand (if xi-integer-p 1 0)
                                                        (if include-left-endpoint-p 1 0))))
                             (return)))))
-                 (return-from %dragonbox
+                 (return-from ,name
                    (values significand (+ -k ,kappa 1) sign)))
                ;; Step 3: Find the significand with the smaller divisor
                (setf significand (* 10 significand))
@@ -582,8 +588,13 @@
                    (min-k min-k)
                    (max-k max-k))
       type
-    (progn                              ; for future LET bindings
-      `(block %dragonbox
+    (let ((name (intern (with-standard-io-syntax
+                          (format nil "~A/~A/~A"
+                                  '%directed
+                                  decimal-binary-rounding
+                                  type)))))
+      `(defun ,name (,client ,value)
+         (declare (optimize speed))
          (let ((significand 0)
                (exponent 0)
                (sign 0)
@@ -595,7 +606,7 @@
              (quaviver:float-integer ,client 2 ,value))
            (when (or (not (numberp exponent))
                      (zerop significand))
-             (return-from %dragonbox
+             (return-from ,name
                (values significand exponent sign)))
            (setf 2fc (ash significand 1))
            (ecase ,(direction decimal-binary-rounding 'value)
@@ -636,7 +647,7 @@
                              (,floor-multiply/evenp (+ 2fc 2) expt10 beta)
                            (when (or zi-even-p zi-integer-p)
                              (return)))))
-                  (return-from %dragonbox
+                  (return-from ,name
                     (values significand (+ -k ,kappa 1) sign)))
                 ;; Step 3: Find the significand with the smaller divisor
                 (setf significand (- (* 10 significand)
@@ -681,7 +692,7 @@
                            (declare (ignore xi-integer-p))
                            (unless xi-even-p
                              (return)))))
-                  (return-from %dragonbox
+                  (return-from ,name
                     (values significand (+ -k ,kappa 1) sign)))
                 ;; Step 3: Find the significand with the smaller divisor
                 (setf significand (+ (* 10 significand)
@@ -716,74 +727,103 @@
           :away-from-zero
           :toward-zero)))
 
+(macrolet ((define-nearest/single-float ()
+             `(progn
+                ,@(loop for dbr in *nearest-decimal-binary-roundings*
+                        nconc (loop for bdr in *nearest-binary-decimal-roundings*
+                                    collect `(%nearest client ,dbr ,bdr
+                                                       value
+                                                       single-float
+                                                       quaviver/math:expt10/32
+                                                       quaviver/math:hi/64
+                                                       quaviver/math:floor-multiply/32-64q64
+                                                       quaviver/math:floor-multiply/evenp/32-64q64)))))
+           (define-nearest/double-float ()
+             `(progn
+                ,@(loop for dbr in *nearest-decimal-binary-roundings*
+                        nconc (loop for bdr in *nearest-binary-decimal-roundings*
+                                    collect `(%nearest client ,dbr ,bdr
+                                                       value
+                                                       double-float
+                                                       quaviver/math:expt10/64
+                                                       quaviver/math:hi/hi64/128
+                                                       quaviver/math:floor-multiply/64-128q128
+                                                       quaviver/math:floor-multiply/evenp/64-128q128)))))
+           (define-directed/single-float ()
+             `(progn
+                ,@(loop for dbr in *directed-decimal-binary-roundings*
+                        collect `(%directed client ,dbr
+                                            value
+                                            single-float
+                                            quaviver/math:expt10/32
+                                            quaviver/math:hi/64
+                                            quaviver/math:floor-multiply/32-64q64
+                                            quaviver/math:floor-multiply/evenp/32-64q64))))
+           (define-directed/double-float ()
+             `(progn
+                ,@(loop for dbr in *directed-decimal-binary-roundings*
+                        collect `(%directed client ,dbr
+                                            value
+                                            double-float
+                                            quaviver/math:expt10/64
+                                            quaviver/math:hi/hi64/128
+                                            quaviver/math:floor-multiply/64-128q128
+                                            quaviver/math:floor-multiply/evenp/64-128q128)))))
+  (define-nearest/single-float)
+  (define-nearest/double-float)
+  (define-directed/single-float)
+  (define-directed/double-float))
+
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value single-float))
-  (declare (optimize speed))
   (macrolet ((compute ()
                `(ecase dbr
                   ,@(loop for dbr in *nearest-decimal-binary-roundings*
                           collect `(,dbr
                                     (ecase bdr
                                       ,@(loop for bdr in *nearest-binary-decimal-roundings*
-                                              collect `(,bdr
-                                                        (%nearest client ,dbr ,bdr
-                                                                  value
-                                                                  single-float
-                                                                  quaviver/math:expt10/32
-                                                                  quaviver/math:hi/64
-                                                                  quaviver/math:floor-multiply/32-64q64
-                                                                  quaviver/math:floor-multiply/evenp/32-64q64)))))))))
+                                              for name = (intern (with-standard-io-syntax
+                                                                   (format nil "~A/~A/~A/~A"
+                                                                           '%nearest dbr bdr
+                                                                           'single-float)))
+                                              collect `(,bdr (,name client value)))))))))
     (let ((dbr (decimal-binary-rounding client))
           (bdr (binary-decimal-rounding client)))
       (compute))))
 
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value double-float))
-  (declare (optimize speed))
   (macrolet ((compute ()
                `(ecase dbr
                   ,@(loop for dbr in *nearest-decimal-binary-roundings*
                           collect `(,dbr
                                     (ecase bdr
                                       ,@(loop for bdr in *nearest-binary-decimal-roundings*
-                                              collect `(,bdr
-                                                        (%nearest client ,dbr ,bdr
-                                                                  value
-                                                                  double-float
-                                                                  quaviver/math:expt10/64
-                                                                  quaviver/math:hi/hi64/128
-                                                                  quaviver/math:floor-multiply/64-128q128
-                                                                  quaviver/math:floor-multiply/evenp/64-128q128)))))))))
+                                              for name = (intern (with-standard-io-syntax
+                                                                   (format nil "~A/~A/~A/~A"
+                                                                           '%nearest dbr bdr
+                                                                           'double-float)))
+                                              collect `(,bdr (,name client value)))))))))
     (let ((dbr (decimal-binary-rounding client))
           (bdr (binary-decimal-rounding client)))
       (compute))))
 
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value single-float))
-  (declare (optimize speed))
   (macrolet ((compute ()
                `(ecase dbr
                   ,@(loop for dbr in *directed-decimal-binary-roundings*
-                          collect `(,dbr
-                                    (%directed client ,dbr
-                                               value
-                                               single-float
-                                               quaviver/math:expt10/32
-                                               quaviver/math:hi/64
-                                               quaviver/math:floor-multiply/32-64q64
-                                               quaviver/math:floor-multiply/evenp/32-64q64))))))
+                          for name = (intern (with-standard-io-syntax
+                                               (format nil "~A/~A/~A"
+                                                       '%directed dbr 'single-float)))
+                          collect `(,dbr (,name client value))))))
     (let ((dbr (decimal-binary-rounding client)))
       (compute))))
 
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value double-float))
-  (declare (optimize speed))
   (macrolet ((compute ()
                `(ecase dbr
                   ,@(loop for dbr in *directed-decimal-binary-roundings*
-                          collect `(,dbr
-                                    (%directed client ,dbr
-                                               value
-                                               double-float
-                                               quaviver/math:expt10/64
-                                               quaviver/math:hi/hi64/128
-                                               quaviver/math:floor-multiply/64-128q128
-                                               quaviver/math:floor-multiply/evenp/64-128q128))))))
+                          for name = (intern (with-standard-io-syntax
+                                               (format nil "~A/~A/~A"
+                                                       '%directed dbr 'double-float)))
+                          collect `(,dbr (,name client value))))))
     (let ((dbr (decimal-binary-rounding client)))
       (compute))))
