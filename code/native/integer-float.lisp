@@ -9,13 +9,16 @@
 
 (defmethod quaviver:integer-float
     ((client client) (result-type (eql 'single-float)) base (significand (eql 0)) exponent sign)
+  (declare (ignore base exponent))
   (if (minusp sign) -0f0 0f0))
 
 (defmethod quaviver:integer-float
     ((client client) (result-type (eql 'double-float)) base (significand (eql 0)) exponent sign)
+  (declare (ignore base exponent))
   (if (minusp sign) -0d0 0d0))
 
 #+quaviver/long-float
 (defmethod quaviver:integer-float
     ((client client) (result-type (eql 'long-float)) base (significand (eql 0)) exponent sign)
+  (declare (ignore base exponent))
   (if (minusp sign) -0l0 0l0))
