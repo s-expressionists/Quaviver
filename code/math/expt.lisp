@@ -1,8 +1,17 @@
 (in-package #:quaviver/math)
 
-(defmacro define-expt (&key types (base 10))
+(defmacro define-expt (&key arithmetic-sizes types (base 10))
   `(progn
-     ,@(loop for (arithmetic-size bound) on (compute-expt-bounds types base) by #'cddr
+     ,@(loop for arithmetic-size in arithmetic-sizes
+             for bound = (loop for type in types
+                               when (= arithmetic-size (quaviver:arithmetic-size type))
+                                 maximize (+ (ceiling-log-expt base 2
+                                                               (max (quaviver:max-exponent type)
+                                                                    (- (quaviver:min-exponent type))))
+                                             (ceiling-log-expt base 2
+                                                               (- (quaviver:arithmetic-size type)
+                                                                  (quaviver:significand-size type)
+                                                                  1))))
              for fun-name = (alexandria:symbolicate
                              '#:expt/ (write-to-string arithmetic-size)
                              "-" (write-to-string base))
@@ -28,12 +37,14 @@
                        (svref ,values-name
                               (- ,bound-name power)))))))
 
-(define-expt :types (#+quaviver/short-float
-                     short-float
-                     single-float
-                     double-float
-                     #+quaviver/long-float
-                     long-float))
+(define-expt
+  :arithmetic-sizes (32 64 128 256)
+  :types (#+quaviver/short-float
+          short-float
+          single-float
+          double-float
+          #+quaviver/long-float
+          long-float))
 
 (defun expt (arithmetic-size base power)
   (ecase base

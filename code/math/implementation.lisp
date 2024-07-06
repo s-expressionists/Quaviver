@@ -13,7 +13,7 @@
 
 (deftype arithmetic-word (arithmetic-size &optional (count 1))
   #+quaviver/math/smallnum
-  (ecase arithmetic-size
+  (case arithmetic-size
     (32 (case count
           (1 `(unsigned-byte 32))
           (2 `(unsigned-byte 64))
@@ -21,7 +21,7 @@
     (64 (if (eql count 1)
             `(unsigned-byte 64)
             `(simple-array (unsigned-byte 64) (,count))))
-    (128 `(unsigned-byte ,(* arithmetic-size count))))
+    (otherwise `(unsigned-byte ,(* arithmetic-size count))))
   #-quaviver/math/smallnum
   `(unsigned-byte ,(* arithmetic-size count)))
 
