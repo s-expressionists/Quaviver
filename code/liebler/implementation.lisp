@@ -3,7 +3,7 @@
 (defclass client ()
   ())
 
-(defmacro %liebler (client result-type significand exponent sign expt10 round-to-odd)
+(defmacro %liebler (client result-type significand exponent sign round-to-odd)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
                    (significand-size quaviver:significand-size)
                    (min-exponent quaviver:min-exponent)
@@ -36,7 +36,8 @@
                     :operands (list ,client ',result-type 10
                                     ,significand ,exponent ,sign)))
            (setf ,significand (,round-to-odd (ash ,significand shift)
-                                             (,expt10 (- ,exponent)))
+                                             (quaviver/math:expt ,arithmetic-size 10
+                                                                 (- ,exponent)))
                  k (- k -1 shift)
                  shift (- ,significand-size (integer-length ,significand)))
            (quaviver:integer-float ,client ',result-type 2
@@ -48,14 +49,12 @@
     ((client client) (result-type (eql 'single-float)) (base (eql 10)) significand exponent sign)
   (%liebler client single-float
             significand exponent sign
-            quaviver/math:expt10/32
             quaviver/math:round-to-odd/32-64))
 
 (defmethod quaviver:integer-float
     ((client client) (result-type (eql 'double-float)) (base (eql 10)) significand exponent sign)
   (%liebler client double-float
             significand exponent sign
-            quaviver/math:expt10/64
             quaviver/math:round-to-odd/64-128))
 
 #+quaviver/long-float
@@ -63,5 +62,4 @@
     ((client client) (result-type (eql 'long-float)) (base (eql 10)) significand exponent sign)
   (%liebler client long-float
             significand exponent sign
-            quaviver/math:expt10/128
             quaviver/math:round-to-odd/128-256))

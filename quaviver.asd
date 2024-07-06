@@ -10,7 +10,8 @@
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
-  :depends-on ("trivial-features")
+  :depends-on ("alexandria"
+               "trivial-features")
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")
@@ -33,13 +34,14 @@
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
-  :depends-on ()
+  :depends-on ("quaviver")
   :components ((:module "code"
                 :pathname "code/math/"
                 :serial t
                 :components ((:file "packages")
                              (:file "utility")
-                             (:file "implementation")))))
+                             (:file "implementation")
+                             (:file "expt")))))
 
 (defsystem "quaviver/ieee754"
   :description "IEEE-754 float conversions"

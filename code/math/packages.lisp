@@ -3,12 +3,11 @@
 
 (defpackage #:quaviver/math
   (:use #:common-lisp)
+  (:shadow #:expt)
   (:export #:arithmetic-word
            #:hi/64
            #:hi/hi64/128
-           #:expt10/32
-           #:expt10/64
-           #:expt10/128
+           #:expt
            #:round-to-odd/32-64
            #:round-to-odd/64-128
            #:round-to-odd/128-256

@@ -15,7 +15,7 @@
   (declare (ignore initargs))
   (check-type (rounding client) rounding))
 
-(defmacro %schubfach (client value type expt10 round-to-odd)
+(defmacro %schubfach (client value type round-to-odd)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
                    (significand-size quaviver:significand-size))
       type
@@ -33,7 +33,7 @@
                       (is-even (evenp significand))
                       (k (quaviver/math:floor-log-expt 10 2 exponent lower-boundary-is-closer))
                       (h (+ exponent 1 (quaviver/math:floor-log-expt 2 10 (- k))))
-                      (expt10 (,expt10 k)))
+                      (expt10 (quaviver/math:expt ,arithmetic-size 10 k)))
                  (declare (type boolean
                                 lower-boundary-is-closer is-even)
                           (type (integer 0 4)
@@ -111,24 +111,20 @@
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value short-float))
   (%schubfach client value
               short-float
-              quaviver/math:expt10/32
               quaviver/math:round-to-odd/32-64))
 
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value single-float))
   (%schubfach client value
               single-float
-              quaviver/math:expt10/32
               quaviver/math:round-to-odd/32-64))
 
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value double-float))
   (%schubfach client value
               double-float
-              quaviver/math:expt10/64
               quaviver/math:round-to-odd/64-128))
 
 #+quaviver/long-float
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value long-float))
   (%schubfach client value
               long-float
-              quaviver/math:expt10/128
               quaviver/math:round-to-odd/128-256))

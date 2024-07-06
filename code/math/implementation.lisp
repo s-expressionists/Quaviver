@@ -25,6 +25,21 @@
   #-quaviver/math/smallnum
   `(unsigned-byte ,(* arithmetic-size count)))
 
+(deftype arithmetic-word/type (type &optional (count 1))
+  (let ((arithmetic-size (quaviver:arithmetic-size type)))
+    #+quaviver/math/smallnum
+    (ecase arithmetic-size
+      (32 (case count
+            (1 `(unsigned-byte 32))
+            (2 `(unsigned-byte 64))
+            (otherwise `(simple-array (unsigned-byte 64) (,(ceiling count 2))))))
+      (64 (if (eql count 1)
+              `(unsigned-byte 64)
+              `(simple-array (unsigned-byte 64) (,count))))
+      (128 `(unsigned-byte ,(* arithmetic-size count))))
+    #-quaviver/math/smallnum
+    `(unsigned-byte ,(* arithmetic-size count))))
+
 ;;; Low-level, smallnum-optimized arithmetic operations
 ;;;
 ;;; These operations represent bignums as individual ub64 values.
@@ -174,15 +189,6 @@
          (ftype (function ((arithmetic-word 64) (arithmetic-word 64 2) &optional (integer 0 (64)))
                           (values boolean boolean &optional))
                 floor-multiply/evenp/64-128q128)
-         (ftype (function (fixnum)
-                          (values (arithmetic-word 32 2) &optional))
-                expt10/32)
-         (ftype (function (fixnum)
-                          (values (arithmetic-word 64 2) &optional))
-                expt10/64)
-         (ftype (function (fixnum)
-                          (values (arithmetic-word 128 2) &optional))
-                expt10/128)
          (ftype (function (fixnum fixnum fixnum &optional boolean)
                           (values fixnum &optional))
                 floor-log-expt ceiling-log-expt)
@@ -195,9 +201,6 @@
                  floor-multiply/evenp/32-64q64
                  floor-multiply/64-128q128
                  floor-multiply/evenp/64-128q128
-                 expt10/32
-                 expt10/64
-                 expt10/128
                  floor-log-expt
                  ceiling-log-expt))
 
@@ -326,50 +329,6 @@
                  (zerop (ldb (byte 64 (- 64 pre-shift)) rl)))))
   #-quaviver/math/smallnum
   (%floor-multiply/evenp/n-2nq2n x y pre-shift 64))
-
-(defconstant +expt10/min-exponent/32+ -53)
-
-(defconstant +expt10/max-exponent/32+ 53)
-
-(defvar *expt10/values/32*
-  (compute-expt +expt10/min-exponent/32+ +expt10/max-exponent/32+ 64))
-
-(defun expt10/32 (power)
-  (svref *expt10/values/32*
-         (- (- +expt10/min-exponent/32+) power)))
-
-(defconstant +expt10/min-exponent/64+ -342)
-
-(defconstant +expt10/max-exponent/64+ 342)
-
-(defvar *expt10/values/64*
-  #+quaviver/math/smallnum
-  (let ((table (compute-expt +expt10/min-exponent/64+ +expt10/max-exponent/64+ 128)))
-    (make-array (length table)
-                :initial-contents
-                (loop for x across table
-                      collect (make-array 2 :element-type '(unsigned-byte 64)
-                                            :initial-contents
-                                            (list (ldb (byte 64 64) x)
-                                                  (ldb (byte 64 0) x))))))
-  #-quaviver/math/smallnum
-  (compute-expt +expt10/min-exponent/64+ +expt10/max-exponent/64+ 128))
-
-(defun expt10/64 (power)
-  (svref *expt10/values/64*
-         (- (- +expt10/min-exponent/64+) power)))
-
-(defconstant +expt10/min-exponent/128+ -5023)
-
-(defconstant +expt10/max-exponent/128+ 5023)
-
-(defvar *expt10/values/128* nil)
-
-(defun expt10/128 (power)
-  (svref (or *expt10/values/128*
-             (setf *expt10/values/128*
-                   (compute-expt +expt10/min-exponent/128+ +expt10/max-exponent/128+ 256)))
-         (- (- +expt10/min-exponent/128+) power)))
 
 (defconstant +min-base+ 2)
 
