@@ -50,11 +50,16 @@
 
 (defgeneric hidden-bit-p (type))
 
+(defgeneric subnormalp (type))
+
+(defgeneric non-number-p (type))
+
 (defgeneric exponent-bias (type)
   (:method (type)
     (+ (ash 1 (1- (exponent-size type)))
        (significand-size type)
-       -2)))
+       (if (non-number-p type) -2 -1))))
+
 
 (defgeneric max-exponent (type)
   (:method (type)
@@ -64,8 +69,15 @@
 
 (defgeneric min-exponent (type)
   (:method (type)
-    (- 2
-       (exponent-bias type)
-       (significand-size type))))
+    (if (or (subnormalp type)
+            (not (non-number-p type)))
+        (- 2
+           (exponent-bias type)
+           (significand-size type))
+        (- 1
+           (exponent-bias type)))))
 
 (defgeneric arithmetic-size (type))
+
+(deftype significand-word (type &optional (extra 0))
+  `(unsigned-byte ,(+ (significand-size) extra)))

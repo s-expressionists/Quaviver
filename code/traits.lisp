@@ -1,192 +1,123 @@
 (in-package #:quaviver)
 
-(defmethod storage-size ((type (eql 'short-float)))
-  #+clisp 25
-  #-clisp 32)
+(defmacro %traits (type most-positive least-positive least-positive-normalized)
+  (flet ((float-exponent (float)
+           (values (floor (log (* (coerce float 'long-float)
+                                  (/ (ash 1 (1- (float-precision float)))
+                                     (1- (ash 1 (float-precision float)))))
+                               2)))))
+    (let* ((full-significand-size (float-digits (coerce 0 type)))
+           (sign-size 1)
+           (most-positive (symbol-value most-positive))
+           (least-positive (symbol-value least-positive))
+           (least-positive-normalized (symbol-value least-positive-normalized))
+           (most-exponent (float-exponent most-positive))
+           (least-exponent (float-exponent least-positive))
+           (least-normalized-exponent (float-exponent least-positive-normalized))
+           (subnormalp (/= least-positive least-positive-normalized))
+           (exponent-size (integer-length (- most-exponent
+                                             least-normalized-exponent
+                                             -1)))
+           (hidden-bit-p (ldb-test (byte 3 0)
+                                   (+ 1
+                                      full-significand-size
+                                      exponent-size)))
+           (storage-size (if hidden-bit-p
+                             (+ full-significand-size exponent-size)
+                             (+ 1 full-significand-size exponent-size)))
+           (significand-size (if hidden-bit-p
+                                 (1- full-significand-size)
+                                 full-significand-size))
+           (non-number-p (/= (logcount (- most-exponent least-normalized-exponent))
+                             exponent-size))
+           (exponent-bias (- full-significand-size least-normalized-exponent 1))
+           (max-exponent (- most-exponent full-significand-size -1))
+           (min-exponent (if subnormalp
+                             (- 2 exponent-bias
+                                full-significand-size)
+                             (- 1 exponent-bias))))
+      `(progn
+         (defmethod storage-size ((type (eql ',type)))
+           ,storage-size)
 
-(defmethod significand-bytespec ((type (eql 'short-float)))
-  #+clisp (byte 16 0)
-  #-clisp (byte 23 0))
+         (defmethod significand-bytespec ((type (eql ',type)))
+           (byte ,significand-size 0))
 
-(defmethod significand-byte-form ((type (eql 'short-float)))
-  #+clisp `(byte 16 0)
-  #-clisp `(byte 23 0))
+         (defmethod significand-byte-form ((type (eql ',type)))
+           '(byte ,significand-size 0))
 
-(defmethod exponent-bytespec ((type (eql 'short-float)))
-  #+clisp (byte 8 16)
-  #-clisp (byte 8 23))
+         (defmethod significand-size ((type (eql ',type)))
+           ,full-significand-size)
 
-(defmethod exponent-byte-form ((type (eql 'short-float)))
-  #+clisp `(byte 8 16)
-  #-clisp `(byte 8 23))
+         (defmethod exponent-bytespec ((type (eql ',type)))
+           (byte ,exponent-size ,significand-size))
 
-(defmethod sign-bytespec ((type (eql 'short-float)))
-  #+clisp (byte 1 24)
-  #-clisp (byte 1 31))
+         (defmethod exponent-byte-form ((type (eql ',type)))
+           '(byte ,exponent-size ,significand-size))
 
-(defmethod sign-byte-form ((type (eql 'short-float)))
-  #+clisp `(byte 1 24)
-  #-clisp `(byte 1 31))
+         (defmethod exponent-size ((type (eql ',type)))
+           ,exponent-size)
 
-(defmethod nan-payload-bytespec ((type (eql 'short-float)))
-  #+clisp (byte 15 0)
-  #-clisp (byte 22 0))
+         (defmethod sign-bytespec ((type (eql ',type)))
+           (byte ,sign-size ,(+ exponent-size significand-size)))
 
-(defmethod nan-payload-byte-form ((type (eql 'short-float)))
-  #+clisp `(byte 15 0)
-  #-clisp `(byte 22 0))
+         (defmethod sign-byte-form ((type (eql ',type)))
+           '(byte ,sign-size ,(+ exponent-size significand-size)))
 
-(defmethod nan-type-bytespec ((type (eql 'short-float)))
-  #+clisp (byte 1 15)
-  #-clisp (byte 1 22))
+         (defmethod sign-size ((type (eql ',type)))
+           ,sign-size)
 
-(defmethod nan-type-byte-form ((type (eql 'short-float)))
-  #+clisp `(byte 1 15)
-  #-clisp `(byte 1 22))
+         (defmethod nan-payload-bytespec ((type (eql ',type)))
+           (byte ,(1- significand-size) 0))
 
-(defmethod hidden-bit-p ((type (eql 'short-float)))
-  t)
+         (defmethod nan-payload-byte-form ((type (eql ',type)))
+           '(byte ,(1- significand-size) 0))
 
-(defmethod arithmetic-size ((type (eql 'short-float)))
-  32)
+         (defmethod nan-type-bytespec ((type (eql ',type)))
+           (byte 1 ,(1- significand-size)))
 
-(defmethod storage-size ((type (eql 'single-float)))
-  32)
+         (defmethod nan-type-byte-form ((type (eql ',type)))
+           '(byte 1 ,(1- significand-size)))
 
-(defmethod significand-bytespec ((type (eql 'single-float)))
-  (byte 23 0))
+         (defmethod hidden-bit-p ((type (eql ',type)))
+           ,hidden-bit-p)
 
-(defmethod significand-byte-form ((type (eql 'single-float)))
-  `(byte 23 0))
+         (defmethod subnormalp ((type (eql ',type)))
+           ,subnormalp)
 
-(defmethod exponent-bytespec ((type (eql 'single-float)))
-  (byte 8 23))
+         (defmethod non-number-p ((type (eql ',type)))
+           ,non-number-p)
 
-(defmethod exponent-byte-form ((type (eql 'single-float)))
-  `(byte 8 23))
+         (defmethod exponent-bias ((type (eql ',type)))
+           ,exponent-bias)
 
-(defmethod sign-bytespec ((type (eql 'single-float)))
-  (byte 1 31))
+         (defmethod max-exponent ((type (eql ',type)))
+           ,max-exponent)
 
-(defmethod sign-byte-form ((type (eql 'single-float)))
-  `(byte 1 31))
+         (defmethod min-exponent ((type (eql ',type)))
+           ,min-exponent)
 
-(defmethod nan-payload-bytespec ((type (eql 'single-float)))
-  (byte 22 0))
+         (defmethod arithmetic-size ((type (eql ',type)))
+           ,(ash 1 (integer-length (+ 6 full-significand-size))))))))
 
-(defmethod nan-payload-byte-form ((type (eql 'single-float)))
-  `(byte 22 0))
+#+quaviver/short-float
+(%traits short-float
+         most-positive-short-float
+         least-positive-short-float
+         least-positive-normalized-short-float)
 
-(defmethod nan-type-bytespec ((type (eql 'single-float)))
-  (byte 1 22))
+(%traits single-float
+         most-positive-single-float
+         least-positive-single-float
+         least-positive-normalized-single-float)
 
-(defmethod nan-type-byte-form ((type (eql 'single-float)))
-  `(byte 1 22))
+(%traits double-float
+         most-positive-double-float
+         least-positive-double-float
+         least-positive-normalized-double-float)
 
-(defmethod hidden-bit-p ((type (eql 'single-float)))
-  t)
-
-(defmethod arithmetic-size ((type (eql 'single-float)))
-  32)
-
-(defmethod storage-size ((type (eql 'double-float)))
-  64)
-
-(defmethod significand-bytespec ((type (eql 'double-float)))
-  (byte 52 0))
-
-(defmethod significand-byte-form ((type (eql 'double-float)))
-  `(byte 52 0))
-
-(defmethod exponent-bytespec ((type (eql 'double-float)))
-  (byte 11 52))
-
-(defmethod exponent-byte-form ((type (eql 'double-float)))
-  `(byte 11 52))
-
-(defmethod sign-bytespec ((type (eql 'double-float)))
-  (byte 1 63))
-
-(defmethod sign-byte-form ((type (eql 'double-float)))
-  `(byte 1 63))
-
-(defmethod nan-payload-bytespec ((type (eql 'double-float)))
-  (byte 51 0))
-
-(defmethod nan-payload-byte-form ((type (eql 'double-float)))
-  `(byte 51 0))
-
-(defmethod nan-type-bytespec ((type (eql 'double-float)))
-  (byte 1 51))
-
-(defmethod nan-type-byte-form ((type (eql 'double-float)))
-  `(byte 1 51))
-
-(defmethod hidden-bit-p ((type (eql 'double-float)))
-  t)
-
-(defmethod arithmetic-size ((type (eql 'double-float)))
-  64)
-
-(defmethod storage-size ((type (eql 'long-float)))
-  #+quaviver/long-float/x86-extended 80
-  #+quaviver/long-float/binary128 128
-  #-quaviver/long-float 64)
-
-(defmethod significand-bytespec ((type (eql 'long-float)))
-  #+quaviver/long-float/x86-extended (byte 64 0)
-  #+quaviver/long-float/binary128 (byte 112 0)
-  #-quaviver/long-float (byte 52 0))
-
-(defmethod significand-byte-form ((type (eql 'long-float)))
-  #+quaviver/long-float/x86-extended `(byte 64 0)
-  #+quaviver/long-float/binary128 `(byte 112 0)
-  #-quaviver/long-float `(byte 52 0))
-
-(defmethod exponent-bytespec ((type (eql 'long-float)))
-  #+quaviver/long-float/x86-extended (byte 15 64)
-  #+quaviver/long-float/binary128 (byte 15 112)
-  #-quaviver/long-float (byte 11 52))
-
-(defmethod exponent-byte-form ((type (eql 'long-float)))
-  #+quaviver/long-float/x86-extended `(byte 15 64)
-  #+quaviver/long-float/binary128 `(byte 15 112)
-  #-quaviver/long-float `(byte 11 52))
-
-(defmethod sign-bytespec ((type (eql 'long-float)))
-  #+quaviver/long-float/x86-extended (byte 1 79)
-  #+quaviver/long-float/binary128 (byte 1 127)
-  #-quaviver/long-float (byte 1 63))
-
-(defmethod sign-byte-form ((type (eql 'long-float)))
-  #+quaviver/long-float/x86-extended `(byte 1 79)
-  #+quaviver/long-float/binary128 `(byte 1 127)
-  #-quaviver/long-float `(byte 1 63))
-
-(defmethod nan-payload-bytespec ((type (eql 'long-float)))
-  #+quaviver/long-float/x86-extended (byte 63 0)
-  #+quaviver/long-float/binary128 (byte 111 0)
-  #-quaviver/long-float (byte 51 0))
-
-(defmethod nan-payload-byte-form ((type (eql 'long-float)))
-  #+quaviver/long-float/x86-extended `(byte 63 0)
-  #+quaviver/long-float/binary128 `(byte 111 0)
-  #-quaviver/long-float `(byte 51 0))
-
-(defmethod nan-type-bytespec ((type (eql 'long-float)))
-  #+quaviver/long-float/x86-extended (byte 1 63)
-  #+quaviver/long-float/binary128 (byte 1 111)
-  #-quaviver/long-float (byte 1 51))
-
-(defmethod nan-type-byte-form ((type (eql 'long-float)))
-  #+quaviver/long-float/x86-extended `(byte 1 63)
-  #+quaviver/long-float/binary128 `(byte 1 111)
-  #-quaviver/long-float `(byte 1 51))
-
-(defmethod hidden-bit-p ((type (eql 'long-float)))
-  #+quaviver/long-float/x86-extended nil
-  #-quaviver/long-float/x86-extended t)
-
-(defmethod arithmetic-size ((type (eql 'long-float)))
-  #+quaviver/long-float 128
-  #-quaviver/long-float 64)
+#+quaviver/long-float
+(%traits long-float
+         most-positive-long-float
+         least-positive-long-float
+         least-positive-normalized-long-float)

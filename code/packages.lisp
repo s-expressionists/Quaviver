@@ -21,14 +21,15 @@
            #:nan-type-bytespec
            #:nan-type-byte-form
            #:hidden-bit-p
+           #:subnormalp
            #:exponent-bias
            #:max-exponent
            #:min-exponent
-           #:arithmetic-size))
+           #:arithmetic-size
+           #:significand-word))
+
+#+clisp
+(pushnew :quaviver/short-float *features*)
 
 #+(and ecl long-float)
-(progn
-  (pushnew :quaviver/long-float *features*)
-  (ecase (float-digits 0l0)
-    (64 (pushnew :quaviver/long-float/x86-extended *features*))
-    (113 (pushnew :quaviver/long-float/binary128 *features*))))
+(pushnew :quaviver/long-float *features*)
