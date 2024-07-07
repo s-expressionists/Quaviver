@@ -35,6 +35,7 @@
   (logior (ash integer (- count))
           (ldb (byte 64 0) (ash integer (- 64 count)))))
 
+(declaim (inline remove-trailing-zeros/32))
 (defun remove-trailing-zeros/32 (significand exponent sign)
   (declare (optimize speed)
            (type (unsigned-byte 32) significand)
@@ -63,6 +64,7 @@
             exponent (+ exponent s))))
   (values significand exponent sign))
 
+(declaim (inline remove-trailing-zeros/64))
 (defun remove-trailing-zeros/64 (significand exponent sign)
   (declare (optimize speed)
            ((unsigned-byte 64) significand)
@@ -95,13 +97,8 @@
             exponent (+ exponent s))))
   (values significand exponent sign))
 
-;;; Client
-
-(defclass client () ())
-
-(defmethod quaviver:float-integer :around
-    ((client client) (base (eql 10)) value)
-  (declare (ignore value))
+(declaim (inline remove-trailing-zeros/n))
+(defun remove-trailing-zeros/n (significand exponent sign)
   (multiple-value-bind (significand exponent sign)
       (call-next-method)
     (unless (or (not (numberp exponent))
@@ -116,10 +113,48 @@
            (go next))))
     (values significand exponent sign)))
 
+(defmacro remove-trailing-zeros (type)
+  (with-accessors ((arithmetic-size quaviver:arithmetic-size))
+      type
+    (case arithmetic-size
+      (32
+       `(multiple-value-call #'remove-trailing-zeros/32 (call-next-method)))
+      (64
+       `(multiple-value-call #'remove-trailing-zeros/64 (call-next-method)))
+      (otherwise
+       `(multiple-value-call #'remove-trailing-zeros/n (call-next-method))))))
+
+;;; Client
+
+(defclass client () ())
+
+#+clisp
+(defmethod quaviver:float-integer :around
+    ((client client) (base (eql 10)) value)
+  (etypecase value
+    (short-float
+     (remove-trailing-zeros short-float))
+    (single-float
+     (remove-trailing-zeros single-float))
+    (double-float
+     (remove-trailing-zeros double-float))))
+
+#+(and (not clisp) quaviver/short-float)
+(defmethod quaviver:float-integer :around
+    ((client client) (base (eql 10)) (value short-float))
+  (remove-trailing-zeros short-float))
+
+#-clisp
 (defmethod quaviver:float-integer :around
     ((client client) (base (eql 10)) (value single-float))
-  (multiple-value-call #'remove-trailing-zeros/32 (call-next-method)))
+  (remove-trailing-zeros single-float))
 
+#-clisp
 (defmethod quaviver:float-integer :around
     ((client client) (base (eql 10)) (value double-float))
-  (multiple-value-call #'remove-trailing-zeros/64 (call-next-method)))
+  (remove-trailing-zeros double-float))
+
+#+(and (not clisp) quaviver/long-float)
+(defmethod quaviver:float-integer :around
+    ((client client) (base (eql 10)) (value long-float))
+  (remove-trailing-zeros long-float))

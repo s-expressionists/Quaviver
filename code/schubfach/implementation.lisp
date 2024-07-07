@@ -114,17 +114,28 @@
                                 sign))))))))))))
 
 #+clisp
-(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value short-float))
-  (%schubfach client value
-              short-float
-              quaviver/math:round-to-odd/32-64))
+(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value float))
+  (etypecase value
+    (short-float
+     (%schubfach client value short-float))
+    (single-float
+     (%schubfach client value single-float))
+    (double-float
+     (%schubfach client value double-float))))
 
+#+(and (not clisp) quaviver/short-float)
+(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value short-float))
+  (%schubfach client value short-float))
+
+#-clisp
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value single-float))
+
   (%schubfach client value single-float))
 
+#-clisp
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value double-float))
   (%schubfach client value double-float))
 
-#+quaviver/long-float
+#+(and (not clisp) quaviver/long-float)
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value long-float))
   (%schubfach client value long-float))

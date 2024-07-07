@@ -47,17 +47,19 @@
                                    (- k shift)
                                    ,sign)))))
 
+#-clisp
 (defmethod quaviver:integer-float
     ((client client) (result-type (eql 'single-float)) (base (eql 10)) significand exponent sign)
   (%liebler client single-float
             significand exponent sign))
 
+#-clisp
 (defmethod quaviver:integer-float
     ((client client) (result-type (eql 'double-float)) (base (eql 10)) significand exponent sign)
   (%liebler client double-float
             significand exponent sign))
 
-#+quaviver/long-float
+#+(and (not clisp) quaviver/long-float)
 (defmethod quaviver:integer-float
     ((client client) (result-type (eql 'long-float)) (base (eql 10)) significand exponent sign)
   (%liebler client long-float
