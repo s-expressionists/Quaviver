@@ -26,6 +26,8 @@
                                 '#:/values*)
              nconc `((declaim (ftype (function (fixnum) (arithmetic-word ,arithmetic-size 2))
                                      ,fun-name)
+                              (type (simple-vector ,(1+ (* 2 bound)))
+                                    ,values-name)
                               (inline ,fun-name))
 
                      (defconstant ,bound-name ,bound)
