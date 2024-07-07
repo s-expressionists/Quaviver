@@ -25,21 +25,6 @@
   #-quaviver/math/smallnum
   `(unsigned-byte ,(* arithmetic-size count)))
 
-(deftype arithmetic-word/type (type &optional (count 1))
-  (let ((arithmetic-size (quaviver:arithmetic-size type)))
-    #+quaviver/math/smallnum
-    (ecase arithmetic-size
-      (32 (case count
-            (1 `(unsigned-byte 32))
-            (2 `(unsigned-byte 64))
-            (otherwise `(simple-array (unsigned-byte 64) (,(ceiling count 2))))))
-      (64 (if (eql count 1)
-              `(unsigned-byte 64)
-              `(simple-array (unsigned-byte 64) (,count))))
-      (128 `(unsigned-byte ,(* arithmetic-size count))))
-    #-quaviver/math/smallnum
-    `(unsigned-byte ,(* arithmetic-size count))))
-
 ;;; Low-level, smallnum-optimized arithmetic operations
 ;;;
 ;;; These operations represent bignums as individual ub64 values.
@@ -168,15 +153,6 @@
          (ftype (function ((arithmetic-word 64 2) (integer 0 64))
                           (values (arithmetic-word 64) &optional))
                 hi/hi64/128)
-         (ftype (function ((arithmetic-word 32) (arithmetic-word 32 2))
-                          (values (arithmetic-word 32) &optional))
-                round-to-odd/32-64)
-         (ftype (function ((arithmetic-word 64) (arithmetic-word 64 2))
-                          (values (arithmetic-word 64) &optional))
-                round-to-odd/64-128)
-         (ftype (function ((arithmetic-word 128) (arithmetic-word 128 2))
-                          (values (arithmetic-word 128) &optional))
-                round-to-odd/128-256)
          (ftype (function ((arithmetic-word 32) (arithmetic-word 32 2) &optional (integer 0 (32)))
                           (values (arithmetic-word 32) boolean &optional))
                 floor-multiply/32-64q64)
@@ -194,9 +170,6 @@
                 floor-log-expt ceiling-log-expt)
          (inline hi/64
                  hi/hi64/128
-                 round-to-odd/32-64
-                 round-to-odd/64-128
-                 round-to-odd/128-256
                  floor-multiply/32-64q64
                  floor-multiply/evenp/32-64q64
                  floor-multiply/64-128q128
@@ -227,41 +200,6 @@
     #+quaviver/math/smallnum
     (64 `(aref (the (arithmetic-word 64 2) ,x) 0))
     (otherwise whole)))
-
-(defmacro %round-to-odd-1 (cp g size)
-  `(let ((p (* ,cp ,g)))
-     (logior (ldb (byte ,size ,(ash size 1)) p)
-             (if (> (ldb (byte ,size ,size) p) 1) 1 0))))
-
-(defmacro %round-to-odd-2 (cp g size)
-  `(let ((p (ash (* ,cp ,g) ,(- size))))
-     (if (ldb-test (byte ,(1- size) 1) p)
-         (logior (ash p ,(- size)) 1)
-         (ash p ,(- size)))))
-
-(defun round-to-odd/32-64 (cp g)
-  #+quaviver/math/smallnum
-  (let ((p (*/32-64/hi64 cp g)))
-    (if (ldb-test (byte 31 1) p)
-        (logior (ash p -32) 1)
-        (ash p -32)))
-  #+(and (not quaviver/math/smallnum) (not (or ecl cmucl)))
-  (%round-to-odd-1 cp g 32)
-  #+(and (not quaviver/math/smallnum) (or ecl cmucl))
-  (%round-to-odd-2 cp g 32))
-
-(defun round-to-odd/64-128 (cp g)
-  #+quaviver/math/smallnum
-  (multiple-value-bind (ph pl)
-      (*/64-128/hi128 cp (aref g 0) (aref g 1))
-    (if (ldb-test (byte 63 1) pl)
-        (logior ph 1)
-        ph))
-  #-quaviver/math/smallnum
-  (%round-to-odd-2 cp g 64))
-
-(defun round-to-odd/128-256 (cp g)
-  (%round-to-odd-2 cp g 128))
 
 ;;; The FLOOR-MULTIPLY operations compute
 ;;;

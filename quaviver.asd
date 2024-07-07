@@ -41,7 +41,8 @@
                 :components ((:file "packages")
                              (:file "utility")
                              (:file "implementation")
-                             (:file "expt")))))
+                             (:file "expt")
+                             (:file "round-to-odd")))))
 
 (defsystem "quaviver/ieee754"
   :description "IEEE-754 float conversions"

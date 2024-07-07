@@ -15,7 +15,7 @@
   (declare (ignore initargs))
   (check-type (rounding client) rounding))
 
-(defmacro %schubfach (client value type round-to-odd)
+(defmacro %schubfach (client value type)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
                    (significand-size quaviver:significand-size))
       type
@@ -42,17 +42,23 @@
                                 expt10)
                           (dynamic-extent expt10))
                  (setf significand (ash significand 2))
-                 (let ((lower (,round-to-odd (ash (if lower-boundary-is-closer
-                                                      (1- significand)
-                                                      (- significand 2))
-                                                  h)
-                                             expt10))
-                       (upper (,round-to-odd (ash (+ significand 2)
-                                                  h)
-                                             expt10)))
+                 (let ((lower (quaviver/math:round-to-odd
+                               ,arithmetic-size
+                               (ash (if lower-boundary-is-closer
+                                        (1- significand)
+                                        (- significand 2))
+                                    h)
+                               expt10))
+                       (upper (quaviver/math:round-to-odd
+                               ,arithmetic-size
+                               (ash (+ significand 2)
+                                    h)
+                               expt10)))
                    (declare (type (unsigned-byte ,word-size)
                                   lower upper))
-                   (setf significand (,round-to-odd (ash significand h) expt10))
+                   (setf significand (quaviver/math:round-to-odd
+                                      ,arithmetic-size
+                                      (ash significand h) expt10))
                    (let ((s (ash significand -2)))
                      (declare (type (unsigned-byte ,word-size)
                                     s))
@@ -114,17 +120,11 @@
               quaviver/math:round-to-odd/32-64))
 
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value single-float))
-  (%schubfach client value
-              single-float
-              quaviver/math:round-to-odd/32-64))
+  (%schubfach client value single-float))
 
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value double-float))
-  (%schubfach client value
-              double-float
-              quaviver/math:round-to-odd/64-128))
+  (%schubfach client value double-float))
 
 #+quaviver/long-float
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value long-float))
-  (%schubfach client value
-              long-float
-              quaviver/math:round-to-odd/128-256))
+  (%schubfach client value long-float))

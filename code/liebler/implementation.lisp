@@ -3,7 +3,7 @@
 (defclass client ()
   ())
 
-(defmacro %liebler (client result-type significand exponent sign round-to-odd)
+(defmacro %liebler (client result-type significand exponent sign)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
                    (significand-size quaviver:significand-size)
                    (min-exponent quaviver:min-exponent)
@@ -35,9 +35,11 @@
                     :operation 'quaviver:integer-float
                     :operands (list ,client ',result-type 10
                                     ,significand ,exponent ,sign)))
-           (setf ,significand (,round-to-odd (ash ,significand shift)
-                                             (quaviver/math:expt ,arithmetic-size 10
-                                                                 (- ,exponent)))
+           (setf ,significand (quaviver/math:round-to-odd
+                               ,arithmetic-size
+                               (ash ,significand shift)
+                               (quaviver/math:expt ,arithmetic-size 10
+                                                   (- ,exponent)))
                  k (- k -1 shift)
                  shift (- ,significand-size (integer-length ,significand)))
            (quaviver:integer-float ,client ',result-type 2
@@ -48,18 +50,15 @@
 (defmethod quaviver:integer-float
     ((client client) (result-type (eql 'single-float)) (base (eql 10)) significand exponent sign)
   (%liebler client single-float
-            significand exponent sign
-            quaviver/math:round-to-odd/32-64))
+            significand exponent sign))
 
 (defmethod quaviver:integer-float
     ((client client) (result-type (eql 'double-float)) (base (eql 10)) significand exponent sign)
   (%liebler client double-float
-            significand exponent sign
-            quaviver/math:round-to-odd/64-128))
+            significand exponent sign))
 
 #+quaviver/long-float
 (defmethod quaviver:integer-float
     ((client client) (result-type (eql 'long-float)) (base (eql 10)) significand exponent sign)
   (%liebler client long-float
-            significand exponent sign
-            quaviver/math:round-to-odd/128-256))
+            significand exponent sign))
