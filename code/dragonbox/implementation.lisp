@@ -86,7 +86,8 @@
     (ecase power
       ;; (values MAGIC SHIFT)
       (1 (values 6554 16))
-      (2 (values 656 16)))))
+      (2 (values 656 16))
+      (3 (values 66 16)))))
 
 (defmacro floor-by-expt10-divisible-p (number power size)
   (assert (<= (1+ power) (floor-log10-expt2 size)))
@@ -688,6 +689,39 @@
                                      (floor-by-expt10-small r ,kappa ,arithmetic-size)))
                 (values significand (+ -k ,kappa) sign)))))))))
 
+#+clisp
+(defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) value)
+  (declare (optimize speed))
+  (etypecase value
+    (short-float
+     (%nearest client value
+               short-float
+               quaviver/math:hi/64
+               quaviver/math:floor-multiply/32-64q64
+               quaviver/math:floor-multiply/evenp/32-64q64))
+    (single-float
+     (%nearest client value
+               single-float
+               quaviver/math:hi/64
+               quaviver/math:floor-multiply/32-64q64
+               quaviver/math:floor-multiply/evenp/32-64q64))
+    (double-float
+     (%nearest client value
+               double-float
+               quaviver/math:hi/hi64/128
+               quaviver/math:floor-multiply/64-128q128
+               quaviver/math:floor-multiply/evenp/64-128q128))))
+
+#+(and (not clisp) quaviver/short-float)
+(defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value short-float))
+  (declare (optimize speed))
+  (%nearest client value
+            short-float
+            quaviver/math:hi/64
+            quaviver/math:floor-multiply/32-64q64
+            quaviver/math:floor-multiply/evenp/32-64q64))
+
+#-clisp
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
   (%nearest client value
@@ -696,6 +730,7 @@
             quaviver/math:floor-multiply/32-64q64
             quaviver/math:floor-multiply/evenp/32-64q64))
 
+#-clisp
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
   (%nearest client value
@@ -704,6 +739,39 @@
             quaviver/math:floor-multiply/64-128q128
             quaviver/math:floor-multiply/evenp/64-128q128))
 
+#+clisp
+(defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) value)
+  (declare (optimize speed))
+  (etypecase value
+    (short-float
+     (%directed client value
+               short-float
+               quaviver/math:hi/64
+               quaviver/math:floor-multiply/32-64q64
+               quaviver/math:floor-multiply/evenp/32-64q64))
+    (single-float
+     (%directed client value
+               single-float
+               quaviver/math:hi/64
+               quaviver/math:floor-multiply/32-64q64
+               quaviver/math:floor-multiply/evenp/32-64q64))
+    (double-float
+     (%directed client value
+               double-float
+               quaviver/math:hi/hi64/128
+               quaviver/math:floor-multiply/64-128q128
+               quaviver/math:floor-multiply/evenp/64-128q128))))
+
+#+(and (not clisp) quaviver/short-float)
+(defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value short-float))
+  (declare (optimize speed))
+  (%directed client value
+             short-float
+             quaviver/math:hi/64
+             quaviver/math:floor-multiply/32-64q64
+             quaviver/math:floor-multiply/evenp/32-64q64))
+
+#-clisp
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
   (%directed client value
@@ -712,6 +780,7 @@
              quaviver/math:floor-multiply/32-64q64
              quaviver/math:floor-multiply/evenp/32-64q64))
 
+#-clisp
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
   (%directed client value
