@@ -17,9 +17,9 @@
                              '#:expt/ (write-to-string arithmetic-size)
                              "-" (write-to-string base))
              for bound-name = (alexandria:symbolicate
-                               '#:*expt/ (write-to-string arithmetic-size)
+                               '#:+expt/ (write-to-string arithmetic-size)
                                "-" (write-to-string base)
-                               '#:/bound*)
+                               '#:/bound+)
              for values-name = (alexandria:symbolicate
                                 '#:*expt/ (write-to-string arithmetic-size)
                                 "-" (write-to-string base)
@@ -28,7 +28,7 @@
                                      ,fun-name)
                               (inline ,fun-name))
 
-                     (defvar ,bound-name ,bound)
+                     (defconstant ,bound-name ,bound)
 
                      (defvar ,values-name ,(compute-expt (- bound) bound
                                                          (* 2 arithmetic-size)
