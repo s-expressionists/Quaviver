@@ -29,7 +29,7 @@
            (if (or (not (numberp exponent))
                    (zerop significand))
                (values significand exponent sign)
-               (let* ((lower-boundary-is-closer (= significand ,(ash 1 (1- significand-size))))
+               (let* ((lower-boundary-is-closer (= (logcount significand) 1))
                       (is-even (evenp significand))
                       (k (quaviver/math:floor-log-expt 10 2 exponent lower-boundary-is-closer))
                       (h (+ exponent 1 (quaviver/math:floor-log-expt 2 10 (- k))))
