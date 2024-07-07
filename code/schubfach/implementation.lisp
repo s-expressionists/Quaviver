@@ -17,14 +17,16 @@
 
 (defmacro %schubfach (client value type)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
-                   (significand-size quaviver:significand-size))
+                   (significand-size quaviver:significand-size)
+                   (min-exponent quaviver:min-exponent)
+                   (max-exponent quaviver:max-exponent))
       type
     (let ((word-size (+ significand-size 6)))
       `(block %schubfach
          (multiple-value-bind (significand exponent sign)
              (quaviver:float-integer ,client 2 ,value)
            (declare (type (unsigned-byte ,word-size) significand)
-                    (type (or (quaviver:exponent-word ,type) keyword) exponent)
+                    (type (or (integer ,min-exponent ,max-exponent) keyword) exponent)
                     (type (integer -1 1) sign))
            (if (or (not (numberp exponent))
                    (zerop significand))
@@ -36,6 +38,9 @@
                       (expt10 (quaviver/math:expt ,arithmetic-size 10 k)))
                  (declare (type boolean
                                 lower-boundary-is-closer is-even)
+                          (type (integer ,(quaviver/math:floor-log-expt 10 2 min-exponent)
+                                         ,(quaviver/math:ceiling-log-expt 10 2 max-exponent))
+                                k)
                           (type (integer 0 4)
                                 h)
                           (type (quaviver/math:arithmetic-word ,arithmetic-size 2)
