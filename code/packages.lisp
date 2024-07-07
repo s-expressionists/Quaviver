@@ -26,7 +26,8 @@
            #:max-exponent
            #:min-exponent
            #:arithmetic-size
-           #:significand-word))
+           #:significand-word
+           #:exponent-word))
 
 #+clisp
 (pushnew :quaviver/short-float *features*)

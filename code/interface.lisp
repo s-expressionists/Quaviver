@@ -81,3 +81,6 @@
 
 (deftype significand-word (type &optional (extra 0))
   `(unsigned-byte ,(+ (significand-size) extra)))
+
+(deftype exponent-word (type &optional (extra 0))
+  `(integer ,(- (min-exponent type) extra) ,(+ (max-exponent type) extra)))
