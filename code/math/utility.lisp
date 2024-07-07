@@ -4,6 +4,7 @@
 (in-package #:quaviver/math)
 
 (defun make-arithmetic-word (value width)
+  (declare (ignorable width))
   #+quaviver/math/smallnum
   (if (= width 128)
       (make-array 2 :element-type '(unsigned-byte 64)

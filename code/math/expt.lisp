@@ -3,15 +3,16 @@
 (defmacro define-expt (&key arithmetic-sizes types (base 10))
   `(progn
      ,@(loop for arithmetic-size in arithmetic-sizes
-             for bound = (loop for type in types
-                               when (= arithmetic-size (quaviver:arithmetic-size type))
-                                 maximize (+ (ceiling-log-expt base 2
-                                                               (max (quaviver:max-exponent type)
-                                                                    (- (quaviver:min-exponent type))))
-                                             (ceiling-log-expt base 2
-                                                               (- (quaviver:arithmetic-size type)
-                                                                  (quaviver:significand-size type)
-                                                                  1))))
+             for bound = (or (loop for type in types
+                                   when (= arithmetic-size (quaviver:arithmetic-size type))
+                                     maximize (+ (ceiling-log-expt base 2
+                                                                   (max (quaviver:max-exponent type)
+                                                                        (- (quaviver:min-exponent type))))
+                                                 (ceiling-log-expt base 2
+                                                                   (- (quaviver:arithmetic-size type)
+                                                                      (quaviver:significand-size type)
+                                                                      1))))
+                             0)
              for fun-name = (alexandria:symbolicate
                              '#:expt/ (write-to-string arithmetic-size)
                              "-" (write-to-string base))
@@ -72,6 +73,6 @@
        (256
         `(expt/256-10 ,power))
        (otherwise
-        while)))
+        whole)))
     (otherwise
      whole)))
