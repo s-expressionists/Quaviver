@@ -4,4 +4,5 @@
   (:use #:common-lisp)
   (:export #:float-integer
            #:integer-float
-           #:report))
+           #:report
+           #:report/float-traits))

@@ -168,3 +168,30 @@
                                                  and collect (make-string 21
                                                                           :initial-element #\space)))))
     (ascii-table:display table)))
+
+(defun report/float-traits ()
+  (let ((table (ascii-table:make-table
+                (list "trait"
+                      #+quaviver/short-float "short-float"
+                      "single-float"
+                      "double-float"
+                      #+quaviver/long-float "long-float"))))
+    (loop for trait in '(quaviver:storage-size
+                         quaviver:significand-size
+                         quaviver:exponent-size
+                         quaviver:sign-size
+                         quaviver:hidden-bit-p
+                         quaviver:subnormalp
+                         quaviver:non-number-p
+                         quaviver:exponent-bias
+                         quaviver:max-exponent
+                         quaviver:min-exponent
+                         quaviver:arithmetic-size)
+          do (ascii-table:add-row table
+                                  (list (string-downcase (symbol-name trait))
+                                        #+quaviver/short-float (funcall trait 'short-float)
+                                        (funcall trait 'single-float)
+                                        (funcall trait 'double-float)
+                                        #+quaviver/long-float (funcall trait 'long-float))))
+    (format t "~a float traits~%" (lisp-implementation-type))
+    (ascii-table:display table)))
