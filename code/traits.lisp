@@ -29,7 +29,7 @@
            (non-number-p (/= (logcount (- most-exponent least-normalized-exponent))
                              exponent-size))
            (exponent-bias (- full-significand-size least-normalized-exponent 1))
-           (max-exponent (- most-exponent full-significand-size -1))
+           (max-exponent (- most-exponent full-significand-size -2))
            (min-exponent (if subnormalp
                              (- 2 exponent-bias
                                 full-significand-size)
