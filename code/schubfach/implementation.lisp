@@ -58,65 +58,68 @@
                                ,arithmetic-size
                                (ash (+ significand 2)
                                     h)
-                               expt10)))
+                               expt10))
+                       (s 0)
+                       (s+1 0)
+                       u-inside w-inside)
                    (declare (type (unsigned-byte ,word-size)
-                                  lower upper))
+                                  lower upper)
+                            (type (unsigned-byte ,(- word-size 2))
+                                  s s+1)
+                            (type boolean u-inside w-inside))
                    (setf significand (quaviver/math:round-to-odd
                                       ,arithmetic-size
                                       (ash significand h) expt10))
-                   (let ((s (ash significand -2)))
-                     (declare (type (unsigned-byte ,word-size)
-                                    s))
-                     (unless is-even
-                       (incf lower)
-                       (decf upper))
-                     (when (>= s 10)
-                       (let* ((sp (floor s 10))
-                              (up-inside (<= lower (* 40 sp)))
-                              (wp-inside (<= (* 40 (1+ sp)) upper)))
-                         (declare (type (unsigned-byte ,word-size)
-                                        sp))
-                         (unless (eq (not up-inside) (not wp-inside))
-                           (return-from %schubfach
-                             (values (if wp-inside (1+ sp) sp)
-                                     (1+ k)
-                                     sign)))))
-                     (let ((u-inside (<= lower (ash s 2)))
-                           (w-inside (<= (ash (1+ s) 2) upper)))
-                       (unless (eq (not u-inside) (not w-inside))
-                         (return-from %schubfach
-                           (values (if w-inside (1+ s) s)
-                                   k
-                                   sign))))
-                     (case (rounding ,client)
-                       (:away-from-zero ; ?1?
-                        (values (if (logbitp 1 significand)
-                                    (1+ s)
-                                    s)
-                                k
-                                sign))
-                       (:toward-zero ; ?11
-                        (values (if (= (ldb (byte 2 0) significand) #b11)
-                                    (1+ s)
-                                    s)
-                                k
-                                sign))
-                       (:to-even ; ?11 or 110
-                        (values (if (and (logbitp 1 significand)
-                                         (or (logbitp 0 significand)
-                                             (logbitp 2 significand)))
-                                    (1+ s)
-                                    s)
-                                k
-                                sign))
-                       (otherwise ; ?11 or 010
-                        (values (if (and (logbitp 1 significand)
-                                         (or (logbitp 0 significand)
-                                             (not (logbitp 2 significand))))
-                                    (1+ s)
-                                    s)
-                                k
-                                sign))))))))))))
+                   (unless is-even
+                     (incf lower)
+                     (decf upper))
+                   (setf s (floor significand 40)
+                         s (1+ s)
+                         u-inside (<= lower (* 40 s))
+                         w-inside (<= (* 40 s+1) upper))
+                   (unless (eq (not u-inside) (not w-inside))
+                     (return-from %schubfach
+                       (values (if w-inside s+1 s)
+                               (1+ k)
+                               sign)))
+                   (setf s (ash significand -2)
+                         s (1+ s)
+                         u-inside (<= lower (ash s 2))
+                         w-inside (<= (ash s+1 2) upper))
+                   (unless (eq (not u-inside) (not w-inside))
+                     (return-from %schubfach
+                       (values (if w-inside s+1 s)
+                               k
+                               sign)))
+                   (case (rounding ,client)
+                     (:away-from-zero ; ?1?
+                      (values (if (logbitp 1 significand)
+                                  s+1
+                                  s)
+                              k
+                              sign))
+                     (:toward-zero ; ?11
+                      (values (if (= (ldb (byte 2 0) significand) #b11)
+                                  s+1
+                                  s)
+                              k
+                              sign))
+                     (:to-even ; ?11 or 110
+                      (values (if (and (logbitp 1 significand)
+                                       (or (logbitp 0 significand)
+                                           (logbitp 2 significand)))
+                                  s+1
+                                  s)
+                              k
+                              sign))
+                     (otherwise ; ?11 or 010
+                      (values (if (and (logbitp 1 significand)
+                                       (or (logbitp 0 significand)
+                                           (not (logbitp 2 significand))))
+                                  s+1
+                                  s)
+                              k
+                              sign)))))))))))
 
 #+clisp
 (defmethod quaviver:float-integer ((client client) (base (eql 10)) (value float))
