@@ -92,7 +92,6 @@
                                                       :binary-decimal-rounding rounding)
                               :base 10))
          (list (make-instance 'bit-interval
-                              :end #xff
                               :coverage coverage))
          rest))
 
