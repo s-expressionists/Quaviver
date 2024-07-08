@@ -22,6 +22,7 @@
            #:nan-type-byte-form
            #:hidden-bit-p
            #:subnormalp
+           #:non-number-p
            #:exponent-bias
            #:max-exponent
            #:min-exponent
