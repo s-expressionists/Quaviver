@@ -193,5 +193,5 @@
                                         (funcall trait 'single-float)
                                         (funcall trait 'double-float)
                                         #+quaviver/long-float (funcall trait 'long-float))))
-    (format t "~a float traits~%" (lisp-implementation-type))
+    (format t "~a float traits~%" (uiop:implementation-identifier))
     (ascii-table:display table)))
