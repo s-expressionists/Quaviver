@@ -28,13 +28,18 @@
     (declare (ignore args))
     `(defmacro ,name (number &optional (lower-limit ,default-lower)
                                (upper-limit ,default-upper))
-       (loop for (supported-lower supported-upper multiply subtract shift) in ',body
+       (loop for (supported-lower supported-upper multiply subtract shift intermediate-type result-type)
+               in ',body
              do (when (and (>= lower-limit supported-lower)
                            (<= upper-limit supported-upper))
                   (return
                     `(progn
                        ;; (assert (<= ,lower-limit ,number ,upper-limit))
-                       (ash (- (* ,number ,multiply) ,subtract) ,(- shift)))))
+                       (the ,result-type
+                            (ash (the ,intermediate-type
+                                      (- (the ,intermediate-type (* ,number ,multiply))
+                                         ,subtract))
+                                 ,(- shift))))))
              finally (error "Limits [~A..~A] lie outside supported limits [~A..~A]."
                             lower-limit upper-limit supported-lower supported-upper)))))
 
@@ -42,29 +47,29 @@
 
 ;;; (floor (log (expt 10 number) 2))
 (define-log floor-log2-expt10
-  (-15 18 53 0 4)
-  (-58 58 1701 0 9)
-  (-1233 1233 1741647 0 19))
+  (-15 18 53 0 4 (signed-byte 16) (signed-byte 8))
+  (-58 58 1701 0 9 (signed-byte 32) (signed-byte 16))
+  (-1233 1233 1741647 0 19 (signed-byte 32) (signed-byte 16)))
 
 ;;; (floor (log (expt 2 number) 5))
 (define-log floor-log5-expt2
-  (-1831 1831 225799 0 19))
+  (-1831 1831 225799 0 19 (signed-byte 32) (signed-byte 32)))
 
 ;;; (floor (- (log (expt 2 number) 5) (log 3 5)))
 (define-log floor-log5-expt2-minus-log5-3
-  (-3543 2427 451597 715764 20))
+  (-3543 2427 451597 715764 20 (signed-byte 32) (signed-byte 32)))
 
 ;;; (floor (log (expt 2 number) 10))
 (define-log floor-log10-expt2
-  (-102 102 77 0 8)
-  (-425 425 1233 0 12)
-  (-2620 2620 315653 0 20))
+  (-102 102 77 0 8 (signed-byte 16) (signed-byte 8))
+  (-425 425 1233 0 12 (signed-byte 32) (signed-byte 8))
+  (-2620 2620 315653 0 20 (signed-byte 32) (signed-byte 16)))
 
 ;;; (floor (- (log (expt 2 number) 10) (log 4/3 10)))
 (define-log floor-log10-expt2-minus-log10-4/3
-  (-75 129 77 31 8)
-  (-424 315 19728 8241 16)
-  (-2985 2936 631305 261663 21))
+  (-75 129 77 31 8 (signed-byte 16) (signed-byte 8))
+  (-424 315 19728 8241 16 (signed-byte 32) (signed-byte 8))
+  (-2985 2936 631305 261663 21 (signed-byte 32) (signed-byte 16)))
 
 ;;; Divisions
 ;;;
