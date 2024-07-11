@@ -1,3 +1,6 @@
+;;;; SPDX-FileCopyrightText: Copyright (c) 2024 s-expressionists
+;;;; SPDX-License-Identifier: MIT
+
 (in-package #:quaviver.math)
 
 (declaim (ftype (function ((arithmetic-word 32) (arithmetic-word 32 2))

@@ -1,3 +1,6 @@
+;;;; SPDX-FileCopyrightText: Copyright (c) 2024 s-expressionists
+;;;; SPDX-License-Identifier: MIT
+
 (in-package #:quaviver.math)
 
 (defmacro define-expt (&key arithmetic-sizes types (base 10))
