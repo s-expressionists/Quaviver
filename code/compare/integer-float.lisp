@@ -38,8 +38,7 @@
                   (list* (float-hex-digits (float-type (iterator-interval iterator)))
                          result)))
         (not result))
-    (error (condition)
-      (declare (ignore condition))
+    (error ()
       (format stream "~:@<#x~x :error~:@>~%" (iterator-bits iterator))
       nil)))
 
