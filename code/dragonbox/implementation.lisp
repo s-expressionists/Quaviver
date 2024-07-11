@@ -308,8 +308,14 @@
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defgeneric kappa (type))
-  (defgeneric min-k (type))
-  (defgeneric max-k (type))
+  (defgeneric min-k/nearest/shorter-interval (type))
+  (defgeneric max-k/nearest/shorter-interval (type))
+  (defgeneric min-k/nearest/normal-interval (type))
+  (defgeneric max-k/nearest/normal-interval (type))
+  (defgeneric min-k/left-closed-directed (type))
+  (defgeneric max-k/left-closed-directed (type))
+  (defgeneric min-k/right-closed-directed (type))
+  (defgeneric max-k/right-closed-directed (type))
 
   ;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3189-L3193
   (defmethod kappa (type)
@@ -323,23 +329,29 @@
                      (floor-log2-expt10 (1+ kappa)))))
       kappa))
 
-  ;; MIN-K and MAX-K, based on [1], can be derived by inspecting the
-  ;; extreme values that -K can take within %NEAREST and %DIRECTED.
-  ;; The resulting values (actually, only MAX-K) are different from
-  ;; reference Dragonbox because Quaviver takes into account the
-  ;; adjusted subnormals.
-  ;;
-  ;; [1]: https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3198-L3207
+  (defmethod min-k/nearest/shorter-interval (type)
+    (- (floor-log10-expt2-minus-log10-4/3 (quaviver:max-exponent type))))
 
-  (defmethod min-k (type)
-    (let ((max-exponent (quaviver:max-exponent type)))
-      (min (- (floor-log10-expt2-minus-log10-4/3 max-exponent))
-           (- (kappa type) (floor-log10-expt2 max-exponent)))))
+  (defmethod max-k/nearest/shorter-interval (type)
+    (- (floor-log10-expt2-minus-log10-4/3 (quaviver:min-exponent type))))
 
-  (defmethod max-k (type)
-    (let ((min-exponent (quaviver:min-exponent type)))
-      (max (- (floor-log10-expt2-minus-log10-4/3 min-exponent))
-           (- (kappa type) (floor-log10-expt2 min-exponent)))))
+  (defmethod min-k/nearest/normal-interval (type)
+    (- (kappa type) (floor-log10-expt2 (quaviver:max-exponent type))))
+
+  (defmethod max-k/nearest/normal-interval (type)
+    (- (kappa type) (floor-log10-expt2 (quaviver:min-exponent type))))
+
+  (defmethod min-k/left-closed-directed (type)
+    (min-k/nearest/normal-interval type))
+
+  (defmethod max-k/left-closed-directed (type)
+    (max-k/nearest/normal-interval type))
+
+  (defmethod min-k/right-closed-directed (type)
+    (min-k/nearest/normal-interval type))
+
+  (defmethod max-k/right-closed-directed (type)
+    (- (kappa type) (floor-log10-expt2 (1- (quaviver:min-exponent type)))))
 
   (defun count-factors (number divisor)
     (assert (> number 0))
@@ -412,8 +424,10 @@
                    (min-exponent quaviver:min-exponent)
                    (max-exponent quaviver:max-exponent)
                    (kappa kappa)
-                   (min-k min-k)
-                   (max-k max-k))
+                   (min-k/si min-k/nearest/shorter-interval)
+                   (max-k/si max-k/nearest/shorter-interval)
+                   (min-k/ni min-k/nearest/normal-interval)
+                   (max-k/ni max-k/nearest/normal-interval))
       type
     (progn                              ; for future LET bindings
       `(block %dragonbox
@@ -446,7 +460,7 @@
              (multiple-value-bind (include-left-endpoint-p include-right-endpoint-p)
                  (shorter-interval ,client significand sign)
                (let* ((-k (floor-log10-expt2-minus-log10-4/3 exponent ,min-exponent ,max-exponent))
-                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
+                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k/si ,max-k/si)))
                       (expt10 (quaviver/math:expt ,arithmetic-size 10 -k))
                       ;; Left endpoint
                       (xi (let ((hi64 (,hi/2n expt10 64)))
@@ -456,7 +470,8 @@
                       (zi (let ((hi64 (,hi/2n expt10 64)))
                             (quaviver/math:hi/64 (+ hi64 (ash hi64 ,(- significand-size)))
                                                  (+ ,significand-size beta)))))
-                 (declare ((signed-byte 32) -k beta)
+                 (declare ((integer ,(- max-k/si) ,(- min-k/si)) -k)
+                          ((signed-byte 32) beta)
                           ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                           ((quaviver/math:arithmetic-word ,arithmetic-size) xi zi)
                           (dynamic-extent expt10))
@@ -504,13 +519,14 @@
                (normal-interval ,client significand sign)
              (let* ((-k (- (floor-log10-expt2 exponent ,min-exponent ,max-exponent)
                            ,kappa))
-                    (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
+                    (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k/ni ,max-k/ni)))
                     (expt10 (quaviver/math:expt ,arithmetic-size 10 -k))
                     (deltai (,hi/2n expt10 (1+ beta)))
                     (zi 0)
                     (zi-integer-p nil)
                     (r 0))
-               (declare ((signed-byte 32) -k beta)
+               (declare ((integer ,(- max-k/ni) ,(- min-k/ni)) -k)
+                        ((signed-byte 32) beta)
                         ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                         ((quaviver/math:arithmetic-word ,arithmetic-size) deltai zi r)
                         (boolean zi-integer-p)
@@ -580,8 +596,10 @@
                    (min-exponent quaviver:min-exponent)
                    (max-exponent quaviver:max-exponent)
                    (kappa kappa)
-                   (min-k min-k)
-                   (max-k max-k))
+                   (min-k/left min-k/left-closed-directed)
+                   (max-k/left max-k/left-closed-directed)
+                   (min-k/right min-k/right-closed-directed)
+                   (max-k/right max-k/right-closed-directed))
       type
     (progn                              ; for future LET bindings
       `(block %dragonbox
@@ -604,13 +622,14 @@
               ;; Step 1: Schubfach multiplier calculation
               (let* ((-k (- (floor-log10-expt2 exponent ,min-exponent ,max-exponent)
                             ,kappa))
-                     (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
+                     (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k/left ,max-k/left)))
                      (expt10 (quaviver/math:expt ,arithmetic-size 10 -k))
                      (deltai (,hi/2n expt10 (1+ beta)))
                      (xi 0)
                      (xi-integer-p nil)
                      (r 0))
-                (declare ((signed-byte 32) -k beta)
+                (declare ((integer ,(- max-k/left) ,(- min-k/left)) -k)
+                         ((signed-byte 32) beta)
                          ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                          ((quaviver/math:arithmetic-word ,arithmetic-size) deltai xi r)
                          (boolean xi-integer-p)
@@ -659,12 +678,13 @@
                      (-k (- (floor-log10-expt2 (- exponent (if shorter-interval-p 1 0))
                                                ,min-exponent ,max-exponent)
                             ,kappa))
-                     (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k ,max-k)))
+                     (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k/right ,max-k/right)))
                      (expt10 (quaviver/math:expt ,arithmetic-size 10 -k))
                      (deltai (,hi/2n expt10 (1+ (- beta (if shorter-interval-p 1 0)))))
                      (zi (nth-value 0 (,floor-multiply 2fc expt10 beta)))
                      (r 0))
-                (declare ((signed-byte 32) -k beta)
+                (declare ((integer ,(- max-k/right) ,(- min-k/right)) -k)
+                         ((signed-byte 32) beta)
                          ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                          ((quaviver/math:arithmetic-word ,arithmetic-size) deltai zi r)
                          (dynamic-extent expt10))
