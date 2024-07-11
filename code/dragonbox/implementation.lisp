@@ -368,7 +368,7 @@
     (loop with remainder
           do (multiple-value-setq (number remainder) (floor number divisor))
           while (zerop remainder)
-          count 1)))
+          count t)))
 
 #+(or)
 (loop for type in '(single-float double-float)
