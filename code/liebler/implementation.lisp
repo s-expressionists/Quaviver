@@ -58,10 +58,9 @@
                                                           (- ,exponent)))
                         k (- k -1 shift)
                         shift (- ,significand-size (integer-length ,significand)))
-                  (quaviver:integer-float ,client ',result-type 2
-                                          (round ,significand (ash 1 (- shift)))
-                                          (- k shift)
-                                          ,sign))))))))
+                  ,(quaviver:integer-float-form
+                    nil result-type 2
+                    `(round ,significand (ash 1 (- shift))) `(- k shift) 'sign))))))))
 
 #-clisp
 (defmethod quaviver:integer-float
