@@ -11,66 +11,6 @@
 
 (in-package #:quaviver/dragonbox)
 
-;;; Logarithms
-
-;;; Grammar:
-;;;
-;;;   (define-log NAME
-;;;     (SUPPORTED-LOWER-LIMIT SUPPORTED-UPPER-LIMIT MULTIPLY SUBTRACT SHIFT)
-;;;     ...)
-;;;
-;;; The resulting macro's default lower and upper limits are those of
-;;; the last body clause.
-;;;
-;;; TODO: Maybe LDB the result.
-(defmacro define-log (name &body body)
-  (destructuring-bind (default-lower default-upper &rest args) (car (last body))
-    (declare (ignore args))
-    `(defmacro ,name (number &optional (lower-limit ,default-lower)
-                               (upper-limit ,default-upper))
-       (loop for (supported-lower supported-upper multiply subtract shift intermediate-type result-type)
-               in ',body
-             do (when (and (>= lower-limit supported-lower)
-                           (<= upper-limit supported-upper))
-                  (return
-                    `(progn
-                       ;; (assert (<= ,lower-limit ,number ,upper-limit))
-                       (the ,result-type
-                            (ash (the ,intermediate-type
-                                      (- (the ,intermediate-type (* ,number ,multiply))
-                                         ,subtract))
-                                 ,(- shift))))))
-             finally (error "Limits [~A..~A] lie outside supported limits [~A..~A]."
-                            lower-limit upper-limit supported-lower supported-upper)))))
-
-;;; Constants from https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L906-L1146
-
-;;; (floor (log (expt 10 number) 2))
-(define-log floor-log2-expt10
-  (-15 18 53 0 4 (signed-byte 16) (signed-byte 8))
-  (-58 58 1701 0 9 (signed-byte 32) (signed-byte 16))
-  (-1233 1233 1741647 0 19 (signed-byte 32) (signed-byte 16)))
-
-;;; (floor (log (expt 2 number) 5))
-(define-log floor-log5-expt2
-  (-1831 1831 225799 0 19 (signed-byte 32) (signed-byte 32)))
-
-;;; (floor (- (log (expt 2 number) 5) (log 3 5)))
-(define-log floor-log5-expt2-minus-log5-3
-  (-3543 2427 451597 715764 20 (signed-byte 32) (signed-byte 32)))
-
-;;; (floor (log (expt 2 number) 10))
-(define-log floor-log10-expt2
-  (-102 102 77 0 8 (signed-byte 16) (signed-byte 8))
-  (-425 425 1233 0 12 (signed-byte 32) (signed-byte 8))
-  (-2620 2620 315653 0 20 (signed-byte 32) (signed-byte 16)))
-
-;;; (floor (- (log (expt 2 number) 10) (log 4/3 10)))
-(define-log floor-log10-expt2-minus-log10-4/3
-  (-75 129 77 31 8 (signed-byte 16) (signed-byte 8))
-  (-424 315 19728 8241 16 (signed-byte 32) (signed-byte 8))
-  (-2985 2936 631305 261663 21 (signed-byte 32) (signed-byte 16)))
-
 ;;; Divisions
 ;;;
 ;;; Testing on SBCL at some point seemed to indicate that these macros
@@ -95,7 +35,7 @@
       (3 (values 66 16)))))
 
 (defmacro floor-by-expt10-divisible-p (number power size)
-  (assert (<= (1+ power) (floor-log10-expt2 size)))
+  (assert (<= (1+ power) (quaviver.math:floor-log-expt 10 2 size)))
   (multiple-value-bind (magic position) (floor-by-expt10-constants power)
     (let ((prod (gensym (string 'prod))))
       `(progn
@@ -107,7 +47,7 @@
                       ,magic)))))))
 
 (defmacro floor-by-expt10-small (number power size)
-  (assert (<= (1+ power) (floor-log10-expt2 size)))
+  (assert (<= (1+ power) (quaviver.math:floor-log-expt 10 2 size)))
   (multiple-value-bind (magic position) (floor-by-expt10-constants power)
     `(progn
        ;; (assert (<= ,number ,(expt 10 (1+ power))))
@@ -336,27 +276,28 @@
 
   ;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3189-L3193
   (defmethod kappa (type)
-    (let ((kappa (1- (floor-log10-expt2 (- (quaviver:arithmetic-size type)
-                                           (quaviver:significand-size type)
-                                           1)))))
+    (let ((kappa (1- (quaviver.math:floor-log-expt
+                      10 2 (- (quaviver:arithmetic-size type)
+                              (quaviver:significand-size type)
+                              1)))))
       (assert (>= kappa 1))
       (assert (>= (quaviver:arithmetic-size type)
                   (+ (quaviver:significand-size type)
                      1
-                     (floor-log2-expt10 (1+ kappa)))))
+                     (quaviver.math:floor-log-expt 2 10 (1+ kappa)))))
       kappa))
 
   (defmethod min-k/nearest/shorter-interval (type)
-    (- (floor-log10-expt2-minus-log10-4/3 (quaviver:max-exponent type))))
+    (- (quaviver.math:floor-log-expt 10 2 (quaviver:max-exponent type) t)))
 
   (defmethod max-k/nearest/shorter-interval (type)
-    (- (floor-log10-expt2-minus-log10-4/3 (quaviver:min-exponent type))))
+    (- (quaviver.math:floor-log-expt 10 2 (quaviver:min-exponent type) t)))
 
   (defmethod min-k/nearest/normal-interval (type)
-    (- (kappa type) (floor-log10-expt2 (quaviver:max-exponent type))))
+    (- (kappa type) (quaviver.math:floor-log-expt 10 2 (quaviver:max-exponent type))))
 
   (defmethod max-k/nearest/normal-interval (type)
-    (- (kappa type) (floor-log10-expt2 (quaviver:min-exponent type))))
+    (- (kappa type) (quaviver.math:floor-log-expt 10 2 (quaviver:min-exponent type))))
 
   (defmethod min-k/left-closed-directed (type)
     (min-k/nearest/normal-interval type))
@@ -368,19 +309,22 @@
     (min-k/nearest/normal-interval type))
 
   (defmethod max-k/right-closed-directed (type)
-    (- (kappa type) (floor-log10-expt2 (1- (quaviver:min-exponent type)))))
+    (- (kappa type) (quaviver.math:floor-log-expt 10 2 (1- (quaviver:min-exponent type)))))
 
   (defmethod beta/nearest/shorter-interval (exponent)
-    (+ exponent (floor-log2-expt10 (- (floor-log10-expt2-minus-log10-4/3 exponent)))))
+    (+ exponent (quaviver.math:floor-log-expt
+                 2 10 (- (quaviver.math:floor-log-expt 10 2 exponent t)))))
 
   (defmethod beta/nearest/normal-interval (exponent kappa)
-    (+ exponent (floor-log2-expt10 (- kappa (floor-log10-expt2 exponent)))))
+    (+ exponent (quaviver.math:floor-log-expt
+                 2 10 (- kappa (quaviver.math:floor-log-expt 10 2 exponent)))))
 
   (defmethod beta-1/right-closed-directed (exponent kappa)
     (beta/nearest/normal-interval exponent kappa))
 
   (defmethod beta-2/right-closed-directed (exponent kappa)
-    (+ exponent (floor-log2-expt10 (- kappa (floor-log10-expt2 (1- exponent))))))
+    (+ exponent (quaviver.math:floor-log-expt
+                 2 10 (- kappa (quaviver.math:floor-log-expt 10 2 (1- exponent))))))
 
   (defmethod min-beta/nearest/shorter-interval (type)
     (loop for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
@@ -500,8 +444,8 @@
            (when (eql (logcount significand) 1)
              (multiple-value-bind (include-left-endpoint-p include-right-endpoint-p)
                  (shorter-interval ,client significand sign)
-               (let* ((-k (floor-log10-expt2-minus-log10-4/3 exponent ,min-exponent ,max-exponent))
-                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k/si ,max-k/si)))
+               (let* ((-k (quaviver.math:floor-log-expt 10 2 exponent t))
+                      (beta (+ exponent (quaviver.math:floor-log-expt 2 10 (- -k))))
                       (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
                       ;; Left endpoint
                       (xi (let ((hi64 (,hi/2n expt10 64)))
@@ -545,10 +489,10 @@
                                           (,hi/2n expt10 (+ ,significand-size 1 beta)))))
                             -1))
                  (cond ((and (prefer-round-down-p ,client significand)
-                             (<= ,(- (- (floor-log5-expt2-minus-log5-3 (+ significand-size 3)))
+                             (<= ,(- (- (floor (- (log (expt 2 (+ significand-size 3)) 5) (log 3 5))))
                                      2 (1- significand-size))
                                  exponent
-                                 ,(- (- (floor-log5-expt2 (1+ significand-size)))
+                                 ,(- (- (quaviver.math:floor-log-expt 5 2 (1+ significand-size)))
                                      2 (1- significand-size))))
                         (decf significand))
                        ((< significand xi)
@@ -558,9 +502,9 @@
            ;; Step 1: Schubfach multiplier calculation
            (multiple-value-bind (include-left-endpoint-p include-right-endpoint-p)
                (normal-interval ,client significand sign)
-             (let* ((-k (- (floor-log10-expt2 exponent ,min-exponent ,max-exponent)
+             (let* ((-k (- (quaviver.math:floor-log-expt 10 2 exponent)
                            ,kappa))
-                    (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k/ni ,max-k/ni)))
+                    (beta (+ exponent (quaviver.math:floor-log-expt 2 10 (- -k))))
                     (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
                     (deltai (,hi/2n expt10 (1+ beta)))
                     (zi 0)
@@ -665,9 +609,9 @@
            (ecase (direction ,client ,value)
              (:left-closed-directed
               ;; Step 1: Schubfach multiplier calculation
-              (let* ((-k (- (floor-log10-expt2 exponent ,min-exponent ,max-exponent)
+              (let* ((-k (- (quaviver.math:floor-log-expt 10 2 exponent)
                             ,kappa))
-                     (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k/left ,max-k/left)))
+                     (beta (+ exponent (quaviver.math:floor-log-expt 2 10 (- -k))))
                      (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
                      (deltai (,hi/2n expt10 (1+ beta)))
                      (xi 0)
@@ -720,10 +664,9 @@
                        ;;
                        ;; [1]: https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3719
                        (eql (logcount significand) 1))
-                     (-k (- (floor-log10-expt2 (- exponent (if shorter-interval-p 1 0))
-                                               ,min-exponent ,max-exponent)
+                     (-k (- (quaviver.math:floor-log-expt 10 2 (- exponent (if shorter-interval-p 1 0)))
                             ,kappa))
-                     (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k/right ,max-k/right)))
+                     (beta (+ exponent (quaviver.math:floor-log-expt 2 10 (- -k))))
                      (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
                      (deltai (,hi/2n expt10 (1+ (- beta (if shorter-interval-p 1 0)))))
                      (zi (nth-value 0 (,floor-multiply 2fc expt10 beta)))
