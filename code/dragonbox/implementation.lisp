@@ -492,7 +492,7 @@
            ;;
            ;; TODO: Exhaustively test the shorter interval case on
            ;; subnormals (only (1- SIGNIFICAND-SIZE) cases to check).
-           (when (eql significand ,(ash 1 (1- significand-size)))
+           (when (eql (logcount significand) 1)
              (multiple-value-bind (include-left-endpoint-p include-right-endpoint-p)
                  (shorter-interval ,client significand sign)
                (let* ((-k (floor-log10-expt2-minus-log10-4/3 exponent ,min-exponent ,max-exponent))
@@ -714,7 +714,7 @@
                        ;; TODO: Investigate.
                        ;;
                        ;; [1]: https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3719
-                       (eql significand ,(ash 1 (1- significand-size))))
+                       (eql (logcount significand) 1))
                      (-k (- (floor-log10-expt2 (- exponent (if shorter-interval-p 1 0))
                                                ,min-exponent ,max-exponent)
                             ,kappa))
