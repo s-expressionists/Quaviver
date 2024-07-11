@@ -21,7 +21,7 @@
       test
     (let ((float-type (float-type (iterator-interval iterator))))
       (multiple-value-bind (significand exponent sign)
-          (iterator-integer iterator)
+          (iterator-integer iterator base)
         (let ((float1 (quaviver:integer-float client1 float-type base significand exponent sign))
               (float2 (quaviver:integer-float client2 float-type base significand exponent sign)))
         (unless (equalp float1 float2)
@@ -32,15 +32,15 @@
 
 (defmethod iterator-value-pass-p ((test integer-float) iterator stream)
   (handler-case
-      (let ((result (compare/float-integer test iterator)))
+      (let ((result (compare/integer-float test iterator)))
         (when result
           (format stream "~:<#x~v,'0x ~e ~s ~s~:@>~%"
                   (list* (float-hex-digits (float-type (iterator-interval iterator)))
                          result)))
         (not result))
     (error (condition)
-      (format stream "~:@<#x~x :error~:@>~%"
-              (iterator-bits iterator))
+      (declare (ignore condition))
+      (format stream "~:@<#x~x :error~:@>~%" (iterator-bits iterator))
       nil)))
 
 (defun integer-float/j.l/f (&rest rest &key (coverage 1) &allow-other-keys)
