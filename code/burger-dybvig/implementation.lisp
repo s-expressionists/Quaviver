@@ -321,10 +321,8 @@
                (setf f (ash f shift))
                (decf e shift)))
            (let (r s m+ m-
-                   (high-ok #+(or clasp sbcl) (evenp f)
-                            #-(or clasp sbcl) nil)
-                   (low-ok #+(or clasp sbcl) (evenp f)
-                           #-(or clasp sbcl) nil))
+                 (high-ok (evenp f))
+                 (low-ok (evenp f)))
              (if (>= e 0)
                  (progn (if (= (decode-float x) 0.5)
                             (setf m- (expt 2 e)
