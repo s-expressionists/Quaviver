@@ -27,7 +27,7 @@
              (quaviver:float-integer ,client 2 ,value)
            (declare (type (unsigned-byte ,word-size) significand)
                     (type (or (integer ,min-exponent ,max-exponent) keyword) exponent)
-                    (type (integer -1 1) sign))
+                    (type fixnum sign))
            (if (or (not (numberp exponent))
                    (zerop significand))
                (values significand exponent sign)

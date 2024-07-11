@@ -20,8 +20,7 @@
                       bits)
                 (type (unsigned-byte ,(byte-size exponent-bytespec))
                       exponent)
-                (type (integer -1 1)
-                      sign))
+                (type fixnum sign))
        (cond ((= exponent ,(1- (ash 1 (byte-size exponent-bytespec))))
               (if (ldb-test ,significand-byte-form bits) ; nan
                   (values (ldb ,nan-payload-byte-form bits)
