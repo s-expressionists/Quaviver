@@ -59,12 +59,13 @@
                     (mapc #'uiop:delete-file-if-exists (remove nil pathnames)))
                   (terpri)
                   (loop for (total . failures) being each hash-value in counts using (hash-key name)
+                        finally (when exit
+                                  (uiop:quit (if (zerop total-failures) 0 1)))
                         do (format t "Completed ~@[~a ~]in ~/quaviver-compare:internal-time/ with ~d failure~p out of ~d tests~%"
                                    name
                                    (- (get-internal-real-time) start-time)
-                                   failures failures total))
-                  (when exit
-                    (uiop:quit (if (zerop failures) 0 1)))
+                                   failures failures total)
+                        sum failures into total-failures)
           when count
             do (incf (car count) job-total)
                (incf (cdr count) job-failures)
