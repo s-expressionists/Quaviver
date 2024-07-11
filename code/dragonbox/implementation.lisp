@@ -420,7 +420,7 @@
                (exponent 0)
                (sign 0)
                (2fc 0))
-           (declare ((quaviver.math:arithmetic-word ,arithmetic-size) significand 2fc)
+           (declare ((unsigned-byte ,(1- arithmetic-size)) significand 2fc)
                     ((or (integer ,min-exponent ,max-exponent) keyword) exponent)
                     (fixnum sign))
            (multiple-value-setq (significand exponent sign)
@@ -458,7 +458,7 @@
                  (declare ((integer ,(- max-k/si) ,(- min-k/si)) -k)
                           ((integer ,min-beta/si ,max-beta/si) beta)
                           ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
-                          ((quaviver.math:arithmetic-word ,arithmetic-size) xi zi)
+                          ((unsigned-byte ,(1- arithmetic-size)) xi zi)
                           (dynamic-extent expt10))
                  (when (and (not include-right-endpoint-p)
                             (<= 0 exponent
@@ -479,13 +479,13 @@
                  (setf significand (floor-by-expt10
                                     zi 1 ,arithmetic-size
                                     ,(* 20 (1+ (floor (1+ (ash 1 significand-size)) 3)))))
-                 (when (>= (the (quaviver.math:arithmetic-word ,arithmetic-size)
+                 (when (>= (the (unsigned-byte ,(1- arithmetic-size))
                                 (* 10 significand)) xi)
                    (return-from %dragonbox
                      (values significand (1+ -k) sign)))
                  (setf significand
-                       (ash (the (quaviver.math:arithmetic-word ,arithmetic-size)
-                                 (1+ (the (quaviver.math:arithmetic-word ,arithmetic-size)
+                       (ash (the (unsigned-byte ,(1- arithmetic-size))
+                                 (1+ (the (unsigned-byte ,(1- arithmetic-size))
                                           (,hi/2n expt10 (+ ,significand-size 1 beta)))))
                             -1))
                  (cond ((and (prefer-round-down-p ,client significand)
@@ -513,7 +513,7 @@
                (declare ((integer ,(- max-k/ni) ,(- min-k/ni)) -k)
                         ((integer ,min-beta/ni ,max-beta/ni) beta)
                         ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
-                        ((quaviver.math:arithmetic-word ,arithmetic-size) deltai zi r)
+                        ((unsigned-byte ,(1- arithmetic-size)) deltai zi r)
                         (boolean zi-integer-p)
                         (dynamic-extent expt10))
                (multiple-value-setq (zi zi-integer-p)
@@ -555,12 +555,12 @@
                                (incf significand (if (and divisible-p zi-integer-p) (1- r) r))))
                             (t (incf significand (floor-by-expt10-small r ,kappa ,arithmetic-size)))))
                      (t
-                      (let* ((dist (+ (the (quaviver.math:arithmetic-word ,arithmetic-size)
+                      (let* ((dist (+ (the (unsigned-byte ,(1- arithmetic-size))
                                            (- r (ash deltai -1)))
                                       ,(floor (expt 10 kappa) 2)))
                              (approx-y-even-p
                                (logbitp 0 (logxor dist ,(floor (expt 10 kappa) 2)))))
-                        (declare ((quaviver.math:arithmetic-word ,arithmetic-size) dist))
+                        (declare ((unsigned-byte ,(1- arithmetic-size)) dist))
                         (multiple-value-bind (dist divisible-p)
                             (floor-by-expt10-divisible-p dist ,kappa ,arithmetic-size)
                           (incf significand dist)
@@ -596,7 +596,7 @@
                (exponent 0)
                (sign 0)
                (2fc 0))
-           (declare ((quaviver.math:arithmetic-word ,arithmetic-size) significand 2fc)
+           (declare ((unsigned-byte ,(1- arithmetic-size)) significand 2fc)
                     ((or (integer ,min-exponent ,max-exponent) keyword) exponent)
                     (fixnum sign))
            (multiple-value-setq (significand exponent sign)
@@ -620,7 +620,7 @@
                 (declare ((integer ,(- max-k/left) ,(- min-k/left)) -k)
                          ((integer ,min-beta/left ,max-beta/left) beta)
                          ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
-                         ((quaviver.math:arithmetic-word ,arithmetic-size) deltai xi r)
+                         ((unsigned-byte ,(1- arithmetic-size)) deltai xi r)
                          (boolean xi-integer-p)
                          (dynamic-extent expt10))
                 (multiple-value-setq (xi xi-integer-p)
@@ -674,7 +674,7 @@
                 (declare ((integer ,(- max-k/right) ,(- min-k/right)) -k)
                          ((integer ,min-beta/right ,max-beta/right) beta)
                          ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
-                         ((quaviver.math:arithmetic-word ,arithmetic-size) deltai zi r)
+                         ((unsigned-byte ,(1- arithmetic-size)) deltai zi r)
                          (dynamic-extent expt10))
                 ;; Step 2: Try larger divisor; remove trailing zeros if necessary
                 (setf significand (floor-by-expt10 ; base 10 significand from here on out
