@@ -29,10 +29,10 @@
                   (optimize speed))
          (when (minusp ,sign)
            (setf (ldb ,sign-byte-form ,bits-var) 1))
-         (cond ((keywordp exponent)
+         (cond ((keywordp ,exponent-var)
                 (setf (ldb ,exponent-byte-form ,bits-var)
                       ,(1- (ash 1 (byte-size exponent-bytespec))))
-                (ecase exponent
+                (ecase ,exponent-var
                   (:infinity)
                   (:quiet-nan
                    (setf (ldb ,nan-type-byte-form ,bits-var) 1
