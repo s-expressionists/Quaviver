@@ -19,7 +19,8 @@
                              (:file "traits")
                              (:module "math"
                               :serial t
-                              :components ((:file "utility")
+                              :components ((:file "log-expt")
+                                           (:file "utility")
                                            (:file "implementation")
                                            (:file "expt")
                                            (:file "round-to-odd")))

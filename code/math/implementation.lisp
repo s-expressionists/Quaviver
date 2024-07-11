@@ -165,17 +165,12 @@
          (ftype (function ((arithmetic-word 64) (arithmetic-word 64 2) &optional (integer 0 (64)))
                           (values boolean boolean &optional))
                 floor-multiply/evenp/64-128q128)
-         (ftype (function (fixnum fixnum fixnum &optional boolean)
-                          (values fixnum &optional))
-                floor-log-expt ceiling-log-expt)
          (inline hi/64
                  hi/hi64/128
                  floor-multiply/32-64q64
                  floor-multiply/evenp/32-64q64
                  floor-multiply/64-128q128
-                 floor-multiply/evenp/64-128q128
-                 floor-log-expt
-                 ceiling-log-expt))
+                 floor-multiply/evenp/64-128q128))
 
 (defun hi/64 (x count)
   (ash x (- count 64)))
@@ -267,86 +262,3 @@
                  (zerop (ldb (byte 64 (- 64 pre-shift)) rl)))))
   #-quaviver.math/smallnum
   (%floor-multiply/evenp/n-2nq2n x y pre-shift 64))
-
-(defconstant +min-base+ 2)
-
-(defconstant +max-base+ 36)
-
-(defconstant +log-expt-shift+ 22)
-
-(declaim (type (simple-array t (35 35))
-               *log-expt*)
-         (type (simple-vector 35)
-               *log-3/4*))
-
-(defvar *log-expt*
-  (compute-log-expt +min-base+ +max-base+ +log-expt-shift+))
-
-(defvar *log-3/4*
-  (compute-log-3/4 +min-base+ +max-base+ +log-expt-shift+))
-
-(defun floor-log-expt (log-base expt-base exp &optional three-quarters-p)
-  (declare (optimize speed))
-  (ash (+ (* exp (the fixnum
-                      (aref *log-expt*
-                            (- log-base +min-base+)
-                            (- expt-base +min-base+))))
-          (if three-quarters-p
-              (the fixnum (svref *log-3/4* (- log-base +min-base+)))
-              0))
-       (- +log-expt-shift+)))
-
-(define-compiler-macro floor-log-expt
-    (&whole whole log-base expt-base exp &optional three-quarters-p)
-  (if (or (not (constantp log-base))
-          (not (constantp expt-base)))
-      whole
-      (let ((multiplier (aref *log-expt*
-                              (- log-base +min-base+)
-                              (- expt-base +min-base+)))
-            (offset (svref *log-3/4* (- log-base +min-base+)))
-            (shift (- +log-expt-shift+)))
-        (cond ((null three-quarters-p)
-               `(ash (* ,exp ,multiplier) ,shift))
-              ((constantp three-quarters-p)
-               `(ash (+ (* ,exp ,multiplier) ,offset)
-                     ,shift))
-              (t
-               `(ash (+ (* ,exp ,multiplier)
-                        (if ,three-quarters-p
-                            ,offset
-                            0))
-                     ,shift))))))
-
-(defun ceiling-log-expt (log-base expt-base exp &optional three-quarters-p)
-  (values (ceiling (+ (* exp
-                         (the fixnum
-                              (aref *log-expt*
-                                    (- log-base +min-base+)
-                                    (- expt-base +min-base+))))
-                      (if three-quarters-p
-                          (the fixnum (svref *log-3/4* (- log-base +min-base+)))
-                          0))
-                   (ash 1 +log-expt-shift+))))
-
-(define-compiler-macro ceiling-log-expt
-    (&whole whole log-base expt-base exp &optional three-quarters-p)
-  (if (or (not (constantp log-base))
-          (not (constantp expt-base)))
-      whole
-      (let ((multiplier (aref *log-expt*
-                              (- log-base +min-base+)
-                              (- expt-base +min-base+)))
-            (offset (svref *log-3/4* (- log-base +min-base+)))
-            (divisor (ash 1 +log-expt-shift+)))
-        (cond ((null three-quarters-p)
-               `(values (ceiling (* ,exp ,multiplier) ,divisor)))
-              ((constantp three-quarters-p)
-               `(values (ceiling (+ (* ,exp ,multiplier) ,offset)
-                                 ,divisor)))
-              (t
-               `(values (ceiling (+ (* ,exp ,multiplier)
-                                    (if ,three-quarters-p
-                                        ,offset
-                                        0))
-                                 ,divisor)))))))
