@@ -316,6 +316,18 @@
   (defgeneric max-k/left-closed-directed (type))
   (defgeneric min-k/right-closed-directed (type))
   (defgeneric max-k/right-closed-directed (type))
+  (defgeneric beta/nearest/shorter-interval (exponent))
+  (defgeneric beta/nearest/normal-interval (exponent kappa))
+  (defgeneric beta-1/right-closed-directed (exponent kappa))
+  (defgeneric beta-2/right-closed-directed (exponent kappa))
+  (defgeneric min-beta/nearest/shorter-interval (type))
+  (defgeneric max-beta/nearest/shorter-interval (type))
+  (defgeneric min-beta/nearest/normal-interval (type))
+  (defgeneric max-beta/nearest/normal-interval (type))
+  (defgeneric min-beta/left-closed-directed (type))
+  (defgeneric max-beta/left-closed-directed (type))
+  (defgeneric min-beta/right-closed-directed (type))
+  (defgeneric max-beta/right-closed-directed (type))
 
   ;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3189-L3193
   (defmethod kappa (type)
@@ -353,6 +365,54 @@
   (defmethod max-k/right-closed-directed (type)
     (- (kappa type) (floor-log10-expt2 (1- (quaviver:min-exponent type)))))
 
+  (defmethod beta/nearest/shorter-interval (exponent)
+    (+ exponent (floor-log2-expt10 (- (floor-log10-expt2-minus-log10-4/3 exponent)))))
+
+  (defmethod beta/nearest/normal-interval (exponent kappa)
+    (+ exponent (floor-log2-expt10 (- kappa (floor-log10-expt2 exponent)))))
+
+  (defmethod beta-1/right-closed-directed (exponent kappa)
+    (beta/nearest/normal-interval exponent kappa))
+
+  (defmethod beta-2/right-closed-directed (exponent kappa)
+    (+ exponent (floor-log2-expt10 (- kappa (floor-log10-expt2 (1- exponent))))))
+
+  (defmethod min-beta/nearest/shorter-interval (type)
+    (loop for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
+          minimize (beta/nearest/shorter-interval exponent)))
+
+  (defmethod max-beta/nearest/shorter-interval (type)
+    (loop for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
+          maximize (beta/nearest/shorter-interval exponent)))
+
+  (defmethod min-beta/nearest/normal-interval (type)
+    (loop with kappa = (kappa type)
+          for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
+          minimize (beta/nearest/normal-interval exponent kappa)))
+
+  (defmethod max-beta/nearest/normal-interval (type)
+    (loop with kappa = (kappa type)
+          for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
+          maximize (beta/nearest/normal-interval exponent kappa)))
+
+  (defmethod min-beta/left-closed-directed (type)
+    (min-beta/nearest/normal-interval type))
+
+  (defmethod max-beta/left-closed-directed (type)
+    (max-beta/nearest/normal-interval type))
+
+  (defmethod min-beta/right-closed-directed (type)
+    (loop with kappa = (kappa type)
+          for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
+          minimize (min (beta-1/right-closed-directed exponent kappa)
+                        (beta-2/right-closed-directed exponent kappa))))
+
+  (defmethod max-beta/right-closed-directed (type)
+    (loop with kappa = (kappa type)
+          for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
+          maximize (max (beta-1/right-closed-directed exponent kappa)
+                        (beta-2/right-closed-directed exponent kappa))))
+
   (defun count-factors (number divisor)
     (assert (> number 0))
     (assert (> divisor 1))
@@ -361,50 +421,22 @@
           while (zerop remainder)
           count 1)))
 
-;;; The beta bounds functions serve only to manually determine the
-;;; limits of beta so that the computations can be optimized
-;;; appropriately.
-
-(defgeneric beta-bounds/nearest/shorter-interval (type))
-(defgeneric beta-bounds/nearest/normal-interval (type))
-(defgeneric beta-bounds/left-closed-directed (type))
-(defgeneric beta-bounds/right-closed-directed (type))
-
-(defmethod beta-bounds/nearest/shorter-interval (type)
-  (loop for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
-        for beta = (+ exponent (floor-log2-expt10 (- (floor-log10-expt2-minus-log10-4/3 exponent))))
-        minimize beta into min
-        maximize beta into max
-        finally (return (list min max))))
-
-(defmethod beta-bounds/nearest/normal-interval (type)
-  (loop for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
-        for beta = (+ exponent (floor-log2-expt10 (- (kappa type)
-                                                     (floor-log10-expt2 exponent))))
-        minimize beta into min
-        maximize beta into max
-        finally (return (list min max))))
-
-(defmethod beta-bounds/left-closed-directed (type)
-  (beta-bounds/nearest/normal-interval type))
-
-(defmethod beta-bounds/right-closed-directed (type)
-  (loop for exponent from (quaviver:min-exponent type) to (quaviver:max-exponent type)
-        for beta-1 = (+ exponent (floor-log2-expt10 (- (kappa type)
-                                                       (floor-log10-expt2 exponent))))
-        for beta-2 = (+ exponent (floor-log2-expt10 (- (kappa type)
-                                                       (floor-log10-expt2 (1- exponent)))))
-        minimize (min beta-1 beta-2) into min
-        maximize (max beta-1 beta-2) into max
-        finally (return (list min max))))
-
 #+(or)
 (loop for type in '(single-float double-float)
       collect (list type
-                    (list :nearest/shorter-interval (beta-bounds/nearest/shorter-interval type)
-                          :nearest/normal-interval (beta-bounds/nearest/normal-interval type)
-                          :left-closed-directed (beta-bounds/left-closed-directed type)
-                          :right-closed-directed (beta-bounds/right-closed-directed type))))
+                    (list :nearest/shorter-interval
+                          (list (min-beta/nearest/shorter-interval type)
+                                (max-beta/nearest/shorter-interval type))
+                          :nearest/normal-interval
+                          (list (min-beta/nearest/normal-interval type)
+                                (max-beta/nearest/normal-interval type))
+                          :left-closed-directed
+                          (list (min-beta/left-closed-directed type)
+                                (max-beta/left-closed-directed type))
+                          :right-closed-directed
+                          (list (min-beta/right-closed-directed type)
+                                (max-beta/right-closed-directed type)))))
+
 #+(or) ; =>
 ((SINGLE-FLOAT
   (:NEAREST/SHORTER-INTERVAL (0 3)
@@ -427,7 +459,11 @@
                    (min-k/si min-k/nearest/shorter-interval)
                    (max-k/si max-k/nearest/shorter-interval)
                    (min-k/ni min-k/nearest/normal-interval)
-                   (max-k/ni max-k/nearest/normal-interval))
+                   (max-k/ni max-k/nearest/normal-interval)
+                   (min-beta/si min-beta/nearest/shorter-interval)
+                   (max-beta/si max-beta/nearest/shorter-interval)
+                   (min-beta/ni min-beta/nearest/normal-interval)
+                   (max-beta/ni max-beta/nearest/normal-interval))
       type
     (progn                              ; for future LET bindings
       `(block %dragonbox
@@ -471,7 +507,7 @@
                             (quaviver/math:hi/64 (+ hi64 (ash hi64 ,(- significand-size)))
                                                  (+ ,significand-size beta)))))
                  (declare ((integer ,(- max-k/si) ,(- min-k/si)) -k)
-                          ((signed-byte 32) beta)
+                          ((integer ,min-beta/si ,max-beta/si) beta)
                           ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                           ((quaviver/math:arithmetic-word ,arithmetic-size) xi zi)
                           (dynamic-extent expt10))
@@ -526,7 +562,7 @@
                     (zi-integer-p nil)
                     (r 0))
                (declare ((integer ,(- max-k/ni) ,(- min-k/ni)) -k)
-                        ((signed-byte 32) beta)
+                        ((integer ,min-beta/ni ,max-beta/ni) beta)
                         ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                         ((quaviver/math:arithmetic-word ,arithmetic-size) deltai zi r)
                         (boolean zi-integer-p)
@@ -599,7 +635,11 @@
                    (min-k/left min-k/left-closed-directed)
                    (max-k/left max-k/left-closed-directed)
                    (min-k/right min-k/right-closed-directed)
-                   (max-k/right max-k/right-closed-directed))
+                   (max-k/right max-k/right-closed-directed)
+                   (min-beta/left min-beta/left-closed-directed)
+                   (max-beta/left max-beta/left-closed-directed)
+                   (min-beta/right min-beta/right-closed-directed)
+                   (max-beta/right max-beta/right-closed-directed))
       type
     (progn                              ; for future LET bindings
       `(block %dragonbox
@@ -629,7 +669,7 @@
                      (xi-integer-p nil)
                      (r 0))
                 (declare ((integer ,(- max-k/left) ,(- min-k/left)) -k)
-                         ((signed-byte 32) beta)
+                         ((integer ,min-beta/left ,max-beta/left) beta)
                          ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                          ((quaviver/math:arithmetic-word ,arithmetic-size) deltai xi r)
                          (boolean xi-integer-p)
@@ -684,7 +724,7 @@
                      (zi (nth-value 0 (,floor-multiply 2fc expt10 beta)))
                      (r 0))
                 (declare ((integer ,(- max-k/right) ,(- min-k/right)) -k)
-                         ((signed-byte 32) beta)
+                         ((integer ,min-beta/right ,max-beta/right) beta)
                          ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
                          ((quaviver/math:arithmetic-word ,arithmetic-size) deltai zi r)
                          (dynamic-extent expt10))
