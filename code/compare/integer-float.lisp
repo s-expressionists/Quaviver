@@ -21,14 +21,19 @@
       test
     (let ((float-type (float-type (iterator-interval iterator))))
       (multiple-value-bind (significand exponent sign)
-          (iterator-integer iterator base)
+          (handler-case
+              (iterator-integer iterator base)
+            (floating-point-invalid-operation ()
+              ;; this might be signaled if we attempt to encode a signaling NaN.
+              (return-from compare/integer-float nil)))
         (let ((float1 (quaviver:integer-float client1 float-type base significand exponent sign))
               (float2 (quaviver:integer-float client2 float-type base significand exponent sign)))
-        (unless (equalp float1 float2)
-          (list (iterator-bits iterator)
-                (list significand exponent sign)
-                float1
-                float2)))))))
+          (unless (equalp (multiple-value-list (quaviver:float-integer nil 2 float1))
+                          (multiple-value-list (quaviver:float-integer nil 2 float2)))
+            (list (iterator-bits iterator)
+                  (list significand exponent sign)
+                  float1
+                  float2)))))))
 
 (defmethod iterator-value-pass-p ((test integer-float) iterator stream)
   (handler-case
