@@ -30,16 +30,12 @@
                ;; table lookup from an out of bounds error.
                (when (> q ,(+ max-exponent
                               (quaviver.math:ceiling-log-expt 2 10 1)))
-                 (error 'floating-point-overflow
-                        :operation 'quaviver:integer-float
-                        :operands (list ,client ',result-type 10
-                                        ,significand ,exponent ,sign)))
+                 (quaviver::integer-float-overflow
+                  ,client ',result-type 10 significand exponent sign))
                (when (< q ,(- min-exponent
                               (quaviver.math:ceiling-log-expt 2 10 1)))
-                 (error 'floating-point-underflow
-                        :operation 'quaviver:integer-float
-                        :operands (list ,client ',result-type 10
-                                        ,significand ,exponent ,sign)))
+                 (quaviver::integer-float-underflow
+                  ,client ',result-type 10 significand exponent sign))
                (setf ,significand (quaviver.math:round-to-odd
                                    ,arithmetic-size
                                    (ash ,significand shift)

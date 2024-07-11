@@ -1,5 +1,15 @@
 (in-package #:quaviver)
 
+(defun integer-float-overflow (client result-type base significand exponent sign)
+  (error 'floating-point-overflow
+         :operation 'quaviver:integer-float
+         :operands (list client result-type base significand exponent sign)))
+
+(defun integer-float-underflow (client result-type base significand exponent sign)
+  (error 'floating-point-underflow
+         :operation 'quaviver:integer-float
+         :operands (list client result-type base significand exponent sign)))
+
 (defmacro %integer-encode-float (client type significand exponent sign)
   (with-accessors ((storage-size storage-size)
                    (significand-bytespec significand-bytespec)
@@ -47,15 +57,11 @@
                   (setf ,significand-var (ash ,significand-var shift))
                   (decf ,exponent-var shift))
                 (cond ((< ,exponent-var ,min-exponent)
-                       (error 'floating-point-underflow
-                              :operation 'integer-float
-                              :operands (list ,client ',type 2
-                                              ,significand ,exponent ,sign)))
+                       (integer-float-underflow
+                        ,client ',type 2 ,significand ,exponent ,sign))
                       ((> ,exponent-var ,max-exponent)
-                       (error 'floating-point-overflow
-                              :operation 'integer-float
-                              :operands (list ,client ',type 2
-                                              ,significand ,exponent ,sign)))
+                       (integer-float-overflow
+                        ,client ',type 2 ,significand ,exponent ,sign))
                       (t
                        (incf ,exponent-var ,exponent-bias)
                        (cond ((plusp ,exponent-var)
