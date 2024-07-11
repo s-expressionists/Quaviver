@@ -95,8 +95,8 @@
     (let ((prod (gensym (string 'prod))))
       `(progn
          ;; (assert (<= ,number ,(expt 10 (1+ power))))
-         (let ((,prod (* (the (quaviver/math:arithmetic-word ,size) ,number) ,magic)))
-           (declare ((quaviver/math:arithmetic-word 32) ,prod)) ; depends on the constants
+         (let ((,prod (* (the (quaviver.math:arithmetic-word ,size) ,number) ,magic)))
+           (declare ((quaviver.math:arithmetic-word 32) ,prod)) ; depends on the constants
            (values (ldb (byte ,(- size position) ,position) ,prod)
                    (< (ldb (byte ,position 0) ,prod)
                       ,magic)))))))
@@ -107,24 +107,24 @@
     `(progn
        ;; (assert (<= ,number ,(expt 10 (1+ power))))
        (ldb (byte ,(- size position) ,position)
-            (* (the (quaviver/math:arithmetic-word ,size) ,number) ,magic)))))
+            (* (the (quaviver.math:arithmetic-word ,size) ,number) ,magic)))))
 
 (defmacro floor-by-expt10 (number power size max-number)
   (assert (not (minusp power)))
-  (let ((number `(the (quaviver/math:arithmetic-word ,size) ,number)))
+  (let ((number `(the (quaviver.math:arithmetic-word ,size) ,number)))
     (cond ((and (= size 32) (= power 1) (<= max-number 1073741828))
            `(ldb (byte 32 32) (* ,number 429496730)))
           ((and (= size 64) (= power 1) (<= max-number 4611686018427387908))
-           #+quaviver/math/smallnum
-           `(quaviver/math::*/64-64/hi64 ,number 1844674407370955162)
-           #-quaviver/math/smallnum
+           #+quaviver.math/smallnum
+           `(quaviver.math::*/64-64/hi64 ,number 1844674407370955162)
+           #-quaviver.math/smallnum
            `(ldb (byte 64 64) (* ,number 1844674407370955162)))
           ((and (= size 32) (= power 2))
            `(ldb (byte 27 37) (* ,number 1374389535)))
           ((and (= size 64) (= power 3) (<= max-number 15534100272597517998))
-           #+quaviver/math/smallnum
-           `(ash (quaviver/math::*/64-64/hi64 ,number 4722366482869645214) -8)
-           #-quaviver/math/smallnum
+           #+quaviver.math/smallnum
+           `(ash (quaviver.math::*/64-64/hi64 ,number 4722366482869645214) -8)
+           #-quaviver.math/smallnum
            `(ldb (byte 56 72) (* ,number 4722366482869645214)))
           (t
            `(floor ,number ,(expt 10 power))))))
@@ -471,7 +471,7 @@
                (exponent 0)
                (sign 0)
                (2fc 0))
-           (declare ((quaviver/math:arithmetic-word ,arithmetic-size) significand 2fc)
+           (declare ((quaviver.math:arithmetic-word ,arithmetic-size) significand 2fc)
                     ((or (integer ,min-exponent ,max-exponent) keyword) exponent)
                     ((integer -1 1) sign))
            (multiple-value-setq (significand exponent sign)
@@ -497,19 +497,19 @@
                  (shorter-interval ,client significand sign)
                (let* ((-k (floor-log10-expt2-minus-log10-4/3 exponent ,min-exponent ,max-exponent))
                       (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k/si ,max-k/si)))
-                      (expt10 (quaviver/math:expt ,arithmetic-size 10 -k))
+                      (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
                       ;; Left endpoint
                       (xi (let ((hi64 (,hi/2n expt10 64)))
-                            (quaviver/math:hi/64 (- hi64 (ash hi64 ,(- (1+ significand-size))))
+                            (quaviver.math:hi/64 (- hi64 (ash hi64 ,(- (1+ significand-size))))
                                                  (+ ,significand-size beta))))
                       ;; Right endpoint
                       (zi (let ((hi64 (,hi/2n expt10 64)))
-                            (quaviver/math:hi/64 (+ hi64 (ash hi64 ,(- significand-size)))
+                            (quaviver.math:hi/64 (+ hi64 (ash hi64 ,(- significand-size)))
                                                  (+ ,significand-size beta)))))
                  (declare ((integer ,(- max-k/si) ,(- min-k/si)) -k)
                           ((integer ,min-beta/si ,max-beta/si) beta)
-                          ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
-                          ((quaviver/math:arithmetic-word ,arithmetic-size) xi zi)
+                          ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
+                          ((quaviver.math:arithmetic-word ,arithmetic-size) xi zi)
                           (dynamic-extent expt10))
                  (when (and (not include-right-endpoint-p)
                             (<= 0 exponent
@@ -530,13 +530,13 @@
                  (setf significand (floor-by-expt10
                                     zi 1 ,arithmetic-size
                                     ,(* 20 (1+ (floor (1+ (ash 1 significand-size)) 3)))))
-                 (when (>= (the (quaviver/math:arithmetic-word ,arithmetic-size)
+                 (when (>= (the (quaviver.math:arithmetic-word ,arithmetic-size)
                                 (* 10 significand)) xi)
                    (return-from %dragonbox
                      (values significand (1+ -k) sign)))
                  (setf significand
-                       (ash (the (quaviver/math:arithmetic-word ,arithmetic-size)
-                                 (1+ (the (quaviver/math:arithmetic-word ,arithmetic-size)
+                       (ash (the (quaviver.math:arithmetic-word ,arithmetic-size)
+                                 (1+ (the (quaviver.math:arithmetic-word ,arithmetic-size)
                                           (,hi/2n expt10 (+ ,significand-size 1 beta)))))
                             -1))
                  (cond ((and (prefer-round-down-p ,client significand)
@@ -556,15 +556,15 @@
              (let* ((-k (- (floor-log10-expt2 exponent ,min-exponent ,max-exponent)
                            ,kappa))
                     (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k/ni ,max-k/ni)))
-                    (expt10 (quaviver/math:expt ,arithmetic-size 10 -k))
+                    (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
                     (deltai (,hi/2n expt10 (1+ beta)))
                     (zi 0)
                     (zi-integer-p nil)
                     (r 0))
                (declare ((integer ,(- max-k/ni) ,(- min-k/ni)) -k)
                         ((integer ,min-beta/ni ,max-beta/ni) beta)
-                        ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
-                        ((quaviver/math:arithmetic-word ,arithmetic-size) deltai zi r)
+                        ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
+                        ((quaviver.math:arithmetic-word ,arithmetic-size) deltai zi r)
                         (boolean zi-integer-p)
                         (dynamic-extent expt10))
                (multiple-value-setq (zi zi-integer-p)
@@ -606,12 +606,12 @@
                                (incf significand (if (and divisible-p zi-integer-p) (1- r) r))))
                             (t (incf significand (floor-by-expt10-small r ,kappa ,arithmetic-size)))))
                      (t
-                      (let* ((dist (+ (the (quaviver/math:arithmetic-word ,arithmetic-size)
+                      (let* ((dist (+ (the (quaviver.math:arithmetic-word ,arithmetic-size)
                                            (- r (ash deltai -1)))
                                       ,(floor (expt 10 kappa) 2)))
                              (approx-y-even-p
                                (logbitp 0 (logxor dist ,(floor (expt 10 kappa) 2)))))
-                        (declare ((quaviver/math:arithmetic-word ,arithmetic-size) dist))
+                        (declare ((quaviver.math:arithmetic-word ,arithmetic-size) dist))
                         (multiple-value-bind (dist divisible-p)
                             (floor-by-expt10-divisible-p dist ,kappa ,arithmetic-size)
                           (incf significand dist)
@@ -647,7 +647,7 @@
                (exponent 0)
                (sign 0)
                (2fc 0))
-           (declare ((quaviver/math:arithmetic-word ,arithmetic-size) significand 2fc)
+           (declare ((quaviver.math:arithmetic-word ,arithmetic-size) significand 2fc)
                     ((or (integer ,min-exponent ,max-exponent) keyword) exponent)
                     ((integer -1 1) sign))
            (multiple-value-setq (significand exponent sign)
@@ -663,15 +663,15 @@
               (let* ((-k (- (floor-log10-expt2 exponent ,min-exponent ,max-exponent)
                             ,kappa))
                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k/left ,max-k/left)))
-                     (expt10 (quaviver/math:expt ,arithmetic-size 10 -k))
+                     (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
                      (deltai (,hi/2n expt10 (1+ beta)))
                      (xi 0)
                      (xi-integer-p nil)
                      (r 0))
                 (declare ((integer ,(- max-k/left) ,(- min-k/left)) -k)
                          ((integer ,min-beta/left ,max-beta/left) beta)
-                         ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
-                         ((quaviver/math:arithmetic-word ,arithmetic-size) deltai xi r)
+                         ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
+                         ((quaviver.math:arithmetic-word ,arithmetic-size) deltai xi r)
                          (boolean xi-integer-p)
                          (dynamic-extent expt10))
                 (multiple-value-setq (xi xi-integer-p)
@@ -719,14 +719,14 @@
                                                ,min-exponent ,max-exponent)
                             ,kappa))
                      (beta (+ exponent (floor-log2-expt10 (- -k) ,min-k/right ,max-k/right)))
-                     (expt10 (quaviver/math:expt ,arithmetic-size 10 -k))
+                     (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
                      (deltai (,hi/2n expt10 (1+ (- beta (if shorter-interval-p 1 0)))))
                      (zi (nth-value 0 (,floor-multiply 2fc expt10 beta)))
                      (r 0))
                 (declare ((integer ,(- max-k/right) ,(- min-k/right)) -k)
                          ((integer ,min-beta/right ,max-beta/right) beta)
-                         ((quaviver/math:arithmetic-word ,arithmetic-size 2) expt10)
-                         ((quaviver/math:arithmetic-word ,arithmetic-size) deltai zi r)
+                         ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
+                         ((quaviver.math:arithmetic-word ,arithmetic-size) deltai zi r)
                          (dynamic-extent expt10))
                 ;; Step 2: Try larger divisor; remove trailing zeros if necessary
                 (setf significand (floor-by-expt10 ; base 10 significand from here on out
@@ -756,48 +756,48 @@
     (short-float
      (%nearest client value
                short-float
-               quaviver/math:hi/64
-               quaviver/math:floor-multiply/32-64q64
-               quaviver/math:floor-multiply/evenp/32-64q64))
+               quaviver.math:hi/64
+               quaviver.math:floor-multiply/32-64q64
+               quaviver.math:floor-multiply/evenp/32-64q64))
     (single-float
      (%nearest client value
                single-float
-               quaviver/math:hi/64
-               quaviver/math:floor-multiply/32-64q64
-               quaviver/math:floor-multiply/evenp/32-64q64))
+               quaviver.math:hi/64
+               quaviver.math:floor-multiply/32-64q64
+               quaviver.math:floor-multiply/evenp/32-64q64))
     (double-float
      (%nearest client value
                double-float
-               quaviver/math:hi/hi64/128
-               quaviver/math:floor-multiply/64-128q128
-               quaviver/math:floor-multiply/evenp/64-128q128))))
+               quaviver.math:hi/hi64/128
+               quaviver.math:floor-multiply/64-128q128
+               quaviver.math:floor-multiply/evenp/64-128q128))))
 
 #+(and (not clisp) quaviver/short-float)
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value short-float))
   (declare (optimize speed))
   (%nearest client value
             short-float
-            quaviver/math:hi/64
-            quaviver/math:floor-multiply/32-64q64
-            quaviver/math:floor-multiply/evenp/32-64q64))
+            quaviver.math:hi/64
+            quaviver.math:floor-multiply/32-64q64
+            quaviver.math:floor-multiply/evenp/32-64q64))
 
 #-clisp
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
   (%nearest client value
             single-float
-            quaviver/math:hi/64
-            quaviver/math:floor-multiply/32-64q64
-            quaviver/math:floor-multiply/evenp/32-64q64))
+            quaviver.math:hi/64
+            quaviver.math:floor-multiply/32-64q64
+            quaviver.math:floor-multiply/evenp/32-64q64))
 
 #-clisp
 (defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
   (%nearest client value
             double-float
-            quaviver/math:hi/hi64/128
-            quaviver/math:floor-multiply/64-128q128
-            quaviver/math:floor-multiply/evenp/64-128q128))
+            quaviver.math:hi/hi64/128
+            quaviver.math:floor-multiply/64-128q128
+            quaviver.math:floor-multiply/evenp/64-128q128))
 
 #+clisp
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) value)
@@ -806,45 +806,45 @@
     (short-float
      (%directed client value
                short-float
-               quaviver/math:hi/64
-               quaviver/math:floor-multiply/32-64q64
-               quaviver/math:floor-multiply/evenp/32-64q64))
+               quaviver.math:hi/64
+               quaviver.math:floor-multiply/32-64q64
+               quaviver.math:floor-multiply/evenp/32-64q64))
     (single-float
      (%directed client value
                single-float
-               quaviver/math:hi/64
-               quaviver/math:floor-multiply/32-64q64
-               quaviver/math:floor-multiply/evenp/32-64q64))
+               quaviver.math:hi/64
+               quaviver.math:floor-multiply/32-64q64
+               quaviver.math:floor-multiply/evenp/32-64q64))
     (double-float
      (%directed client value
                double-float
-               quaviver/math:hi/hi64/128
-               quaviver/math:floor-multiply/64-128q128
-               quaviver/math:floor-multiply/evenp/64-128q128))))
+               quaviver.math:hi/hi64/128
+               quaviver.math:floor-multiply/64-128q128
+               quaviver.math:floor-multiply/evenp/64-128q128))))
 
 #+(and (not clisp) quaviver/short-float)
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value short-float))
   (declare (optimize speed))
   (%directed client value
              short-float
-             quaviver/math:hi/64
-             quaviver/math:floor-multiply/32-64q64
-             quaviver/math:floor-multiply/evenp/32-64q64))
+             quaviver.math:hi/64
+             quaviver.math:floor-multiply/32-64q64
+             quaviver.math:floor-multiply/evenp/32-64q64))
 
 #-clisp
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
   (%directed client value
              single-float
-             quaviver/math:hi/64
-             quaviver/math:floor-multiply/32-64q64
-             quaviver/math:floor-multiply/evenp/32-64q64))
+             quaviver.math:hi/64
+             quaviver.math:floor-multiply/32-64q64
+             quaviver.math:floor-multiply/evenp/32-64q64))
 
 #-clisp
 (defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
   (%directed client value
              double-float
-             quaviver/math:hi/hi64/128
-             quaviver/math:floor-multiply/64-128q128
-             quaviver/math:floor-multiply/evenp/64-128q128))
+             quaviver.math:hi/hi64/128
+             quaviver.math:floor-multiply/64-128q128
+             quaviver.math:floor-multiply/evenp/64-128q128))

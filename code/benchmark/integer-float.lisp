@@ -19,7 +19,7 @@
 
 (defun random-float (type)
   (list (random (ash 1 (quaviver:significand-size type)))
-        (quaviver/math:floor-log-expt 10 2
+        (quaviver.math:floor-log-expt 10 2
                                       (+ (random (- (quaviver:max-exponent type)
                                                     (quaviver:min-exponent type)
                                                     (quaviver:significand-size type)

@@ -1,18 +1,18 @@
 ;;;; SPDX-FileCopyrightText: Copyright (c) 2024 s-expressionists
 ;;;; SPDX-License-Identifier: MIT
 
-(in-package #:quaviver/math)
+(in-package #:quaviver.math)
 
 (defun make-arithmetic-word (value width)
   (declare (ignorable width))
-  #+quaviver/math/smallnum
+  #+quaviver.math/smallnum
   (if (= width 128)
       (make-array 2 :element-type '(unsigned-byte 64)
                     :initial-contents
                     (list (ldb (byte 64 64) value)
                           (ldb (byte 64 0) value)))
       value)
-  #-quaviver/math/smallnum
+  #-quaviver.math/smallnum
   value)
 
 (defun compute-expt (k-min k-max width &optional (base 10))

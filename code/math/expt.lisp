@@ -1,4 +1,4 @@
-(in-package #:quaviver/math)
+(in-package #:quaviver.math)
 
 (defmacro define-expt (&key arithmetic-sizes types (base 10))
   `(progn

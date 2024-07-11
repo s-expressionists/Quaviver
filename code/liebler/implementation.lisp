@@ -20,7 +20,7 @@
                  (zerop ,significand))
              (quaviver:integer-float ,client ',result-type 2
                                      ,significand ,exponent ,sign)
-             (let* ((k (quaviver/math:floor-log-expt 2 10 ,exponent))
+             (let* ((k (quaviver.math:floor-log-expt 2 10 ,exponent))
                     (q (+ k (integer-length ,significand) ,(- significand-size)))
                     (shift (- ,(+ significand-size 2) (integer-length ,significand))))
                (declare (type fixnum k shift))
@@ -29,21 +29,21 @@
                ;; integer-float/2. These are here to protect the expt10
                ;; table lookup from an out of bounds error.
                (when (> q ,(+ max-exponent
-                              (quaviver/math:ceiling-log-expt 2 10 1)))
+                              (quaviver.math:ceiling-log-expt 2 10 1)))
                  (error 'floating-point-overflow
                         :operation 'quaviver:integer-float
                         :operands (list ,client ',result-type 10
                                         ,significand ,exponent ,sign)))
                (when (< q ,(- min-exponent
-                              (quaviver/math:ceiling-log-expt 2 10 1)))
+                              (quaviver.math:ceiling-log-expt 2 10 1)))
                  (error 'floating-point-underflow
                         :operation 'quaviver:integer-float
                         :operands (list ,client ',result-type 10
                                         ,significand ,exponent ,sign)))
-               (setf ,significand (quaviver/math:round-to-odd
+               (setf ,significand (quaviver.math:round-to-odd
                                    ,arithmetic-size
                                    (ash ,significand shift)
-                                   (quaviver/math:expt ,arithmetic-size 10
+                                   (quaviver.math:expt ,arithmetic-size 10
                                                        (- ,exponent)))
                      k (- k -1 shift)
                      shift (- ,significand-size (integer-length ,significand)))

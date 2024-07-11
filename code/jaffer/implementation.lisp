@@ -11,7 +11,7 @@
              (zerop ,significand))
          (quaviver:integer-float ,client ',result-type 2
                                  ,significand ,exponent ,sign)
-         (let ((q (+ (quaviver/math:floor-log-expt 2 10 ,exponent)
+         (let ((q (+ (quaviver.math:floor-log-expt 2 10 ,exponent)
                      (integer-length ,significand)
                      ,(- significand-size))))
            ;; The following overflow and underflow checks are not
@@ -19,13 +19,13 @@
            ;; integer-float/2. These are here to avoid excessible
            ;; large bignum in the intermediate calculations.
            (cond ((> q ,(+ max-exponent
-                          (quaviver/math:ceiling-log-expt 2 10 1)))
+                          (quaviver.math:ceiling-log-expt 2 10 1)))
                   (error 'floating-point-overflow
                          :operation 'quaviver:integer-float
                          :operands (list ,client ',result-type 10
                                          ,significand ,exponent ,sign)))
                  ((< q ,(- min-exponent
-                           (quaviver/math:ceiling-log-expt 2 10 1)))
+                           (quaviver.math:ceiling-log-expt 2 10 1)))
                   (error 'floating-point-underflow
                          :operation 'quaviver:integer-float
                          :operands (list ,client ',result-type 10

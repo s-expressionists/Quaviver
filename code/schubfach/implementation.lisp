@@ -33,28 +33,28 @@
                (values significand exponent sign)
                (let* ((lower-boundary-is-closer (= (logcount significand) 1))
                       (is-even (evenp significand))
-                      (k (quaviver/math:floor-log-expt 10 2 exponent lower-boundary-is-closer))
-                      (h (+ exponent 1 (quaviver/math:floor-log-expt 2 10 (- k))))
-                      (expt10 (quaviver/math:expt ,arithmetic-size 10 k)))
+                      (k (quaviver.math:floor-log-expt 10 2 exponent lower-boundary-is-closer))
+                      (h (+ exponent 1 (quaviver.math:floor-log-expt 2 10 (- k))))
+                      (expt10 (quaviver.math:expt ,arithmetic-size 10 k)))
                  (declare (type boolean
                                 lower-boundary-is-closer is-even)
-                          (type (integer ,(quaviver/math:floor-log-expt 10 2 min-exponent)
-                                         ,(quaviver/math:ceiling-log-expt 10 2 max-exponent))
+                          (type (integer ,(quaviver.math:floor-log-expt 10 2 min-exponent)
+                                         ,(quaviver.math:ceiling-log-expt 10 2 max-exponent))
                                 k)
                           (type (integer 0 4)
                                 h)
-                          (type (quaviver/math:arithmetic-word ,arithmetic-size 2)
+                          (type (quaviver.math:arithmetic-word ,arithmetic-size 2)
                                 expt10)
                           (dynamic-extent expt10))
                  (setf significand (ash significand 2))
-                 (let ((lower (quaviver/math:round-to-odd
+                 (let ((lower (quaviver.math:round-to-odd
                                ,arithmetic-size
                                (ash (if lower-boundary-is-closer
                                         (1- significand)
                                         (- significand 2))
                                     h)
                                expt10))
-                       (upper (quaviver/math:round-to-odd
+                       (upper (quaviver.math:round-to-odd
                                ,arithmetic-size
                                (ash (+ significand 2)
                                     h)
@@ -67,7 +67,7 @@
                             (type (unsigned-byte ,(- word-size 2))
                                   s s+1)
                             (type boolean round-up))
-                   (setf significand (quaviver/math:round-to-odd
+                   (setf significand (quaviver.math:round-to-odd
                                       ,arithmetic-size
                                       (ash significand h) expt10))
                    (unless is-even

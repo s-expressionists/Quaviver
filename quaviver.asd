@@ -16,33 +16,19 @@
                 :serial t
                 :components ((:file "packages")
                              (:file "interface")
+                             (:file "traits")
+                             (:module "math"
+                              :serial t
+                              :components ((:file "utility")
+                                           (:file "implementation")
+                                           (:file "expt")
+                                           (:file "round-to-odd")))
                              (:file "bits-float")
                              (:file "float-bits")
-                             (:file "traits")
                              (:file "integer-float-2")
                              (:file "float-integer-2")
                              (:file "digits-integer")
                              (:file "integer-digits")))))
-
-(defsystem "quaviver/math"
-  :description "Math routines for Quaviver"
-  :license "MIT AND (Apache-2.0 WITH LLVM-exception OR BSL-1.0)"
-  :author ("Robert Strandh"
-           "Paul A. Patience"
-           "Tarn W. Burton")
-  :version (:read-file-form "version.sexp")
-  :homepage "https://github.com/s-expressionists/Quaviver"
-  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
-  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
-  :depends-on ("quaviver")
-  :components ((:module "code"
-                :pathname "code/math/"
-                :serial t
-                :components ((:file "packages")
-                             (:file "utility")
-                             (:file "implementation")
-                             (:file "expt")
-                             (:file "round-to-odd")))))
 
 (defsystem "quaviver/ieee754"
   :description "IEEE-754 float conversions"
@@ -136,7 +122,6 @@
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
   :depends-on ("quaviver"
-               "quaviver/math"
                "quaviver/trailing-zeros")
   :components ((:module "code"
                 :pathname "code/schubfach/"
@@ -153,7 +138,6 @@
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
   :depends-on ("quaviver"
-               "quaviver/math"
                "quaviver/trailing-zeros")
   :components ((:module "code"
                 :pathname "code/dragonbox/"
@@ -170,8 +154,7 @@
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
-  :depends-on ("quaviver"
-               "quaviver/math")
+  :depends-on ("quaviver")
   :components ((:module "code"
                 :pathname "code/jaffer/"
                 :serial t
@@ -186,8 +169,7 @@
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
-  :depends-on ("quaviver"
-               "quaviver/math")
+  :depends-on ("quaviver")
   :components ((:module "code"
                 :pathname "code/liebler/"
                 :serial t

@@ -9,10 +9,10 @@
 ;;;;
 ;;;; [1]: https://github.com/jk-jeon/dragonbox
 
-(in-package #:quaviver/math)
+(in-package #:quaviver.math)
 
 (deftype arithmetic-word (arithmetic-size &optional (count 1))
-  #+quaviver/math/smallnum
+  #+quaviver.math/smallnum
   (case arithmetic-size
     (32 (case count
           (1 `(unsigned-byte 32))
@@ -22,13 +22,13 @@
             `(unsigned-byte 64)
             `(simple-array (unsigned-byte 64) (,count))))
     (otherwise `(unsigned-byte ,(* arithmetic-size count))))
-  #-quaviver/math/smallnum
+  #-quaviver.math/smallnum
   `(unsigned-byte ,(* arithmetic-size count)))
 
 ;;; Low-level, smallnum-optimized arithmetic operations
 ;;;
 ;;; These operations represent bignums as individual ub64 values.
-;;; They are not exported from quaviver/math.
+;;; They are not exported from quaviver.math.
 ;;;
 ;;; Some of these operations are ported from Dragonbox.
 
@@ -187,17 +187,17 @@
     (otherwise whole)))
 
 (defun hi/hi64/128 (x count)
-  #+quaviver/math/smallnum
+  #+quaviver.math/smallnum
   (hi/64 (aref x 0) count)
-  #-quaviver/math/smallnum
+  #-quaviver.math/smallnum
   (ash x (- count 128)))
 
 (define-compiler-macro hi/hi64/128 (&whole whole x count)
-  #-quaviver/math/smallnum
+  #-quaviver.math/smallnum
   (declare (ignore x))
   (case count
     (0 0)
-    #+quaviver/math/smallnum
+    #+quaviver.math/smallnum
     (64 `(aref (the (arithmetic-word 64 2) ,x) 0))
     (otherwise whole)))
 
@@ -221,19 +221,19 @@
              (zerop (ldb (byte ,size ,size) r))))) ; integer-p
 
 (defun floor-multiply/32-64q64 (x y &optional (pre-shift 0))
-  #+quaviver/math/smallnum
+  #+quaviver.math/smallnum
   (let ((r (*/32-64/hi64 (ash x pre-shift) y)))
     (values (ldb (byte 32 32) r)             ; integer part
             (not (ldb-test (byte 32 0) r)))) ; integer-p
-  #-quaviver/math/smallnum
+  #-quaviver.math/smallnum
   (%floor-multiply/n-2nq2n x y pre-shift 32))
 
 (defun floor-multiply/64-128q128 (x y &optional (pre-shift 0))
-  #+quaviver/math/smallnum
+  #+quaviver.math/smallnum
   (multiple-value-bind (rh rl)
       (*/64-128/hi128 (ash x pre-shift) (aref y 0) (aref y 1))
     (values rh (zerop rl))) ; integer part, integer-p
-  #-quaviver/math/smallnum
+  #-quaviver.math/smallnum
   (%floor-multiply/n-2nq2n x y pre-shift 64))
 
 ;;; The FLOOR-MULTIPLY/EVENP operations compute the same thing as
@@ -251,21 +251,21 @@
              (zerop (ldb (byte ,size (- ,size ,pre-shift)) r))))) ; integer-p
 
 (defun floor-multiply/evenp/32-64q64 (x y &optional (pre-shift 0))
-  #+quaviver/math/smallnum
+  #+quaviver.math/smallnum
   (let ((r (*/32-64/lo64 x y)))
     (values (logbitp (- 64 pre-shift) r)                    ; even-p
             (not (ldb-test (byte 32 (- 32 pre-shift)) r)))) ; integer-p
-  #-quaviver/math/smallnum
+  #-quaviver.math/smallnum
   (%floor-multiply/evenp/n-2nq2n x y pre-shift 32))
 
 (defun floor-multiply/evenp/64-128q128 (x y &optional (pre-shift 0))
-  #+quaviver/math/smallnum
+  #+quaviver.math/smallnum
   (multiple-value-bind (rh rl)
       (*/64-128/lo128 x (aref y 0) (aref y 1))
     (values (logbitp (- 64 pre-shift) rh) ; even-p
             (and (zerop (ldb (byte (- 64 pre-shift) pre-shift) rh)) ; integer-p
                  (zerop (ldb (byte 64 (- 64 pre-shift)) rl)))))
-  #-quaviver/math/smallnum
+  #-quaviver.math/smallnum
   (%floor-multiply/evenp/n-2nq2n x y pre-shift 64))
 
 (defconstant +min-base+ 2)
@@ -273,6 +273,11 @@
 (defconstant +max-base+ 36)
 
 (defconstant +log-expt-shift+ 22)
+
+(declaim (type (simple-array t (35 35))
+               *log-expt*)
+         (type (simple-vector 35)
+               *log-3/4*))
 
 (defvar *log-expt*
   (compute-log-expt +min-base+ +max-base+ +log-expt-shift+))
@@ -282,11 +287,12 @@
 
 (defun floor-log-expt (log-base expt-base exp &optional three-quarters-p)
   (declare (optimize speed))
-  (ash (+ (* exp (aref *log-expt*
-                       (- log-base +min-base+)
-                       (- expt-base +min-base+)))
+  (ash (+ (* exp (the fixnum
+                      (aref *log-expt*
+                            (- log-base +min-base+)
+                            (- expt-base +min-base+))))
           (if three-quarters-p
-              (svref *log-3/4* (- log-base +min-base+))
+              (the fixnum (svref *log-3/4* (- log-base +min-base+)))
               0))
        (- +log-expt-shift+)))
 
@@ -313,11 +319,13 @@
                      ,shift))))))
 
 (defun ceiling-log-expt (log-base expt-base exp &optional three-quarters-p)
-  (values (ceiling (+ (* exp (aref *log-expt*
-                                   (- log-base +min-base+)
-                                   (- expt-base +min-base+)))
+  (values (ceiling (+ (* exp
+                         (the fixnum
+                              (aref *log-expt*
+                                    (- log-base +min-base+)
+                                    (- expt-base +min-base+))))
                       (if three-quarters-p
-                          (svref *log-3/4* (- log-base +min-base+))
+                          (the fixnum (svref *log-3/4* (- log-base +min-base+)))
                           0))
                    (ash 1 +log-expt-shift+))))
 
