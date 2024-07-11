@@ -35,9 +35,11 @@
 
                      (defconstant ,bound-name ,bound)
 
-                     (defvar ,values-name ,(compute-expt (- bound) bound
+                     (#-sbcl defvar #+sbcl sb-ext:defglobal
+                         ,values-name ,(compute-expt (- bound) bound
                                                          (* 2 arithmetic-size)
                                                          base))
+                     #+sbcl (declaim (sb-ext:always-bound ,values-name))
 
                      (defun ,fun-name (power)
                        (svref ,values-name
