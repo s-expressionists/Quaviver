@@ -22,7 +22,7 @@
                                      ,significand ,exponent ,sign)
              (let* ((k (quaviver.math:floor-log-expt 2 10 ,exponent))
                     (q (+ k (integer-length ,significand) ,(- significand-size)))
-                    (shift (- ,(+ significand-size 2) (integer-length ,significand))))
+                    (shift (- ,word-size (integer-length ,significand))))
                (declare (type fixnum k shift))
                ;; The following overflow and underflow checks are not
                ;; strict checks. Stricter checks will happen in
