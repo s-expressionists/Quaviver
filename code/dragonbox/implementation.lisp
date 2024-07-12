@@ -399,7 +399,7 @@
    :RIGHT-CLOSED-DIRECTED (6 10))))
 
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3247-L3551
-(defmacro %nearest (client value type hi/2n floor-multiply floor-multiply/evenp)
+(defmacro %nearest (client type value hi/2n floor-multiply floor-multiply/evenp)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
                    (significand-size quaviver:significand-size)
                    (min-exponent quaviver:min-exponent)
@@ -416,166 +416,163 @@
       type
     (progn                              ; for future LET bindings
       `(block %dragonbox
-         (let ((significand 0)
-               (exponent 0)
-               (sign 0)
-               (2fc 0))
-           (declare ((quaviver.math:arithmetic-word ,arithmetic-size) significand 2fc)
-                    ((or (integer ,min-exponent ,max-exponent) keyword) exponent)
+         (multiple-value-bind (significand exponent sign)
+             ,(quaviver:float-internal-integer-form type value)
+           (declare ((quaviver.math:arithmetic-word ,arithmetic-size) significand)
+                    ((or quaviver:exponent-word keyword) exponent)
                     (fixnum sign))
-           (multiple-value-setq (significand exponent sign)
-             (quaviver:float-integer ,client 2 ,value))
-           (when (or (not (numberp exponent))
+           (when (or (keywordp exponent)
                      (zerop significand))
              (return-from %dragonbox
                (values significand exponent sign)))
-           (setf 2fc (ash significand 1))
-           ;; Shorter interval case
-           ;;
-           ;; Reference Dragonbox additionally checks for a normal
-           ;; number, but FLOAT-INTEGER specialized on base 2 rescales
-           ;; the subnormals to look like normals, so this part of the
-           ;; algorithm may still apply.
-           ;; Exhaustive single-float testing against Burger-Dybvig
-           ;; confirms that it is correct for binary32, anyway.
-           ;;
-           ;; TODO: Exhaustively test the shorter interval case on
-           ;; subnormals (only (1- SIGNIFICAND-SIZE) cases to check).
-           (when (eql (logcount significand) 1)
+           (let ((2fc (ash significand 1)))
+             (declare ((quaviver.math:arithmetic-word ,arithmetic-size) 2fc))
+             ;; Shorter interval case
+             ;;
+             ;; Reference Dragonbox additionally checks for a normal
+             ;; number, but FLOAT-INTEGER specialized on base 2 rescales
+             ;; the subnormals to look like normals, so this part of the
+             ;; algorithm may still apply.
+             ;; Exhaustive single-float testing against Burger-Dybvig
+             ;; confirms that it is correct for binary32, anyway.
+             ;;
+             ;; TODO: Exhaustively test the shorter interval case on
+             ;; subnormals (only (1- SIGNIFICAND-SIZE) cases to check).
+             (when (eql (logcount significand) 1)
+               (multiple-value-bind (include-left-endpoint-p include-right-endpoint-p)
+                   (shorter-interval ,client significand sign)
+                 (let* ((-k (quaviver.math:floor-log-expt 10 2 exponent t))
+                        (beta (+ exponent (quaviver.math:floor-log-expt 2 10 (- -k))))
+                        (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
+                        ;; Left endpoint
+                        (xi (let ((hi64 (,hi/2n expt10 64)))
+                              (quaviver.math:hi/64 (- hi64 (ash hi64 ,(- (1+ significand-size))))
+                                                   (+ ,significand-size beta))))
+                        ;; Right endpoint
+                        (zi (let ((hi64 (,hi/2n expt10 64)))
+                              (quaviver.math:hi/64 (+ hi64 (ash hi64 ,(- significand-size)))
+                                                   (+ ,significand-size beta)))))
+                   (declare ((integer ,(- max-k/si) ,(- min-k/si)) -k)
+                            ((integer ,min-beta/si ,max-beta/si) beta)
+                            ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
+                            ((quaviver.math:arithmetic-word ,arithmetic-size) xi zi)
+                            (dynamic-extent expt10))
+                   (when (and (not include-right-endpoint-p)
+                              (<= 0 exponent
+                                  ,(+ 2 (floor (log (/ (expt 10 (1+ (count-factors
+                                                                     (1+ (ash 1 significand-size))
+                                                                     5)))
+                                                       3)
+                                                    2)))))
+                     (decf zi))
+                   (when (or (not include-left-endpoint-p)
+                             (not (<= 2 exponent
+                                      ,(+ 2 (floor (log (/ (expt 10 (1+ (count-factors
+                                                                         (1- (ash 1 (1+ significand-size)))
+                                                                         5)))
+                                                           3)
+                                                        2))))))
+                     (incf xi))
+                   (setf significand (floor-by-expt10
+                                      zi 1 ,arithmetic-size
+                                      ,(* 20 (1+ (floor (1+ (ash 1 significand-size)) 3)))))
+                   (when (>= (the (quaviver.math:arithmetic-word ,arithmetic-size)
+                                  (* 10 significand)) xi)
+                     (return-from %dragonbox
+                       (values significand (1+ -k) sign)))
+                   (setf significand
+                         (ash (the (quaviver.math:arithmetic-word ,arithmetic-size)
+                                   (1+ (the (quaviver.math:arithmetic-word ,arithmetic-size)
+                                            (,hi/2n expt10 (+ ,significand-size 1 beta)))))
+                              -1))
+                   (cond ((and (prefer-round-down-p ,client significand)
+                               (<= ,(- (- (floor (- (log (expt 2 (+ significand-size 3)) 5) (log 3 5))))
+                                       2 (1- significand-size))
+                                   exponent
+                                   ,(- (- (quaviver.math:floor-log-expt 5 2 (1+ significand-size)))
+                                       2 (1- significand-size))))
+                          (decf significand))
+                         ((< significand xi)
+                          (incf significand)))
+                   (return-from %dragonbox
+                     (values significand -k sign)))))
+             ;; Step 1: Schubfach multiplier calculation
              (multiple-value-bind (include-left-endpoint-p include-right-endpoint-p)
-                 (shorter-interval ,client significand sign)
-               (let* ((-k (quaviver.math:floor-log-expt 10 2 exponent t))
+                 (normal-interval ,client significand sign)
+               (let* ((-k (- (quaviver.math:floor-log-expt 10 2 exponent)
+                             ,kappa))
                       (beta (+ exponent (quaviver.math:floor-log-expt 2 10 (- -k))))
                       (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
-                      ;; Left endpoint
-                      (xi (let ((hi64 (,hi/2n expt10 64)))
-                            (quaviver.math:hi/64 (- hi64 (ash hi64 ,(- (1+ significand-size))))
-                                                 (+ ,significand-size beta))))
-                      ;; Right endpoint
-                      (zi (let ((hi64 (,hi/2n expt10 64)))
-                            (quaviver.math:hi/64 (+ hi64 (ash hi64 ,(- significand-size)))
-                                                 (+ ,significand-size beta)))))
-                 (declare ((integer ,(- max-k/si) ,(- min-k/si)) -k)
-                          ((integer ,min-beta/si ,max-beta/si) beta)
+                      (deltai (,hi/2n expt10 (1+ beta)))
+                      (zi 0)
+                      (zi-integer-p nil)
+                      (r 0))
+                 (declare ((integer ,(- max-k/ni) ,(- min-k/ni)) -k)
+                          ((integer ,min-beta/ni ,max-beta/ni) beta)
                           ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
-                          ((quaviver.math:arithmetic-word ,arithmetic-size) xi zi)
+                          ((quaviver.math:arithmetic-word ,arithmetic-size) deltai zi r)
+                          (boolean zi-integer-p)
                           (dynamic-extent expt10))
-                 (when (and (not include-right-endpoint-p)
-                            (<= 0 exponent
-                                ,(+ 2 (floor (log (/ (expt 10 (1+ (count-factors
-                                                                   (1+ (ash 1 significand-size))
-                                                                   5)))
-                                                     3)
-                                                  2)))))
-                   (decf zi))
-                 (when (or (not include-left-endpoint-p)
-                           (not (<= 2 exponent
-                                    ,(+ 2 (floor (log (/ (expt 10 (1+ (count-factors
-                                                                       (1- (ash 1 (1+ significand-size)))
-                                                                       5)))
-                                                         3)
-                                                      2))))))
-                   (incf xi))
-                 (setf significand (floor-by-expt10
-                                    zi 1 ,arithmetic-size
-                                    ,(* 20 (1+ (floor (1+ (ash 1 significand-size)) 3)))))
-                 (when (>= (the (quaviver.math:arithmetic-word ,arithmetic-size)
-                                (* 10 significand)) xi)
+                 (multiple-value-setq (zi zi-integer-p)
+                   (,floor-multiply (logior 2fc 1) expt10 beta))
+                 ;; Step 2: Try larger divisor; remove trailing zeros if necessary
+                 (setf significand (floor-by-expt10 ; base 10 significand from here on out
+                                    zi ,(1+ kappa) ,arithmetic-size
+                                    ,(1- (* (expt 10 (1+ kappa)) (ash 1 significand-size))))
+                       r (- zi (* ,(expt 10 (1+ kappa)) significand)))
+                 (block nil
+                   (cond ((< r deltai)
+                          (when (zerop (logior r
+                                               (if zi-integer-p 0 1)
+                                               (if include-right-endpoint-p 1 0)))
+                            (cond ((eq (binary-decimal-rounding ,client) :do-not-care)
+                                   (setf significand (1- (* 10 significand)))
+                                   (return-from %dragonbox
+                                     (values significand (+ -k ,kappa) sign)))
+                                  (t
+                                   (decf significand)
+                                   (setf r ,(expt 10 (1+ kappa)))
+                                   (return)))))
+                         ((> r deltai) (return))
+                         (t
+                          (multiple-value-bind (xi-even-p xi-integer-p)
+                              (,floor-multiply/evenp (1- 2fc) expt10 beta)
+                            (when (zerop (logior (if xi-even-p 1 0)
+                                                 (logand (if xi-integer-p 1 0)
+                                                         (if include-left-endpoint-p 1 0))))
+                              (return)))))
                    (return-from %dragonbox
-                     (values significand (1+ -k) sign)))
-                 (setf significand
-                       (ash (the (quaviver.math:arithmetic-word ,arithmetic-size)
-                                 (1+ (the (quaviver.math:arithmetic-word ,arithmetic-size)
-                                          (,hi/2n expt10 (+ ,significand-size 1 beta)))))
-                            -1))
-                 (cond ((and (prefer-round-down-p ,client significand)
-                             (<= ,(- (- (floor (- (log (expt 2 (+ significand-size 3)) 5) (log 3 5))))
-                                     2 (1- significand-size))
-                                 exponent
-                                 ,(- (- (quaviver.math:floor-log-expt 5 2 (1+ significand-size)))
-                                     2 (1- significand-size))))
-                        (decf significand))
-                       ((< significand xi)
-                        (incf significand)))
-                 (return-from %dragonbox
-                   (values significand -k sign)))))
-           ;; Step 1: Schubfach multiplier calculation
-           (multiple-value-bind (include-left-endpoint-p include-right-endpoint-p)
-               (normal-interval ,client significand sign)
-             (let* ((-k (- (quaviver.math:floor-log-expt 10 2 exponent)
-                           ,kappa))
-                    (beta (+ exponent (quaviver.math:floor-log-expt 2 10 (- -k))))
-                    (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
-                    (deltai (,hi/2n expt10 (1+ beta)))
-                    (zi 0)
-                    (zi-integer-p nil)
-                    (r 0))
-               (declare ((integer ,(- max-k/ni) ,(- min-k/ni)) -k)
-                        ((integer ,min-beta/ni ,max-beta/ni) beta)
-                        ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
-                        ((quaviver.math:arithmetic-word ,arithmetic-size) deltai zi r)
-                        (boolean zi-integer-p)
-                        (dynamic-extent expt10))
-               (multiple-value-setq (zi zi-integer-p)
-                 (,floor-multiply (logior 2fc 1) expt10 beta))
-               ;; Step 2: Try larger divisor; remove trailing zeros if necessary
-               (setf significand (floor-by-expt10 ; base 10 significand from here on out
-                                  zi ,(1+ kappa) ,arithmetic-size
-                                  ,(1- (* (expt 10 (1+ kappa)) (ash 1 significand-size))))
-                     r (- zi (* ,(expt 10 (1+ kappa)) significand)))
-               (block nil
-                 (cond ((< r deltai)
-                        (when (zerop (logior r
-                                             (if zi-integer-p 0 1)
-                                             (if include-right-endpoint-p 1 0)))
-                          (cond ((eq (binary-decimal-rounding ,client) :do-not-care)
-                                 (setf significand (1- (* 10 significand)))
-                                 (return-from %dragonbox
-                                   (values significand (+ -k ,kappa) sign)))
-                                (t
-                                 (decf significand)
-                                 (setf r ,(expt 10 (1+ kappa)))
-                                 (return)))))
-                       ((> r deltai) (return))
+                     (values significand (+ -k ,kappa 1) sign)))
+                 ;; Step 3: Find the significand with the smaller divisor
+                 (setf significand (* 10 significand))
+                 (cond ((eq (binary-decimal-rounding ,client) :do-not-care)
+                        (cond ((not include-right-endpoint-p)
+                               (multiple-value-bind (r divisible-p)
+                                   (floor-by-expt10-divisible-p r ,kappa ,arithmetic-size)
+                                 (incf significand (if (and divisible-p zi-integer-p) (1- r) r))))
+                              (t (incf significand (floor-by-expt10-small r ,kappa ,arithmetic-size)))))
                        (t
-                        (multiple-value-bind (xi-even-p xi-integer-p)
-                            (,floor-multiply/evenp (1- 2fc) expt10 beta)
-                          (when (zerop (logior (if xi-even-p 1 0)
-                                               (logand (if xi-integer-p 1 0)
-                                                       (if include-left-endpoint-p 1 0))))
-                            (return)))))
-                 (return-from %dragonbox
-                   (values significand (+ -k ,kappa 1) sign)))
-               ;; Step 3: Find the significand with the smaller divisor
-               (setf significand (* 10 significand))
-               (cond ((eq (binary-decimal-rounding ,client) :do-not-care)
-                      (cond ((not include-right-endpoint-p)
-                             (multiple-value-bind (r divisible-p)
-                                 (floor-by-expt10-divisible-p r ,kappa ,arithmetic-size)
-                               (incf significand (if (and divisible-p zi-integer-p) (1- r) r))))
-                            (t (incf significand (floor-by-expt10-small r ,kappa ,arithmetic-size)))))
-                     (t
-                      (let* ((dist (+ (the (quaviver.math:arithmetic-word ,arithmetic-size)
-                                           (- r (ash deltai -1)))
-                                      ,(floor (expt 10 kappa) 2)))
-                             (approx-y-even-p
-                               (logbitp 0 (logxor dist ,(floor (expt 10 kappa) 2)))))
-                        (declare ((quaviver.math:arithmetic-word ,arithmetic-size) dist))
-                        (multiple-value-bind (dist divisible-p)
-                            (floor-by-expt10-divisible-p dist ,kappa ,arithmetic-size)
-                          (incf significand dist)
-                          (when divisible-p
-                            (multiple-value-bind (yi-even-p yi-integer-p)
-                                (,floor-multiply/evenp 2fc expt10 beta)
-                              (cond ((not (eq yi-even-p approx-y-even-p))
-                                     (decf significand))
-                                    ((and (prefer-round-down-p ,client significand)
-                                          yi-integer-p)
-                                     (decf significand)))))))))
-               (values significand (+ -k ,kappa) sign))))))))
+                        (let* ((dist (+ (the (quaviver.math:arithmetic-word ,arithmetic-size)
+                                             (- r (ash deltai -1)))
+                                        ,(floor (expt 10 kappa) 2)))
+                               (approx-y-even-p
+                                 (logbitp 0 (logxor dist ,(floor (expt 10 kappa) 2)))))
+                          (declare ((quaviver.math:arithmetic-word ,arithmetic-size) dist))
+                          (multiple-value-bind (dist divisible-p)
+                              (floor-by-expt10-divisible-p dist ,kappa ,arithmetic-size)
+                            (incf significand dist)
+                            (when divisible-p
+                              (multiple-value-bind (yi-even-p yi-integer-p)
+                                  (,floor-multiply/evenp 2fc expt10 beta)
+                                (cond ((not (eq yi-even-p approx-y-even-p))
+                                       (decf significand))
+                                      ((and (prefer-round-down-p ,client significand)
+                                            yi-integer-p)
+                                       (decf significand)))))))))
+                 (values significand (+ -k ,kappa) sign)))))))))
 
 ;;; Based on https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3553-L3799
-(defmacro %directed (client value type hi/2n floor-multiply floor-multiply/evenp)
+(defmacro %directed (client type value hi/2n floor-multiply floor-multiply/evenp)
   (with-accessors ((arithmetic-size quaviver:arithmetic-size)
                    (significand-size quaviver:significand-size)
                    (min-exponent quaviver:min-exponent)
@@ -592,207 +589,206 @@
       type
     (progn                              ; for future LET bindings
       `(block %dragonbox
-         (let ((significand 0)
-               (exponent 0)
-               (sign 0)
-               (2fc 0))
-           (declare ((quaviver.math:arithmetic-word ,arithmetic-size) significand 2fc)
-                    ((or (integer ,min-exponent ,max-exponent) keyword) exponent)
+         (multiple-value-bind (significand exponent sign)
+             ,(quaviver:float-internal-integer-form type value)
+           (declare ((quaviver.math:arithmetic-word ,arithmetic-size) significand)
+                    ((or quaviver:exponent-word keyword) exponent)
                     (fixnum sign))
-           (multiple-value-setq (significand exponent sign)
-             (quaviver:float-integer ,client 2 ,value))
-           (when (or (not (numberp exponent))
+           (when (or (keywordp exponent)
                      (zerop significand))
              (return-from %dragonbox
                (values significand exponent sign)))
-           (setf 2fc (ash significand 1))
-           (ecase (direction ,client ,value)
-             (:left-closed-directed
-              ;; Step 1: Schubfach multiplier calculation
-              (let* ((-k (- (quaviver.math:floor-log-expt 10 2 exponent)
-                            ,kappa))
-                     (beta (+ exponent (quaviver.math:floor-log-expt 2 10 (- -k))))
-                     (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
-                     (deltai (,hi/2n expt10 (1+ beta)))
-                     (xi 0)
-                     (xi-integer-p nil)
-                     (r 0))
-                (declare ((integer ,(- max-k/left) ,(- min-k/left)) -k)
-                         ((integer ,min-beta/left ,max-beta/left) beta)
-                         ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
-                         ((quaviver.math:arithmetic-word ,arithmetic-size) deltai xi r)
-                         (boolean xi-integer-p)
-                         (dynamic-extent expt10))
-                (multiple-value-setq (xi xi-integer-p)
-                  (,floor-multiply 2fc expt10 beta))
-                ,@(when (eq type 'single-float)
-                    `((when (<= exponent -80)
-                        (setf xi-integer-p nil))))
-                (unless xi-integer-p
-                  (incf xi))
-                ;; Step 2: Try larger divisor; remove trailing zeros if necessary
-                (setf significand (floor-by-expt10 ; base 10 significand from here on out
-                                   xi ,(1+ kappa) ,arithmetic-size
-                                   ,(1- (* (expt 10 (1+ kappa)) (ash 1 significand-size))))
-                      r (- xi (* ,(expt 10 (1+ kappa)) significand)))
-                (unless (zerop r)
-                  (incf significand)
-                  (setf r (- ,(expt 10 (1+ kappa)) r)))
-                (block nil
-                  (cond ((> r deltai) (return))
-                        ((= r deltai)
-                         (multiple-value-bind (zi-even-p zi-integer-p)
-                             (,floor-multiply/evenp (+ 2fc 2) expt10 beta)
-                           (when (or zi-even-p zi-integer-p)
-                             (return)))))
-                  (return-from %dragonbox
-                    (values significand (+ -k ,kappa 1) sign)))
-                ;; Step 3: Find the significand with the smaller divisor
-                (setf significand (- (* 10 significand)
-                                     (floor-by-expt10-small r ,kappa ,arithmetic-size)))
-                (values significand (+ -k ,kappa) sign)))
-             (:right-closed-directed
-              ;; Step 1: Schubfach multiplier calculation
-              (let* ((shorter-interval-p
-                       ;; Like in %NEAREST (see its comment for more information),
-                       ;; we include the subnormals, unlike reference Dragonbox.
-                       ;;
-                       ;; However, reference Dragonbox additionally checks that the
-                       ;; exponent bits are not 1 [1], which is not done here, so
-                       ;; something is likely missing here.
-                       ;; TODO: Investigate.
-                       ;;
-                       ;; [1]: https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3719
-                       (eql (logcount significand) 1))
-                     (-k (- (quaviver.math:floor-log-expt 10 2 (- exponent (if shorter-interval-p 1 0)))
-                            ,kappa))
-                     (beta (+ exponent (quaviver.math:floor-log-expt 2 10 (- -k))))
-                     (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
-                     (deltai (,hi/2n expt10 (1+ (- beta (if shorter-interval-p 1 0)))))
-                     (zi (nth-value 0 (,floor-multiply 2fc expt10 beta)))
-                     (r 0))
-                (declare ((integer ,(- max-k/right) ,(- min-k/right)) -k)
-                         ((integer ,min-beta/right ,max-beta/right) beta)
-                         ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
-                         ((quaviver.math:arithmetic-word ,arithmetic-size) deltai zi r)
-                         (dynamic-extent expt10))
-                ;; Step 2: Try larger divisor; remove trailing zeros if necessary
-                (setf significand (floor-by-expt10 ; base 10 significand from here on out
-                                   zi ,(1+ kappa) ,arithmetic-size
-                                   ,(1- (* (expt 10 (1+ kappa)) (ash 1 significand-size))))
-                      r (- zi (* ,(expt 10 (1+ kappa)) significand)))
-                (block nil
-                  (cond ((> r deltai) (return))
-                        ((= r deltai)
-                         (multiple-value-bind (xi-even-p xi-integer-p)
-                             (,floor-multiply/evenp (- 2fc (if shorter-interval-p 1 2))
-                                                    expt10 beta)
-                           (declare (ignore xi-integer-p))
-                           (unless xi-even-p
-                             (return)))))
-                  (return-from %dragonbox
-                    (values significand (+ -k ,kappa 1) sign)))
-                ;; Step 3: Find the significand with the smaller divisor
-                (setf significand (+ (* 10 significand)
-                                     (floor-by-expt10-small r ,kappa ,arithmetic-size)))
-                (values significand (+ -k ,kappa) sign)))))))))
+           (let ((2fc (ash significand 1)))
+             (declare ((quaviver.math:arithmetic-word ,arithmetic-size) 2fc))
+             (ecase (direction ,client sign)
+               (:left-closed-directed
+                ;; Step 1: Schubfach multiplier calculation
+                (let* ((-k (- (quaviver.math:floor-log-expt 10 2 exponent)
+                              ,kappa))
+                       (beta (+ exponent (quaviver.math:floor-log-expt 2 10 (- -k))))
+                       (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
+                       (deltai (,hi/2n expt10 (1+ beta)))
+                       (xi 0)
+                       (xi-integer-p nil)
+                       (r 0))
+                  (declare ((integer ,(- max-k/left) ,(- min-k/left)) -k)
+                           ((integer ,min-beta/left ,max-beta/left) beta)
+                           ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
+                           ((quaviver.math:arithmetic-word ,arithmetic-size) deltai xi r)
+                           (boolean xi-integer-p)
+                           (dynamic-extent expt10))
+                  (multiple-value-setq (xi xi-integer-p)
+                    (,floor-multiply 2fc expt10 beta))
+                  ,@(when (eq type 'single-float)
+                      `((when (<= exponent -80)
+                          (setf xi-integer-p nil))))
+                  (unless xi-integer-p
+                    (incf xi))
+                  ;; Step 2: Try larger divisor; remove trailing zeros if necessary
+                  (setf significand (floor-by-expt10 ; base 10 significand from here on out
+                                     xi ,(1+ kappa) ,arithmetic-size
+                                     ,(1- (* (expt 10 (1+ kappa)) (ash 1 significand-size))))
+                        r (- xi (* ,(expt 10 (1+ kappa)) significand)))
+                  (unless (zerop r)
+                    (incf significand)
+                    (setf r (- ,(expt 10 (1+ kappa)) r)))
+                  (block nil
+                    (cond ((> r deltai) (return))
+                          ((= r deltai)
+                           (multiple-value-bind (zi-even-p zi-integer-p)
+                               (,floor-multiply/evenp (+ 2fc 2) expt10 beta)
+                             (when (or zi-even-p zi-integer-p)
+                               (return)))))
+                    (return-from %dragonbox
+                      (values significand (+ -k ,kappa 1) sign)))
+                  ;; Step 3: Find the significand with the smaller divisor
+                  (setf significand (- (* 10 significand)
+                                       (floor-by-expt10-small r ,kappa ,arithmetic-size)))
+                  (values significand (+ -k ,kappa) sign)))
+               (:right-closed-directed
+                ;; Step 1: Schubfach multiplier calculation
+                (let* ((shorter-interval-p
+                         ;; Like in %NEAREST (see its comment for more information),
+                         ;; we include the subnormals, unlike reference Dragonbox.
+                         ;;
+                         ;; However, reference Dragonbox additionally checks that the
+                         ;; exponent bits are not 1 [1], which is not done here, so
+                         ;; something is likely missing here.
+                         ;; TODO: Investigate.
+                         ;;
+                         ;; [1]: https://github.com/jk-jeon/dragonbox/blob/04bc662afe22576fd0aa740c75dca63609297f19/include/dragonbox/dragonbox.h#L3719
+                         (eql (logcount significand) 1))
+                       (-k (- (quaviver.math:floor-log-expt 10 2 (- exponent (if shorter-interval-p 1 0)))
+                              ,kappa))
+                       (beta (+ exponent (quaviver.math:floor-log-expt 2 10 (- -k))))
+                       (expt10 (quaviver.math:expt ,arithmetic-size 10 -k))
+                       (deltai (,hi/2n expt10 (1+ (- beta (if shorter-interval-p 1 0)))))
+                       (zi (nth-value 0 (,floor-multiply 2fc expt10 beta)))
+                       (r 0))
+                  (declare ((integer ,(- max-k/right) ,(- min-k/right)) -k)
+                           ((integer ,min-beta/right ,max-beta/right) beta)
+                           ((quaviver.math:arithmetic-word ,arithmetic-size 2) expt10)
+                           ((quaviver.math:arithmetic-word ,arithmetic-size) deltai zi r)
+                           (dynamic-extent expt10))
+                  ;; Step 2: Try larger divisor; remove trailing zeros if necessary
+                  (setf significand (floor-by-expt10 ; base 10 significand from here on out
+                                     zi ,(1+ kappa) ,arithmetic-size
+                                     ,(1- (* (expt 10 (1+ kappa)) (ash 1 significand-size))))
+                        r (- zi (* ,(expt 10 (1+ kappa)) significand)))
+                  (block nil
+                    (cond ((> r deltai) (return))
+                          ((= r deltai)
+                           (multiple-value-bind (xi-even-p xi-integer-p)
+                               (,floor-multiply/evenp (- 2fc (if shorter-interval-p 1 2))
+                                                      expt10 beta)
+                             (declare (ignore xi-integer-p))
+                             (unless xi-even-p
+                               (return)))))
+                    (return-from %dragonbox
+                      (values significand (+ -k ,kappa 1) sign)))
+                  ;; Step 3: Find the significand with the smaller divisor
+                  (setf significand (+ (* 10 significand)
+                                       (floor-by-expt10-small r ,kappa ,arithmetic-size)))
+                  (values significand (+ -k ,kappa) sign))))))))))
 
 #+clisp
-(defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) value)
+(defmethod quaviver:float-integer
+    ((client nearest-client) (base (eql 10)) value)
   (declare (optimize speed))
-  (etypecase value
+  (typecase value
+    #+quaviver/short-float
     (short-float
-     (%nearest client value
-               short-float
+     (%nearest client short-float value
                quaviver.math:hi/64
                quaviver.math:floor-multiply/32-64q64
                quaviver.math:floor-multiply/evenp/32-64q64))
     (single-float
-     (%nearest client value
-               single-float
+     (%nearest client single-float value
                quaviver.math:hi/64
                quaviver.math:floor-multiply/32-64q64
                quaviver.math:floor-multiply/evenp/32-64q64))
     (double-float
-     (%nearest client value
-               double-float
+     (%nearest client double-float value
                quaviver.math:hi/hi64/128
                quaviver.math:floor-multiply/64-128q128
-               quaviver.math:floor-multiply/evenp/64-128q128))))
+               quaviver.math:floor-multiply/evenp/64-128q128))
+    (otherwise
+     (call-next-method))))
 
 #+(and (not clisp) quaviver/short-float)
-(defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value short-float))
+(defmethod quaviver:float-integer
+    ((client nearest-client) (base (eql 10)) (value short-float))
   (declare (optimize speed))
-  (%nearest client value
-            short-float
+  (%nearest client short-float value
             quaviver.math:hi/64
             quaviver.math:floor-multiply/32-64q64
             quaviver.math:floor-multiply/evenp/32-64q64))
 
 #-clisp
-(defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value single-float))
+(defmethod quaviver:float-integer
+    ((client nearest-client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
-  (%nearest client value
-            single-float
+  (%nearest client single-float value
             quaviver.math:hi/64
             quaviver.math:floor-multiply/32-64q64
             quaviver.math:floor-multiply/evenp/32-64q64))
 
 #-clisp
-(defmethod quaviver:float-integer ((client nearest-client) (base (eql 10)) (value double-float))
+(defmethod quaviver:float-integer
+    ((client nearest-client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
-  (%nearest client value
-            double-float
+  (%nearest client double-float value
             quaviver.math:hi/hi64/128
             quaviver.math:floor-multiply/64-128q128
             quaviver.math:floor-multiply/evenp/64-128q128))
 
 #+clisp
-(defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) value)
+(defmethod quaviver:float-integer
+    ((client directed-client) (base (eql 10)) value)
   (declare (optimize speed))
-  (etypecase value
+  (typecase value
+    #+quaviver/short-float
     (short-float
-     (%directed client value
-               short-float
-               quaviver.math:hi/64
-               quaviver.math:floor-multiply/32-64q64
-               quaviver.math:floor-multiply/evenp/32-64q64))
+     (%directed client short-float value
+                quaviver.math:hi/64
+                quaviver.math:floor-multiply/32-64q64
+                quaviver.math:floor-multiply/evenp/32-64q64))
     (single-float
-     (%directed client value
-               single-float
-               quaviver.math:hi/64
-               quaviver.math:floor-multiply/32-64q64
-               quaviver.math:floor-multiply/evenp/32-64q64))
+     (%directed client single-float value
+                quaviver.math:hi/64
+                quaviver.math:floor-multiply/32-64q64
+                quaviver.math:floor-multiply/evenp/32-64q64))
     (double-float
-     (%directed client value
-               double-float
-               quaviver.math:hi/hi64/128
-               quaviver.math:floor-multiply/64-128q128
-               quaviver.math:floor-multiply/evenp/64-128q128))))
+     (%directed client double-float value
+                quaviver.math:hi/hi64/128
+                quaviver.math:floor-multiply/64-128q128
+                quaviver.math:floor-multiply/evenp/64-128q128))
+    (otherwise
+     (call-next-method))))
 
 #+(and (not clisp) quaviver/short-float)
-(defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value short-float))
+(defmethod quaviver:float-integer
+    ((client directed-client) (base (eql 10)) (value short-float))
   (declare (optimize speed))
-  (%directed client value
-             short-float
+  (%directed client short-float value
              quaviver.math:hi/64
              quaviver.math:floor-multiply/32-64q64
              quaviver.math:floor-multiply/evenp/32-64q64))
 
 #-clisp
-(defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value single-float))
+(defmethod quaviver:float-integer
+    ((client directed-client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
-  (%directed client value
-             single-float
+  (%directed client single-float value
              quaviver.math:hi/64
              quaviver.math:floor-multiply/32-64q64
              quaviver.math:floor-multiply/evenp/32-64q64))
 
 #-clisp
-(defmethod quaviver:float-integer ((client directed-client) (base (eql 10)) (value double-float))
+(defmethod quaviver:float-integer
+    ((client directed-client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
-  (%directed client value
-             double-float
+  (%directed client double-float value
              quaviver.math:hi/hi64/128
              quaviver.math:floor-multiply/64-128q128
              quaviver.math:floor-multiply/evenp/64-128q128))

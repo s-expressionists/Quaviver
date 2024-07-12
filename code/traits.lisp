@@ -86,6 +86,9 @@
          (defmethod non-number-p ((type (eql ',type)))
            ,non-number-p)
 
+         (defmethod internal-base ((type (eql ',type)))
+           ,(float-radix (coerce 0 type)))
+
          (defmethod exponent-bias ((type (eql ',type)))
            ,exponent-bias)
 

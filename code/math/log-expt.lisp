@@ -4,8 +4,10 @@
                *log-expt*)
          (type (simple-vector 35)
                *log-3/4*)
-         (ftype (function (fixnum fixnum fixnum &optional boolean)
-                          (values fixnum &optional))
+         (ftype (function ((integer 2 36) (integer 2 36)
+                           quaviver:exponent-word
+                           &optional boolean)
+                          (values quaviver:exponent-word &optional))
                 floor-log-expt ceiling-log-expt)
          (inline floor-log-expt
                  ceiling-log-expt))
@@ -27,7 +29,7 @@
                                                     (ash 1 +log-expt-shift+)))))))
 
 (defun compute-log-constant (b)
-  (make-array  (- +max-base+ +min-base+ -1)
+  (make-array (- +max-base+ +min-base+ -1)
               :initial-contents
               (loop with v = (coerce (/ b) 'double-float)
                     for log-base from +min-base+ upto +max-base+
@@ -39,12 +41,13 @@
 
 (defun floor-log-expt (log-base expt-base exp &optional three-quarters-p)
   (declare (optimize speed))
-  (ash (+ (* exp (the fixnum
+  (ash (+ (* exp (the (unsigned-byte 25)
                       (aref *log-expt*
                             (- log-base +min-base+)
                             (- expt-base +min-base+))))
           (if three-quarters-p
-              (the fixnum (svref *log-3/4* (- log-base +min-base+)))
+              (the (signed-byte 22)
+                   (svref *log-3/4* (- log-base +min-base+)))
               0))
        (- +log-expt-shift+)))
 
@@ -72,12 +75,13 @@
 
 (defun ceiling-log-expt (log-base expt-base exp &optional three-quarters-p)
   (values (ceiling (+ (* exp
-                         (the fixnum
+                         (the (unsigned-byte 25)
                               (aref *log-expt*
                                     (- log-base +min-base+)
                                     (- expt-base +min-base+))))
                       (if three-quarters-p
-                          (the fixnum (svref *log-3/4* (- log-base +min-base+)))
+                          (the (signed-byte 22)
+                               (svref *log-3/4* (- log-base +min-base+)))
                           0))
                    (ash 1 +log-expt-shift+))))
 

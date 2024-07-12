@@ -56,8 +56,10 @@
                          result)))
         (not result))
     (error (condition)
-      (format stream "~:@<#x~x :error~:@>~%"
-              (iterator-bits iterator))
+      ;; the condition is formatted separately to ensure it is READable.
+      (format stream "~:@<#x~x :error ~s~:@>~%"
+              (iterator-bits iterator)
+              (format nil "~a" condition))
       nil)))
 
 (defun float-integer/bd.s/f (&rest rest &key (coverage 1) &allow-other-keys)
