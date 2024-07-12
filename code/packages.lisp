@@ -1,8 +1,10 @@
 (defpackage #:quaviver
   (:use #:common-lisp)
   (:export #:bits-float
+           #:bits-float-form
            #:float-bits
            #:integer-float
+           #:integer-float-form
            #:float-integer
            #:digits-integer
            #:integer-digits
