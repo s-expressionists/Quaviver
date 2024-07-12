@@ -38,7 +38,7 @@
                       (expt10 (quaviver.math:expt ,arithmetic-size 10 k)))
                  (declare (type boolean
                                 lower-boundary-is-closer is-even)
-                          (type (integer ,(quaviver.math:floor-log-expt 10 2 min-exponent)
+                          (type (integer ,(quaviver.math:floor-log-expt 10 2 min-exponent t)
                                          ,(quaviver.math:ceiling-log-expt 10 2 max-exponent))
                                 k)
                           (type (integer 0 4)
