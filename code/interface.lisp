@@ -1,12 +1,20 @@
 (cl:in-package #:quaviver)
 
-(defgeneric bits-float (client result-type bits))
+(defgeneric bits-float (float-type bits))
 
-(defgeneric float-bits (client value))
+(defgeneric bits-float-form (float-type bits))
 
-(defgeneric integer-float (client result-type base significand exponent sign))
+(defgeneric float-bits (value))
+
+(defgeneric float-bits-form (type value))
+
+(defgeneric integer-float (client float-type base significand exponent sign))
+
+(defgeneric internal-integer-float-form (float-type significand exponent sign))
 
 (defgeneric float-integer (client base value))
+
+(defgeneric float-internal-integer-form (float-type value))
 
 (defgeneric digits-integer (client base digits))
 
@@ -54,6 +62,8 @@
 
 (defgeneric non-number-p (type))
 
+(defgeneric internal-base (type))
+
 (defgeneric exponent-bias (type)
   (:method (type)
     (+ (ash 1 (1- (exponent-size type)))
@@ -82,5 +92,5 @@
 (deftype significand-word (type &optional (extra 0))
   `(unsigned-byte ,(+ (significand-size type) extra)))
 
-(deftype exponent-word (type &optional (extra 0))
-  `(integer ,(- (min-exponent type) extra) ,(+ (max-exponent type) extra)))
+(deftype exponent-word ()
+  '(signed-byte 22))

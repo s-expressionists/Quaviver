@@ -10,11 +10,16 @@
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :if-feature (:or :abcl :allegro :ccl :clasp :clisp :cmucl :ecl :lispworks
+                   :mezzano :sbcl)
   :depends-on ("alexandria"
                "trivial-features")
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")
+                             (:module "condition"
+                              :serial t
+                              :components ((:file "utility")))
                              (:file "interface")
                              (:file "traits")
                              (:module "math"
@@ -24,10 +29,14 @@
                                            (:file "implementation")
                                            (:file "expt")
                                            (:file "round-to-odd")))
+                             (:file "bits-float-form")
                              (:file "bits-float")
+                             (:file "float-bits-form")
                              (:file "float-bits")
-                             (:file "integer-float-2")
-                             (:file "float-integer-2")
+                             (:file "internal-integer-float-form")
+                             (:file "integer-float")
+                             (:file "float-internal-integer-form")
+                             (:file "float-integer")
                              (:file "digits-integer")
                              (:file "integer-digits")))))
 

@@ -232,52 +232,89 @@
 ;;; of numbers that represent the individual digits of the result,
 ;;; and the scale factor.
 
-(defmethod quaviver:float-integer ((client basic-client) (base (eql 10)) x)
-  (loop with x-abs = (abs x)
-        with v = (rational x-abs)
-        with v- = (rational (predecessor x-abs))
-        with v+ = (rational (successor x-abs))
-        with low = (/ (+ v v-) 2)
-        with high = (/ (+ v v+) 2)
-        with scale = (scale high)
-        with value = 0
-        with result = 0
-        for factor = 1/10 then (/ factor 10)
-        for q = (/ v (expt 10 scale)) then (- (* q 10) (floor (* q 10)))
-        for d = (floor (* q 10))
-        for low-out = (* (+ value (* factor d)) (expt 10 scale))
-        for high-out = (* (+ value (* factor (1+ d))) (expt 10 scale))
-        finally (return (values result
-                                scale
-                                (floor (float-sign x))))
-        do (cond ((and (> low-out low)
-                       (>= high-out high))
-                  (setf result (+ (* 10 result) d))
-                  (decf scale)
-                  (loop-finish))
-                 ((and (<= low-out low)
-                       (< high-out high))
-                  (setf result (+ (* 10 result) (1+ d)))
-                  (decf scale)
-                  (loop-finish))
-                 ((and (> low-out low)
-                       (< high-out high))
-                  (cond ((< (abs (- v low-out))
-                            (abs (- v high-out)))
+(defmacro %burger-dybvig/basic (client float-type value)
+  (declare (ignore client))
+  `(multiple-value-bind (significand exponent sign)
+       ,(quaviver:float-internal-integer-form float-type value)
+     (if (or (keywordp exponent)
+             (zerop significand))
+         (values significand exponent sign)
+         (loop with v = (* significand (expt 2 exponent))
+               with v- = (* (1- significand) (expt 2 exponent))
+               with v+ = (* (1+ significand) (expt 2 exponent))
+               with low = (/ (+ v v-) 2)
+               with high = (/ (+ v v+) 2)
+               with scale = (scale high)
+               with value = 0
+               with result = 0
+               for factor = 1/10 then (/ factor 10)
+               for q = (/ v (expt 10 scale)) then (- (* q 10) (floor (* q 10)))
+               for d = (floor (* q 10))
+               for low-out = (* (+ value (* factor d)) (expt 10 scale))
+               for high-out = (* (+ value (* factor (1+ d))) (expt 10 scale))
+               finally (return (values result
+                                       scale
+                                       sign))
+               do (cond ((and (> low-out low)
+                              (>= high-out high))
                          (setf result (+ (* 10 result) d))
-                         (decf scale))
-                        ((< (abs (- v high-out))
-                            (abs (- v low-out)))
+                         (decf scale)
+                         (loop-finish))
+                        ((and (<= low-out low)
+                              (< high-out high))
                          (setf result (+ (* 10 result) (1+ d)))
-                         (decf scale))
-                        (t ;; beak the tie
-                         (setf result (+ (* 10 result) (1+ d)))
-                         (decf scale)))
-                  (loop-finish))
-                 (t
-                  (setf result (+ (* 10 result) d))
-                  (decf scale)
-                  (incf value (* factor d))))))
+                         (decf scale)
+                         (loop-finish))
+                        ((and (> low-out low)
+                              (< high-out high))
+                         (cond ((< (abs (- v low-out))
+                                   (abs (- v high-out)))
+                                (setf result (+ (* 10 result) d))
+                                (decf scale))
+                               ((< (abs (- v high-out))
+                                   (abs (- v low-out)))
+                                (setf result (+ (* 10 result) (1+ d)))
+                                (decf scale))
+                               (t ;; break the tie
+                                (setf result (+ (* 10 result) (1+ d)))
+                                (decf scale)))
+                         (loop-finish))
+                        (t
+                         (setf result (+ (* 10 result) d))
+                         (decf scale)
+                         (incf value (* factor d))))))))
+
+#+clisp
+(defmethod quaviver:float-integer ((client basic-client) (base (eql 10)) value)
+  (typecase value
+    #+quaviver/short-float
+    (short-float
+     (%burger-dybvig/basic client short-float value))
+    (single-float
+     (%burger-dybvig/basic client single-float value))
+    (double-float
+     (%burger-dybvig/basic client double-float value))
+    #+quaviver/long-float
+    (long-float
+     (%burger-dybvig/basic client long-float value))
+    (otherwise
+     (call-next-method))))
+
+#+(and (not clisp) quaviver/short-float)
+(defmethod quaviver:float-integer ((client basic-client) (base (eql 10)) (value short-float))
+  (%burger-dybvig/basic client short-float value))
+
+#-clisp
+(defmethod quaviver:float-integer ((client basic-client) (base (eql 10)) (value single-float))
+  (%burger-dybvig/basic client single-float value))
+
+#-clisp
+(defmethod quaviver:float-integer ((client basic-client) (base (eql 10)) (value double-float))
+  (%burger-dybvig/basic client double-float value))
+
+#+(and (not clisp) quaviver/long-float)
+(defmethod quaviver:float-integer ((client basic-client) (base (eql 10)) (value long-float))
+  (%burger-dybvig/basic client long-float value))
 
 (defun int-1 (x)
   (let* ((v- (predecessor x))
@@ -308,71 +345,99 @@
 ;;; This is a direct implementation of the second algorithm of the
 ;;; Burger & Dybvig paper.  It is not modeled after their Scheme code,
 ;;; but reimplements the algorithm they present in Common Lisp.
-(defmethod quaviver:float-integer ((client client) (base (eql 10)) x)
-  (multiple-value-bind (f e sign)
-      (quaviver:float-integer client 2 x)
-    (cond ((or (not (numberp e))
-               (zerop f))
-           (values f e sign))
-          (t
-           ;; adjust mantissa and exponent
-           (when (< (float-precision x) (float-digits x))
-             (let ((shift (- (float-digits x) (integer-length f))))
-               (setf f (ash f shift))
-               (decf e shift)))
-           (let (r s m+ m-
-                 (high-ok (evenp f))
-                 (low-ok (evenp f)))
-             (if (>= e 0)
-                 (progn (if (= (decode-float x) 0.5)
-                            (setf m- (expt 2 e)
-                                  m+ (* m- 2)
-                                  s 4
-                                  r (* f m+ 2))
-                            (setf m- (expt 2 e)
-                                  m+ m-
-                                  s 2
-                                  r (* f m+ 2))))
-                 (progn (if (and (= (decode-float x) 0.5)
-                                 (= (float-precision x)
-                                    (float-precision (predecessor x))))
-                            (setf m- 1
-                                  m+ 2
-                                  s (* (expt 2 (- 1 e)) 2)
-                                  r (* f 4))
-                            (setf m- 1
-                                  m+ 1
-                                  s (* (expt 2 (- e)) 2)
-                                  r (* f 2)))))
-             (let ((k (scale (/ (+ r m+) s) high-ok)))
-               (if (>= k 0)
-                   (setf s (* s (expt 10 k)))
-                   (let ((coeff (expt 10 (- k))))
-                     (setf r (* r coeff)
-                           m+ (* m+ coeff)
-                           m- (* m- coeff))))
-               (prog ((result 0)
-                      tc1 tc2)
-                next
-                  (multiple-value-bind (quotient remainder)
-                      (floor (* r 10) s)
-                    (setf r remainder
-                          m+ (* m+ 10)
-                          m- (* m- 10)
-                          tc1 (if low-ok (<= r m-) (< r m-))
-                          tc2 (if high-ok
-                                  (>= (+ r m+) s)
-                                  (> (+ r m+) s)))
-                    (when (or tc1 tc2)
-                      (setf result
-                            (+ (* result 10)
-                               (if (or (and (not tc1) tc2)
-                                       (not (or (and tc1 (not tc2))
-                                                (< (* r 2) s))))
-                                   (1+ quotient)
-                                   quotient)))
-                      (decf k)
-                      (return (values result k sign)))
-                    (setf result (+ (* result 10) quotient))
-                    (decf k)
-                    (go next)))))))))
+(defmacro %burger-dybvig (client float-type value)
+  (declare (ignore client))
+  `(multiple-value-bind (f e sign)
+       ,(quaviver:float-internal-integer-form float-type value)
+     (cond ((or (not (numberp e))
+                (zerop f))
+            (values f e sign))
+           (t
+            (let (r s m+ m-
+                    (high-ok (evenp f))
+                    (low-ok (evenp f)))
+              (if (>= e 0)
+                  (progn (if (= (logcount f) 1)
+                             (setf m- (expt 2 e)
+                                   m+ (* m- 2)
+                                   s 4
+                                   r (* f m+ 2))
+                             (setf m- (expt 2 e)
+                                   m+ m-
+                                   s 2
+                                   r (* f m+ 2))))
+                  (progn (if (and (= (logcount f) 1)
+                                  #+(or)(= (integer-length f)
+                                           (integer-length (1- f))))
+                             (setf m- 1
+                                   m+ 2
+                                   s (* (expt 2 (- 1 e)) 2)
+                                   r (* f 4))
+                             (setf m- 1
+                                   m+ 1
+                                   s (* (expt 2 (- e)) 2)
+                                   r (* f 2)))))
+              (let ((k (scale (/ (+ r m+) s) high-ok)))
+                (if (>= k 0)
+                    (setf s (* s (expt 10 k)))
+                    (let ((coeff (expt 10 (- k))))
+                      (setf r (* r coeff)
+                            m+ (* m+ coeff)
+                            m- (* m- coeff))))
+                (prog ((result 0)
+                       tc1 tc2)
+                 next
+                   (multiple-value-bind (quotient remainder)
+                       (floor (* r 10) s)
+                     (setf r remainder
+                           m+ (* m+ 10)
+                           m- (* m- 10)
+                           tc1 (if low-ok (<= r m-) (< r m-))
+                           tc2 (if high-ok
+                                   (>= (+ r m+) s)
+                                   (> (+ r m+) s)))
+                     (when (or tc1 tc2)
+                       (setf result
+                             (+ (* result 10)
+                                (if (or (and (not tc1) tc2)
+                                        (not (or (and tc1 (not tc2))
+                                                 (< (* r 2) s))))
+                                    (1+ quotient)
+                                    quotient)))
+                       (decf k)
+                       (return (values result k sign)))
+                     (setf result (+ (* result 10) quotient))
+                     (decf k)
+                     (go next)))))))))
+
+#+clisp
+(defmethod quaviver:float-integer ((client client) (base (eql 10)) value)
+  (typecase value
+    #+quaviver/short-float
+    (short-float
+     (%burger-dybvig client short-float value))
+    (single-float
+     (%burger-dybvig client single-float value))
+    (double-float
+     (%burger-dybvig client double-float value))
+    #+quaviver/long-float
+    (long-float
+     (%burger-dybvig client long-float value))
+    (otherwise
+     (call-next-method))))
+
+#+(and (not clisp) quaviver/short-float)
+(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value short-float))
+  (%burger-dybvig client short-float value))
+
+#-clisp
+(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value single-float))
+  (%burger-dybvig client single-float value))
+
+#-clisp
+(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value double-float))
+  (%burger-dybvig client double-float value))
+
+#+(and (not clisp) quaviver/long-float)
+(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value long-float))
+  (%burger-dybvig client long-float value))

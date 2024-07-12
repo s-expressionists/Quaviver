@@ -1,9 +1,13 @@
 (defpackage #:quaviver
   (:use #:common-lisp)
   (:export #:bits-float
+           #:bits-float-form
            #:float-bits
+           #:float-bits-form
            #:integer-float
+           #:internal-integer-float-form
            #:float-integer
+           #:float-internal-integer-form
            #:digits-integer
            #:integer-digits
            #:storage-size
@@ -23,6 +27,7 @@
            #:hidden-bit-p
            #:subnormalp
            #:non-number-p
+           #:internal-base
            #:exponent-bias
            #:max-exponent
            #:min-exponent
@@ -61,3 +66,10 @@
 
 #+sbcl
 (pushnew :quaviver.math/smallnum *features*)
+
+(defpackage #:quaviver.condition
+  (:use #:common-lisp)
+  (:shadow #:floating-point-overflow
+           #:floating-point-underflow)
+  (:export #:floating-point-overflow
+           #:floating-point-underflow))

@@ -129,13 +129,17 @@
 #+clisp
 (defmethod quaviver:float-integer :around
     ((client client) (base (eql 10)) value)
-  (etypecase value
+  (typecase value
+    #+quaviver/short-float
     (short-float
      (remove-trailing-zeros short-float))
     (single-float
      (remove-trailing-zeros single-float))
+    #+quaviver/long-float
     (double-float
-     (remove-trailing-zeros double-float))))
+     (remove-trailing-zeros double-float))
+    (otherwise
+     (call-next-method))))
 
 #+(and (not clisp) quaviver/short-float)
 (defmethod quaviver:float-integer :around

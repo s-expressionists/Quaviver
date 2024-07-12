@@ -1,16 +1,13 @@
 (in-package #:quaviver)
 
-(defun integer-float-overflow (client result-type base significand exponent sign)
-  (error 'floating-point-overflow
-         :operation 'quaviver:integer-float
-         :operands (list client result-type base significand exponent sign)))
+(declaim (inline #+quaviver/short-float
+                 internal-integer-float/short-float
+                 internal-integer-float/single-float
+                 internal-integer-float/double-float
+                 #+quaviver/long-float
+                 internal-integer-float/long-float))
 
-(defun integer-float-underflow (client result-type base significand exponent sign)
-  (error 'floating-point-underflow
-         :operation 'quaviver:integer-float
-         :operands (list client result-type base significand exponent sign)))
-
-(defmacro %integer-encode-float (client type significand exponent sign)
+(defmacro %internal-integer-float-form (float-type significand exponent sign)
   (with-accessors ((storage-size storage-size)
                    (significand-bytespec significand-bytespec)
                    (significand-byte-form significand-byte-form)
@@ -24,20 +21,24 @@
                    (min-exponent min-exponent)
                    (max-exponent max-exponent)
                    (significand-size significand-size))
-      type
+      float-type
     (let ((exponent-var (gensym))
           (significand-var (gensym))
+          (sign-var (gensym))
           (bits-var (gensym)))
       `(let ((,bits-var 0)
              (,exponent-var ,exponent)
-             (,significand-var ,significand))
+             (,significand-var ,significand)
+             (,sign-var ,sign))
          (declare (type (unsigned-byte ,storage-size)
-                        ,bits-var ,significand-var)
-                  (type (or fixnum keyword)
+                        ,bits-var)
+                  (type (unsigned-byte ,(+ significand-size 6))
+                        ,significand-var)
+                  (type (or exponent-word keyword)
                         ,exponent-var)
-                  (type fixnum ,sign)
+                  (type fixnum ,sign-var)
                   (optimize speed))
-         (when (minusp ,sign)
+         (when (minusp ,sign-var)
            (setf (ldb ,sign-byte-form ,bits-var) 1))
          (cond ((keywordp ,exponent-var)
                 (setf (ldb ,exponent-byte-form ,bits-var)
@@ -57,11 +58,13 @@
                   (setf ,significand-var (ash ,significand-var shift))
                   (decf ,exponent-var shift))
                 (cond ((< ,exponent-var ,min-exponent)
-                       (integer-float-underflow
-                        ,client ',type 2 ,significand ,exponent ,sign))
+                       (quaviver.condition:floating-point-underflow
+                        'integer-float
+                        ,significand-var ,exponent-var ,sign-var))
                       ((> ,exponent-var ,max-exponent)
-                       (integer-float-overflow
-                        ,client ',type 2 ,significand ,exponent ,sign))
+                       (quaviver.condition:floating-point-overflow
+                        'integer-float
+                        ,significand-var ,exponent-var ,sign-var))
                       (t
                        (incf ,exponent-var ,exponent-bias)
                        (cond ((plusp ,exponent-var)
@@ -79,21 +82,32 @@
                                                (- ,(1+ (byte-position significand-bytespec))
                                                   ,exponent-var))
                                          ,significand-var))))))))
-         (quaviver:bits-float nil ',type ,bits-var)))))
+         ,(bits-float-form float-type bits-var)))))
 
-(defmethod integer-float
-    (client (result-type (eql 'single-float)) (base (eql 2)) significand exponent sign)
-  (%integer-encode-float client single-float
-                         significand exponent sign))
+#+quaviver/short-float
+(defun internal-integer-float/short-float (significand exponent sign)
+  (%internal-integer-float-form short-float significand exponent sign))
 
-#+(or abcl allegro ccl clasp cmucl ecl lispworks mezzano sbcl)
-(defmethod integer-float
-    (client (result-type (eql 'double-float)) (base (eql 2)) significand exponent sign)
-  (%integer-encode-float client double-float
-                         significand exponent sign))
+(defun internal-integer-float/single-float (significand exponent sign)
+  (%internal-integer-float-form single-float significand exponent sign))
+
+(defun internal-integer-float/double-float (significand exponent sign)
+  (%internal-integer-float-form double-float significand exponent sign))
 
 #+quaviver/long-float
-(defmethod integer-float
-    (client (result-type (eql 'long-float)) (base (eql 2)) significand exponent sign)
-  (%integer-encode-float client long-float
-                         significand exponent sign))
+(defun internal-integer-float/long-float (significand exponent sign)
+  (%internal-integer-float-form long-float significand exponent sign))
+
+#+quaviver/short-float
+(defmethod internal-integer-float-form ((float-type (eql 'short-float)) significand exponent sign)
+  `(internal-integer-float/short-float ,significand ,exponent ,sign))
+
+(defmethod internal-integer-float-form ((float-type (eql 'single-float)) significand exponent sign)
+  `(internal-integer-float/single-float ,significand ,exponent ,sign))
+
+(defmethod internal-integer-float-form ((float-type (eql 'double-float)) significand exponent sign)
+  `(internal-integer-float/double-float ,significand ,exponent ,sign))
+
+#+quaviver/long-float
+(defmethod internal-integer-float-form ((float-type (eql 'long-float)) significand exponent sign)
+  `(internal-integer-float/long-float ,significand ,exponent ,sign))

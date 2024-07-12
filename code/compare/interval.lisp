@@ -43,12 +43,11 @@
 
 (defmethod iterator-float ((iterator iterator))
   (with-accessors ((bits iterator-bits)
-                   (client iterator-client)
                    (interval iterator-interval))
       iterator
     (with-accessors ((float-type float-type))
         interval
-      (quaviver:bits-float client float-type bits))))
+      (quaviver:bits-float float-type bits))))
 
 (defmethod iterator-integer ((iterator iterator) base)
   (with-accessors ((bits iterator-bits)
@@ -58,8 +57,7 @@
     (with-accessors ((float-type float-type))
         interval
       (quaviver:float-integer client base
-                              (quaviver:bits-float client
-                                                   float-type
+                              (quaviver:bits-float float-type
                                                    bits)))))
 
 (defclass bit-interval (interval)
