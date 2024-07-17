@@ -29,7 +29,8 @@
   #+abcl
   `(system:make-single-float ,value)
   #+allegro
-  (let ((v (gensym)))
+  (alexandria:with-gensyms
+      (v)
     `(let ((,v ,value))
        (excl:shorts-to-single-float (ldb (byte 16 16) ,v)
                                     (ldb (byte 16 0) ,v))))
@@ -47,7 +48,8 @@
   #+ecl
   `(system:bits-single-float ,value)
   #+lispworks
-  (let ((m (gensym)))
+  (alexandria:with-gensyms
+      (m)
     `(let ((,m (sys:make-typed-aref-vector 4)))
        (declare (optimize (speed 3) (float 0) (safety 0))
                 (dynamic-extent ,m))
@@ -62,14 +64,16 @@
   #+abcl
   `(system:make-double-float ,value)
   #+allegro
-  (let ((v (gensym)))
+  (alexandria:with-gensyms
+      (v)
     `(let ((,v ,value))
        (excl:shorts-to-double-float (ldb (byte 16 48) ,v)
                                     (ldb (byte 16 32) ,v)
                                     (ldb (byte 16 16) ,v)
                                     (ldb (byte 16  0) ,v))))
   #+ccl
-  (let ((v (gensym)))
+  (alexandria:with-gensyms
+      (v)
     `(let ((,v ,value))
        (ccl::double-float-from-bits (ldb (byte 32 32) ,v)
                                     (ldb (byte 32  0) ,v))))
@@ -81,15 +85,16 @@
      (setf (ffi:slot (ffi:foreign-value u) 'bits) ,value)
      (ffi:slot (ffi:foreign-value u) 'value))
   #+cmucl
-  (let ((v (gensym)))
+  (alexandria:with-gensyms
+      (v)
     `(let ((,v ,value))
        (kernel:make-double-float (ub32-sb32 (ldb (byte 32 32) ,v))
                                  (ldb (byte 32 0) ,v))))
   #+ecl
   `(system:bits-double-float ,value)
   #+lispworks
-  (let ((m (gensym))
-        (v (gensym)))
+  (alexandria:with-gensyms
+      (m v)
     `(let ((,m (sys:make-typed-aref-vector 8))
            (,v ,value))
        (declare (optimize (speed 3) (float 0) (safety 0))
@@ -104,7 +109,8 @@
   #+mezzano
   `(mezzano.extensions:ieee-binary64-to-double-float ,value)
   #+sbcl
-  (let ((v (gensym)))
+  (alexandria:with-gensyms
+      (v)
     `(let ((,v ,value))
        (sb-kernel:make-double-float (ub32-sb32 (ldb (byte 32 32) ,v))
                                     (ldb (byte 32 0) ,v)))))
@@ -119,9 +125,8 @@
   #-quaviver/long-float-fallback
   `(system:bits-long-float ,value)
   #+quaviver/long-float-fallback
-  (let ((m (gensym))
-        (n (gensym))
-        (v (gensym)))
+  (alexandria:with-gensyms
+      (m n v)
     `(let ((,v ,value))
        (ffi:with-foreign-object (,m 'long-float/uint128)
          (let ((,n (ffi:get-slot-value ,m 'long-float/uint128 'u)))

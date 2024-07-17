@@ -22,10 +22,8 @@
                    (max-exponent max-exponent)
                    (significand-size significand-size))
       float-type
-    (let ((exponent-var (gensym))
-          (significand-var (gensym))
-          (sign-var (gensym))
-          (bits-var (gensym)))
+    (alexandria:with-gensyms
+        (exponent-var significand-var sign-var bits-var)
       `(let ((,bits-var 0)
              (,exponent-var ,exponent)
              (,significand-var ,significand)

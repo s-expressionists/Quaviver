@@ -14,8 +14,8 @@
   #+abcl
   `(system:single-float-bits ,value)
   #+allegro
-  (let ((us1 (gensym))
-        (us0 (gensym)))
+  (alexandria:with-gensyms
+      (us1 us0)
     `(multiple-value-bind (,us1 ,us0)
          (excl:single-float-to-shorts ,value)
        (logior (ash ,us1 16) ,us0)))
@@ -33,7 +33,8 @@
   #+ecl
   `(system:single-float-bits ,value)
   #+lispworks
-  (let ((m (gensym)))
+  (alexandria:with-gensyms
+      (m)
     `(let ((,m (sys:make-typed-aref-vector 4)))
        (declare (optimize (speed 3) (float 0) (safety 0))
                 (dynamic-extent ,m))
@@ -46,21 +47,20 @@
 
 (defmethod float-bits-form ((float-type (eql 'double-float)) value)
   #+abcl
-  (let ((v (gensym)))
+  (alexandria:with-gensyms
+      (v)
     `(let ((,v ,value))
        (logior (ash (system:double-float-high-bits ,v) 32)
                (system:double-float-low-bits ,v))))
   #+allegro
-  (let ((us3 (gensym))
-        (us2 (gensym))
-        (us1 (gensym))
-        (us0 (gensym)))
+  (alexandria:with-gensyms
+      (us3 us2 us1 us0)
     `(multiple-value-bind (,us3 ,us2 ,us1 ,us0)
          (excl:double-float-to-shorts ,value)
        (logior (ash ,us3 48) (ash ,us2 32) (ash ,us1 16) ,us0)))
   #+ccl
-  (let ((upper (gensym))
-        (lower (gensym)))
+  (alexandria:with-gensyms
+      (upper lower)
     `(multiple-value-bind (,upper ,lower)
          (ccl::double-float-bits ,value)
        (logior (ash ,upper 32) ,lower)))
@@ -72,14 +72,16 @@
      (setf (ffi:slot (ffi:foreign-value u) 'value) ,value)
      (ffi:slot (ffi:foreign-value u) 'bits))
   #+cmucl
-  (let ((v (gensym)))
+  (alexandria:with-gensyms
+      (v)
     `(let ((,v ,value))
        (logior (ash (ldb (byte 32 0) (kernel:double-float-high-bits ,v)) 32)
                (kernel:double-float-low-bits ,v))))
   #+ecl
   `(system:double-float-bits ,value)
   #+lispworks
-  (let ((m (gensym)))
+  (alexandria:with-gensyms
+      (m)
     `(let ((,m (sys:make-typed-aref-vector 8)))
        (declare (optimize (speed 3) (float 0) (safety 0))
                 (dynamic-extent ,m))
@@ -93,7 +95,8 @@
   #+mezzano
   `(mezzano.extensions:double-float-to-ieee-binary64 ,value)
   #+sbcl
-  (let ((v (gensym)))
+  (alexandria:with-gensyms
+      (v)
     `(let ((,v ,value))
        (logior (ash (ldb (byte 32 0) (sb-kernel:double-float-high-bits ,v)) 32)
                (sb-kernel:double-float-low-bits ,v)))))
@@ -103,8 +106,8 @@
   #-quaviver/long-float-fallback
   `(system:long-float-bits ,value)
   #+quaviver/long-float-fallback
-  (let ((m (gensym))
-        (n (gensym)))
+  (alexandria:with-gensyms
+      (m n)
     `(ffi:with-foreign-object (,m 'long-float/uint128)
        (setf (ffi:get-slot-value ,m 'long-float/uint128 'f) ,value)
        (let ((,n (ffi:get-slot-value ,m 'long-float/uint128 'u)))
