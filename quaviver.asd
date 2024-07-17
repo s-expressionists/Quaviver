@@ -40,22 +40,6 @@
                              (:file "digits-integer")
                              (:file "integer-digits")))))
 
-(defsystem "quaviver/ieee754"
-  :description "IEEE-754 float conversions"
-  ;; Contains code from Nibbles.
-  :license "MIT AND BSD-3-Clause"
-  :author ("Paul A. Patience")
-  :version (:read-file-form "version.sexp")
-  :homepage "https://github.com/s-expressionists/Quaviver"
-  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
-  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
-  :depends-on ("quaviver")
-  :components ((:module "code"
-                :pathname "code/ieee754/"
-                :serial t
-                :components ((:file "packages")
-                             (:file "implementation")))))
-
 (defsystem "quaviver/trailing-zeros"
   :description "Trailing zero removal"
   :license "MIT AND (Apache-2.0 WITH LLVM-exception OR BSL-1.0)"
