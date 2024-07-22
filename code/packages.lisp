@@ -38,7 +38,8 @@
            #:min-exponent
            #:arithmetic-size
            #:significand-word
-           #:exponent-word))
+           #:exponent-word
+           #:define-number-parser))
 
 #+clisp
 (pushnew :quaviver/short-float *features*)
