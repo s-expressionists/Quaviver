@@ -312,6 +312,24 @@
                              (:file "test")
                              (:static-file "expected-failures.sexp")))))
 
+(defsystem "quaviver/unit-test"
+  :description "Unit Test system for Quaviver"
+  :license "MIT"
+  :author ("Tarn W. Burton")
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ("parachute"
+               "quaviver/json")
+  :perform (asdf:test-op (op c)
+             (uiop:symbol-call :parachute :test :quaviver/unit-test))
+  :components ((:module "code"
+                :pathname "code/unit-test/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "json")))))
+
 (defsystem "quaviver/benchmark"
   :description "Benchmark system for Quaviver"
   :license "MIT"
