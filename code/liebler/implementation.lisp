@@ -12,7 +12,7 @@
     (let* ((extra 6)
            (word-size (+ extra significand-size)))
       `(locally
-           (declare (type (unsigned-byte ,word-size)
+           (declare #+(or)(type (unsigned-byte ,word-size)
                           ,significand-var)
                     (type (or quaviver:exponent-word keyword) ,exponent-var)
                     (type fixnum ,sign-var)
