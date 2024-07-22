@@ -37,19 +37,19 @@ jobs:
       with:
         repository: s-expressionists/Incless
         path: incless
-        ref: quaviver
+        ref: quaviver3
     - name: Checkout Inravina
       uses: actions/checkout@v4
       with:
         repository: s-expressionists/Inravina
         path: inravina
-        ref: quaviver
+        ref: quaviver3
     - name: Checkout Invistra
       uses: actions/checkout@v4
       with:
         repository: s-expressionists/Invistra
         path: invistra
-        ref: quaviver
+        ref: quaviver3
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
@@ -58,6 +58,9 @@ jobs:
       run: |
         make-rc
         asdf-add
+    - name: Run Unit Tests
+      run: |
+        lisp -i ${{ matrix.lisp }} -e "(defparameter cl-user::*exit-on-test-failures* t)" -e "(ql:quickload :quaviver/unit-test)" -e "(parachute:test :quaviver/unit-test)"
     - name: Run ANSI Tests
       run: |
         lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/ansi-test)" -e "(quaviver/ansi-test:test :exit t)"
