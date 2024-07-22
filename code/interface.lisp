@@ -16,9 +16,13 @@
 
 (defgeneric float-internal-integer-form (float-type value))
 
-(defgeneric digits-integer (client base digits))
+(defgeneric parse-number (client base sequence
+                          &optional start end integerp ratiop floatp float-type))
 
-(defgeneric integer-digits (client result-type base value))
+(defgeneric read-number (client base stream
+                         &optional integerp ratiop floatp float-type))
+
+(defgeneric write-number (client base value stream))
 
 (defgeneric storage-size (type))
 

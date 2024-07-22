@@ -8,8 +8,13 @@
            #:internal-integer-float-form
            #:float-integer
            #:float-internal-integer-form
-           #:digits-integer
-           #:integer-digits
+           #:parse-digits
+           #:compose-digits
+           #:parse-number
+           #:read-digits
+           #:write-digits
+           #:read-number
+           #:write-number
            #:storage-size
            #:significand-bytespec
            #:significand-byte-form

@@ -2,7 +2,7 @@
 
 (defsystem "quaviver"
   :description "A portable and extensible floating point string library"
-  :license "MIT AND (Apache-2.0 WITH LLVM-exception OR BSL-1.0)"
+  :license "MIT"
   :author ("Robert Strandh"
            "Paul A. Patience"
            "Tarn W. Burton")
@@ -38,8 +38,11 @@
                              (:file "integer-float")
                              (:file "float-internal-integer-form")
                              (:file "float-integer")
-                             (:file "digits-integer")
-                             (:file "integer-digits")))))
+                             (:file "parse-digits")
+                             (:file "compose-digits")
+                             (:file "read-digits")
+                             (:file "write-digits")
+                             (:file "number-parser")))))
 
 (defsystem "quaviver/trailing-zeros"
   :description "Trailing zero removal"
