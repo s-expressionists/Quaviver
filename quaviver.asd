@@ -19,7 +19,8 @@
                 :components ((:file "packages")
                              (:module "condition"
                               :serial t
-                              :components ((:file "utility")))
+                              :components ((:file "utility")
+                                           (:file "parse-error")))
                              (:file "interface")
                              (:file "traits")
                              (:module "math"

@@ -78,4 +78,9 @@
   (:shadow #:floating-point-overflow
            #:floating-point-underflow)
   (:export #:floating-point-overflow
-           #:floating-point-underflow))
+           #:floating-point-underflow
+           #:assertion-failed-error
+           #:invalid-character-error
+           #:invalid-leading-zeros-error
+           #:invalid-property-error
+           #:missing-digits-error))
