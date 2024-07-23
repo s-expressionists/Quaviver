@@ -175,6 +175,21 @@
                 :components ((:file "packages")
                              (:file "implementation")))))
 
+(defsystem "quaviver/blub"
+  :description "Generic Serialization/Deserialization for Quaviver"
+  :license "MIT"
+  :author ("Tarn W. Burton")
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ("quaviver")
+  :components ((:module "code"
+                :pathname "code/blub/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "implementation")))))
+
 (defsystem "quaviver/c"
   :description "C/C++ Serialization/Deserialization for Quaviver"
   :license "MIT"
