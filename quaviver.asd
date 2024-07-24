@@ -265,6 +265,30 @@
                 :components ((:file "packages")
                              (:file "implementation")))))
 
+(defsystem "quaviver/string"
+  :description "Serialization/Deserialization for Quaviver"
+  :license "MIT"
+  :author ("Tarn W. Burton")
+  :version (:read-file-form "version.sexp")
+  :homepage "https://github.com/s-expressionists/Quaviver"
+  :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
+  :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
+  :depends-on ("quaviver/blub"
+               "quaviver/c"
+               "quaviver/common-lisp"
+               "quaviver/fortran"
+               "quaviver/json"
+               "quaviver/python"
+               "quaviver/dragonbox"
+               "quaviver/liebler")
+  :components ((:module "code"
+                :pathname "code/string/"
+                :serial t
+                :components ((:file "packages")
+                             (:file "clients")
+                             (:file "number-parser")
+                             (:file "number-writer")))))
+
 (defsystem "quaviver/ansi-test"
   :description "ANSI Test system for Quaviver"
   :license "MIT"
