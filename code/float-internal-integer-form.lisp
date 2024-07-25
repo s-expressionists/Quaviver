@@ -33,7 +33,7 @@
                           (if (ldb-test ,nan-type-byte-form bits)
                               :quiet-nan
                               :signaling-nan)
-                          1)
+                          sign)
                   (values 0 :infinity sign)))
              (t
               (let ((significand (ldb ,significand-byte-form bits)))
