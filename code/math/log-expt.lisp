@@ -106,3 +106,30 @@
                                         ,offset
                                         0))
                                  ,divisor)))))))
+
+(defun ceiling-log-expt/far (log-base expt-base exp)
+  (let ((multiplier (the (unsigned-byte 25)
+                         (aref *log-expt*
+                               (- log-base +min-base+)
+                               (- expt-base +min-base+)))))
+    (multiple-value-bind (q r)
+        (ceiling (* exp multiplier)
+                 (ash 1 +log-expt-shift+))
+      (values q
+              (< r (- multiplier))))))
+
+(define-compiler-macro ceiling-log-expt/far
+    (&whole whole log-base expt-base exp)
+  (if (or (not (constantp log-base))
+          (not (constantp expt-base)))
+      whole
+      (let ((multiplier (aref *log-expt*
+                              (- log-base +min-base+)
+                              (- expt-base +min-base+)))
+            (divisor (ash 1 +log-expt-shift+)))
+        `(multiple-value-bind (q r)
+             (ceiling (* ,exp ,multiplier)
+                      ,divisor)
+           (declare (optimize speed))
+           (values q
+                   (< r ,(- multiplier)))))))
