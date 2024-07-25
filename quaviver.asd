@@ -26,6 +26,7 @@
                               :serial t
                               :components ((:file "log-expt")
                                            (:file "utility")
+                                           (:file "count-digits")
                                            (:file "implementation")
                                            (:file "expt")
                                            (:file "round-to-odd")))

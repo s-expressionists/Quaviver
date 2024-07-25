@@ -62,7 +62,8 @@
            #:floor-multiply/64-128q128
            #:floor-multiply/evenp/64-128q128
            #:floor-log-expt
-           #:ceiling-log-expt))
+           #:ceiling-log-expt
+           #:count-digits))
 
 #+sbcl
 (pushnew :quaviver.math/smallnum *features*)

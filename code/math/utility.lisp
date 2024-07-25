@@ -47,3 +47,13 @@
         do (setf (getf tables arithmetic-size)
                  (max (getf tables arithmetic-size 0)
                       bound))))
+
+(defun compute-count-digits (min-base max-base width)
+  (make-array (- max-base min-base -1)
+              :initial-contents
+              (loop for base from min-base upto max-base
+                    for max-power = (floor (log (ash 1 (1- width)) base))
+                    collect (make-array (1+ max-power)
+                                        :initial-contents
+                                        (loop for power from 0 upto max-power
+                                              collect (cl:expt base power))))))
