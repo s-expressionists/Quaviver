@@ -72,6 +72,10 @@
 (defmethod float-internal-integer-form ((float-type (eql 'short-float)) value)
   `(float-internal-integer/short-float ,value))
 
+#-quaviver/short-float
+(defmethod float-internal-integer-form ((float-type (eql 'short-float)) value)
+  `(float-internal-integer/single-float ,value))
+
 (defmethod float-internal-integer-form ((float-type (eql 'single-float)) value)
   `(float-internal-integer/single-float ,value))
 
@@ -81,6 +85,10 @@
 #+quaviver/long-float
 (defmethod float-internal-integer-form ((float-type (eql 'long-float)) value)
   `(float-internal-integer/long-float ,value))
+
+#-quaviver/long-float
+(defmethod float-internal-integer-form ((float-type (eql 'long-float)) value)
+  `(float-internal-integer/double-float ,value))
 
 (defmethod float-internal-integer-form (float-type value)
   (declare (ignore float-type))
