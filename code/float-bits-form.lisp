@@ -10,6 +10,10 @@
           ,(- (storage-size 'short-float)
               (storage-size 'single-float)))))
 
+#-quaviver/short-float
+(defmethod float-bits-form ((float-type (eql 'short-float)) value)
+  (float-bits-form 'single-float value))
+
 (defmethod float-bits-form ((float-type (eql 'single-float)) value)
   #+abcl
   `(system:single-float-bits ,value)
@@ -115,3 +119,7 @@
               (logior (ffi:deref-array ,n '(:array :uint64-t 2) 0)
                       (ash (ffi:deref-array ,n '(:array :uint64-t 2) 1)
                            64)))))))
+
+#-quaviver/long-float
+(defmethod float-bits-form ((float-type (eql 'long-float)) value)
+  (float-bits-form 'double-float value))

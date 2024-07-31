@@ -25,6 +25,10 @@
                                                            (storage-size 'short-float))))
      (coerce (ffi:slot (ffi:foreign-value u) 'value) 'short-float)))
 
+#-quaviver/short-float
+(defmethod bits-float-form ((float-type (eql 'short-float)) value)
+  (bits-float-form 'single-float value))
+
 (defmethod bits-float-form ((float-type (eql 'single-float)) value)
   #+abcl
   `(system:make-single-float ,value)
@@ -137,3 +141,7 @@
                  (ffi:get-slot-value ,m 'long-float/uint128 'u)
                  ,n))
          (ffi:get-slot-value ,m 'long-float/uint128 'f)))))
+
+#-quaviver/long-float
+(defmethod bits-float-form ((float-type (eql 'long-float)) value)
+  (bits-float-form 'double-float value))

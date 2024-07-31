@@ -100,6 +100,10 @@
 (defmethod internal-integer-float-form ((float-type (eql 'short-float)) significand exponent sign)
   `(internal-integer-float/short-float ,significand ,exponent ,sign))
 
+#-quaviver/short-float
+(defmethod internal-integer-float-form ((float-type (eql 'short-float)) significand exponent sign)
+  `(internal-integer-float/single-float ,significand ,exponent ,sign))
+
 (defmethod internal-integer-float-form ((float-type (eql 'single-float)) significand exponent sign)
   `(internal-integer-float/single-float ,significand ,exponent ,sign))
 
@@ -109,3 +113,7 @@
 #+quaviver/long-float
 (defmethod internal-integer-float-form ((float-type (eql 'long-float)) significand exponent sign)
   `(internal-integer-float/long-float ,significand ,exponent ,sign))
+
+#-quaviver/long-float
+(defmethod internal-integer-float-form ((float-type (eql 'long-float)) significand exponent sign)
+  `(internal-integer-float/double-float ,significand ,exponent ,sign))
