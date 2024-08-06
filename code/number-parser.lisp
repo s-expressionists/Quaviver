@@ -427,12 +427,12 @@
           ,@expanded-clauses
         ,*next-tag*
           (cond (,code
-                 (return (quaviver:integer-float ,(expand-ref :client)
-                                                 ,(expand-ref :float-type)
-                                                 ,(expand-ref :base)
-                                                 ,payload
-                                                 ,code
-                                                 ,sign)))
+                 (return (quaviver:triple-float ,(expand-ref :client)
+                                                ,(expand-ref :float-type)
+                                                ,(expand-ref :base)
+                                                ,payload
+                                                ,code
+                                                ,sign)))
                 ,@(when integerp
                     `(((and ,(expand-ref :integer)
                             (or (plusp ,sign)
@@ -445,20 +445,20 @@
                        (return (/ (* ,sign ,integral) ,divisor)))))
                 ,@(when floatp
                     `((,(expand-ref :float)
-                       (return (quaviver:integer-float ,(expand-ref :client)
-                                                       ,(expand-ref :float-type)
-                                                       ,(expand-ref :base)
-                                                       (if (zerop ,integral)
-                                                           ,fractional
-                                                           (+ (* (expt ,(expand-ref :base)
-                                                                       (+ ,fractional-count
-                                                                          ,fractional-leading-zero))
-                                                                 ,integral)
-                                                              ,fractional))
-                                                       (- (* ,exponent-sign ,exponent)
-                                                          ,fractional-count
-                                                          ,fractional-leading-zero)
-                                                       ,sign)))))
+                       (return (quaviver:triple-float ,(expand-ref :client)
+                                                      ,(expand-ref :float-type)
+                                                      ,(expand-ref :base)
+                                                      (if (zerop ,integral)
+                                                          ,fractional
+                                                          (+ (* (expt ,(expand-ref :base)
+                                                                      (+ ,fractional-count
+                                                                         ,fractional-leading-zero))
+                                                                ,integral)
+                                                             ,fractional))
+                                                      (- (* ,exponent-sign ,exponent)
+                                                         ,fractional-count
+                                                         ,fractional-leading-zero)
+                                                      ,sign)))))
                 (t
                  (error 'parse-error)))))))
 

@@ -24,7 +24,7 @@
     (let ((word-size (+ significand-size 6)))
       `(block %schubfach
          (multiple-value-bind (significand exponent sign)
-             ,(quaviver:float-internal-integer-form type value)
+             ,(quaviver:float-primitive-triple-form type value)
            (declare (type (unsigned-byte ,word-size) significand)
                     (type (or keyword quaviver:exponent-word)
                           exponent)
@@ -124,7 +124,7 @@
                           sign))))))))))
 
 #+clisp
-(defmethod quaviver:float-integer ((client client) (base (eql 10)) value)
+(defmethod quaviver:float-triple ((client client) (base (eql 10)) value)
   (declare (optimize speed))
   (typecase value
     #+quaviver/short-float
@@ -141,21 +141,21 @@
      (call-next-method))))
 
 #+(and (not clisp) quaviver/short-float)
-(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value short-float))
+(defmethod quaviver:float-triple ((client client) (base (eql 10)) (value short-float))
   (declare (optimize speed))
   (%schubfach client short-float value))
 
 #-clisp
-(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value single-float))
+(defmethod quaviver:float-triple ((client client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
   (%schubfach client single-float value))
 
 #-clisp
-(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value double-float))
+(defmethod quaviver:float-triple ((client client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
   (%schubfach client double-float value))
 
 #+(and (not clisp) quaviver/long-float)
-(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value long-float))
+(defmethod quaviver:float-triple ((client client) (base (eql 10)) (value long-float))
   (declare (optimize speed))
   (%schubfach client long-float value))

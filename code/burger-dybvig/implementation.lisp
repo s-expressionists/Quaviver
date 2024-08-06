@@ -235,7 +235,7 @@
 (defmacro %burger-dybvig/basic (client float-type value)
   (declare (ignore client))
   `(multiple-value-bind (significand exponent sign)
-       ,(quaviver:float-internal-integer-form float-type value)
+       ,(quaviver:float-primitive-triple-form float-type value)
      (if (or (keywordp exponent)
              (zerop significand))
          (values significand exponent sign)
@@ -285,7 +285,7 @@
                          (incf value (* factor d))))))))
 
 #+clisp
-(defmethod quaviver:float-integer ((client basic-client) (base (eql 10)) value)
+(defmethod quaviver:float-triple ((client basic-client) (base (eql 10)) value)
   (typecase value
     #+quaviver/short-float
     (short-float
@@ -301,19 +301,19 @@
      (call-next-method))))
 
 #+(and (not clisp) quaviver/short-float)
-(defmethod quaviver:float-integer ((client basic-client) (base (eql 10)) (value short-float))
+(defmethod quaviver:float-triple ((client basic-client) (base (eql 10)) (value short-float))
   (%burger-dybvig/basic client short-float value))
 
 #-clisp
-(defmethod quaviver:float-integer ((client basic-client) (base (eql 10)) (value single-float))
+(defmethod quaviver:float-triple ((client basic-client) (base (eql 10)) (value single-float))
   (%burger-dybvig/basic client single-float value))
 
 #-clisp
-(defmethod quaviver:float-integer ((client basic-client) (base (eql 10)) (value double-float))
+(defmethod quaviver:float-triple ((client basic-client) (base (eql 10)) (value double-float))
   (%burger-dybvig/basic client double-float value))
 
 #+(and (not clisp) quaviver/long-float)
-(defmethod quaviver:float-integer ((client basic-client) (base (eql 10)) (value long-float))
+(defmethod quaviver:float-triple ((client basic-client) (base (eql 10)) (value long-float))
   (%burger-dybvig/basic client long-float value))
 
 (defun int-1 (x)
@@ -348,7 +348,7 @@
 (defmacro %burger-dybvig (client float-type value)
   (declare (ignore client))
   `(multiple-value-bind (f e sign)
-       ,(quaviver:float-internal-integer-form float-type value)
+       ,(quaviver:float-primitive-triple-form float-type value)
      (cond ((or (not (numberp e))
                 (zerop f))
             (values f e sign))
@@ -411,7 +411,7 @@
                      (go next)))))))))
 
 #+clisp
-(defmethod quaviver:float-integer ((client client) (base (eql 10)) value)
+(defmethod quaviver:float-triple ((client client) (base (eql 10)) value)
   (typecase value
     #+quaviver/short-float
     (short-float
@@ -427,17 +427,17 @@
      (call-next-method))))
 
 #+(and (not clisp) quaviver/short-float)
-(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value short-float))
+(defmethod quaviver:float-triple ((client client) (base (eql 10)) (value short-float))
   (%burger-dybvig client short-float value))
 
 #-clisp
-(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value single-float))
+(defmethod quaviver:float-triple ((client client) (base (eql 10)) (value single-float))
   (%burger-dybvig client single-float value))
 
 #-clisp
-(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value double-float))
+(defmethod quaviver:float-triple ((client client) (base (eql 10)) (value double-float))
   (%burger-dybvig client double-float value))
 
 #+(and (not clisp) quaviver/long-float)
-(defmethod quaviver:float-integer ((client client) (base (eql 10)) (value long-float))
+(defmethod quaviver:float-triple ((client client) (base (eql 10)) (value long-float))
   (%burger-dybvig client long-float value))

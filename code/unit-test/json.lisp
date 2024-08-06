@@ -2,7 +2,7 @@
 
 (defclass json-client (quaviver/json:client) ())
 
-(defmethod quaviver:integer-float ((client json-client) float-type base significand exponent sign)
+(defmethod quaviver:triple-float ((client json-client) float-type base significand exponent sign)
   (list significand exponent sign))
 
 (define-test json

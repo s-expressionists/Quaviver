@@ -1,13 +1,13 @@
 (in-package #:quaviver)
 
 (declaim (inline #+quaviver/short-float
-                 float-internal-integer/short-float
-                 float-internal-integer/single-float
-                 float-internal-integer/double-float
+                 float-primitive-triple/short-float
+                 float-primitive-triple/single-float
+                 float-primitive-triple/double-float
                  #+quaviver/long-float
-                 float-internal-integer/long-float))
+                 float-primitive-triple/long-float))
 
-(defmacro %float-internal-integer-form (float-type value)
+(defmacro %float-primitive-triple-form (float-type value)
   (with-accessors ((storage-size storage-size)
                    (significand-size significand-size)
                    (significand-bytespec significand-bytespec)
@@ -55,41 +55,41 @@
                        (values significand exponent sign)))))))))
 
 #+quaviver/short-float
-(defun float-internal-integer/short-float (value)
-  (%float-internal-integer-form short-float value))
+(defun float-primitive-triple/short-float (value)
+  (%float-primitive-triple-form short-float value))
 
-(defun float-internal-integer/single-float (value)
-  (%float-internal-integer-form single-float value))
+(defun float-primitive-triple/single-float (value)
+  (%float-primitive-triple-form single-float value))
 
-(defun float-internal-integer/double-float (value)
-  (%float-internal-integer-form double-float value))
+(defun float-primitive-triple/double-float (value)
+  (%float-primitive-triple-form double-float value))
 
 #+quaviver/long-float
-(defun float-internal-integer/long-float (value)
-  (%float-internal-integer-form long-float value))
+(defun float-primitive-triple/long-float (value)
+  (%float-primitive-triple-form long-float value))
 
 #+quaviver/short-float
-(defmethod float-internal-integer-form ((float-type (eql 'short-float)) value)
-  `(float-internal-integer/short-float ,value))
+(defmethod float-primitive-triple-form ((float-type (eql 'short-float)) value)
+  `(float-primitive-triple/short-float ,value))
 
 #-quaviver/short-float
-(defmethod float-internal-integer-form ((float-type (eql 'short-float)) value)
-  `(float-internal-integer/single-float ,value))
+(defmethod float-primitive-triple-form ((float-type (eql 'short-float)) value)
+  `(float-primitive-triple/single-float ,value))
 
-(defmethod float-internal-integer-form ((float-type (eql 'single-float)) value)
-  `(float-internal-integer/single-float ,value))
+(defmethod float-primitive-triple-form ((float-type (eql 'single-float)) value)
+  `(float-primitive-triple/single-float ,value))
 
-(defmethod float-internal-integer-form ((float-type (eql 'double-float)) value)
-  `(float-internal-integer/double-float ,value))
+(defmethod float-primitive-triple-form ((float-type (eql 'double-float)) value)
+  `(float-primitive-triple/double-float ,value))
 
 #+quaviver/long-float
-(defmethod float-internal-integer-form ((float-type (eql 'long-float)) value)
-  `(float-internal-integer/long-float ,value))
+(defmethod float-primitive-triple-form ((float-type (eql 'long-float)) value)
+  `(float-primitive-triple/long-float ,value))
 
 #-quaviver/long-float
-(defmethod float-internal-integer-form ((float-type (eql 'long-float)) value)
-  `(float-internal-integer/double-float ,value))
+(defmethod float-primitive-triple-form ((float-type (eql 'long-float)) value)
+  `(float-primitive-triple/double-float ,value))
 
-(defmethod float-internal-integer-form (float-type value)
+(defmethod float-primitive-triple-form (float-type value)
   (declare (ignore float-type))
   `(integer-decode-float ,value))

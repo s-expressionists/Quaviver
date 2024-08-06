@@ -1,6 +1,6 @@
 (cl:in-package #:quaviver/benchmark)
 
-(defvar *float-integer-tests*
+(defvar *float-triple-tests*
   (list #+quaviver/short-float
         `(:type short-float :limit ,most-positive-short-float)
         `(:type single-float :limit ,most-positive-single-float)
@@ -8,7 +8,7 @@
         #+quaviver/long-float
         `(:type long-float   :limit ,most-positive-long-float)))
 
-(defvar *float-integer-clients*
+(defvar *float-triple-clients*
   `((:label "Burger-Dybvig"
      :initargs (quaviver/burger-dybvig:client)
      :types (short-float single-float double-float long-float))
@@ -23,14 +23,14 @@
      :initargs (quaviver/native:benchmark-client)
      :types (short-float single-float double-float long-float))))
 
-(defun float-integer (&key (base 10)
-                           (name (uiop:implementation-identifier)))
+(defun float-triple (&key (base 10)
+                          (name (uiop:implementation-identifier)))
   (let ((results (bench (lambda (client &key type limit)
-                          (quaviver:float-integer client
-                                                  base
-                                                  (* (1- (ash (random 2) 1))
-                                                     (random limit))))
-                        *float-integer-tests*
-                        *float-integer-clients*)))
-    (write-results name `(quaviver:float-integer ,base) results)
-    (report/run-summary "float-integer" *float-integer-tests* results)))
+                          (quaviver:float-triple client
+                                                 base
+                                                 (* (1- (ash (random 2) 1))
+                                                    (random limit))))
+                        *float-triple-tests*
+                        *float-triple-clients*)))
+    (write-results name `(quaviver:float-triple ,base) results)
+    (report/run-summary "float-triple" *float-triple-tests* results)))

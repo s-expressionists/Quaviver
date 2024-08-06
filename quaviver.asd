@@ -35,10 +35,10 @@
                              (:file "bits-float")
                              (:file "float-bits-form")
                              (:file "float-bits")
-                             (:file "internal-integer-float-form")
-                             (:file "integer-float")
-                             (:file "float-internal-integer-form")
-                             (:file "float-integer")
+                             (:file "primitive-triple-float-form")
+                             (:file "triple-float")
+                             (:file "float-primitive-triple-form")
+                             (:file "float-triple")
                              (:file "parse-digits")
                              (:file "compose-digits")
                              (:file "read-digits")
@@ -75,8 +75,8 @@
                 :pathname "code/native/"
                 :serial t
                 :components ((:file "packages")
-                             (:file "float-integer")
-                             (:file "integer-float")))))
+                             (:file "float-triple")
+                             (:file "triple-float")))))
 
 (defsystem "quaviver/burger-dybvig"
   :description "Burger Dybvig algorithm for Quaviver"
@@ -353,8 +353,8 @@
                 :components ((:file "packages")
                              (:file "results")
                              (:file "report")
-                             (:file "float-integer")
-                             (:file "integer-float")))))
+                             (:file "float-triple")
+                             (:file "triple-float")))))
 
 (defsystem "quaviver/compare"
   :description "Compare implementations of Quaviver protocol"
@@ -378,5 +378,5 @@
                              (:file "utility")
                              (:file "interval")
                              (:file "test")
-                             (:file "float-integer")
-                             (:file "integer-float")))))
+                             (:file "float-triple")
+                             (:file "triple-float")))))

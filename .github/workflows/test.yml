@@ -37,19 +37,19 @@ jobs:
       with:
         repository: s-expressionists/Incless
         path: incless
-        ref: quaviver3
+        ref: quaviver4
     - name: Checkout Inravina
       uses: actions/checkout@v4
       with:
         repository: s-expressionists/Inravina
         path: inravina
-        ref: quaviver3
+        ref: quaviver4
     - name: Checkout Invistra
       uses: actions/checkout@v4
       with:
         repository: s-expressionists/Invistra
         path: invistra
-        ref: quaviver3
+        ref: quaviver4
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
@@ -64,18 +64,18 @@ jobs:
     - name: Run ANSI Tests
       run: |
         lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/ansi-test)" -e "(quaviver/ansi-test:test :exit t)"
-    - name: float-integer/Burger-Dybvig vs Schubfach
+    - name: float-triple/Burger-Dybvig vs Schubfach
       if: ${{ matrix.lisp != 'cmucl' }}    
       run: |
-        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/compare)" -e "(quaviver/compare:float-integer/bd.s/f :coverage 0.001 :exit t :output \"failures-float-integer-bd-s.sexp\")"
-    - name: float-integer/Schubfach vs Dragonbox 
+        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/compare)" -e "(quaviver/compare:float-triple/bd.s/f :coverage 0.001 :exit t :output \"failures-float-triple-bd-s.sexp\")"
+    - name: float-triple/Schubfach vs Dragonbox 
       if: ${{ matrix.lisp != 'cmucl' }}    
       run: |
-        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/compare)" -e "(quaviver/compare:float-integer/s.d/f :coverage 0.001 :exit t :output \"failures-float-integer-s-d.sexp\")"
-    - name: integer-float/Jaffer vs Liebler
+        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/compare)" -e "(quaviver/compare:float-triple/s.d/f :coverage 0.001 :exit t :output \"failures-float-triple-s-d.sexp\")"
+    - name: triple-float/Jaffer vs Liebler
       if: ${{ matrix.lisp != 'cmucl' }}    
       run: |
-        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/compare)" -e "(quaviver/compare:integer-float/j.l/f :coverage 0.001 :exit t :output \"failures-integer-float-j-l.sexp\")"
+        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/compare)" -e "(quaviver/compare:triple-float/j.l/f :coverage 0.001 :exit t :output \"failures-triple-float-j-l.sexp\")"
     - name: Upload comparison results
       uses: actions/upload-artifact@v4
       if: failure()
