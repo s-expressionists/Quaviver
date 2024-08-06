@@ -34,7 +34,7 @@
 
 (defmethod quaviver:write-number ((client client) (base (eql 10)) (value single-float) stream)
   (multiple-value-bind (significand exponent sign)
-      (quaviver:float-integer client base value)
+      (quaviver:float-triple client base value)
     (when (keywordp exponent)
       (error "Unable to represent ~a in ~a." exponent (client-standard client)))
     (when (minusp sign)
@@ -48,7 +48,7 @@
 
 (defmethod quaviver:write-number ((client client) (base (eql 10)) (value double-float) stream)
   (multiple-value-bind (significand exponent sign)
-      (quaviver:float-integer client base value)
+      (quaviver:float-triple client base value)
     (when (keywordp exponent)
       (error "Unable to represent ~a in ~a." exponent (client-standard client)))
     (when (minusp sign)

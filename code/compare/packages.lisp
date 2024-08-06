@@ -8,11 +8,11 @@
            #:bit-interval
            #:bit-part-interval
            #:test
-           #:float-integer
-           #:float-integer/bd.s/f
-           #:float-integer/bd.s/d
-           #:float-integer/s.d/f
-           #:float-integer/s.d/d
-           #:integer-float
-           #:integer-float/j.l/f
-           #:integer-float/j.l/d))
+           #:float-triple
+           #:float-triple/bd.s/f
+           #:float-triple/bd.s/d
+           #:float-triple/s.d/f
+           #:float-triple/s.d/d
+           #:triple-float
+           #:triple-float/j.l/f
+           #:triple-float/j.l/d))

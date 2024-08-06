@@ -4,10 +4,10 @@
            #:bits-float-form
            #:float-bits
            #:float-bits-form
-           #:integer-float
-           #:internal-integer-float-form
-           #:float-integer
-           #:float-internal-integer-form
+           #:triple-float
+           #:primitive-triple-float-form
+           #:float-triple
+           #:float-primitive-triple-form
            #:parse-digits
            #:compose-digits
            #:parse-number

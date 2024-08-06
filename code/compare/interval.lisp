@@ -56,7 +56,7 @@
       iterator
     (with-accessors ((float-type float-type))
         interval
-      (quaviver:float-integer client base
+      (quaviver:float-triple client base
                               (quaviver:bits-float float-type
                                                    bits)))))
 

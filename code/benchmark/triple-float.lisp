@@ -1,12 +1,12 @@
 (cl:in-package #:quaviver/benchmark)
 
-(defvar *integer-float-tests*
+(defvar *triple-float-tests*
   (list `(:type single-float)
         `(:type double-float)
         #+quaviver/long-float
         `(:type long-float)))
 
-(defvar *integer-float-clients*
+(defvar *triple-float-clients*
   `((:label "Jaffer"
      :initargs (quaviver/jaffer:client)
      :types (single-float double-float long-float))
@@ -29,13 +29,13 @@
                                          2))
         (if (zerop (random 2)) 1 -1)))
 
-(defun integer-float (&key (base 10)
-                           (name (uiop:implementation-identifier)))
+(defun triple-float (&key (base 10)
+                          (name (uiop:implementation-identifier)))
   (let ((results (bench (lambda (client &key type)
-                          (apply #'quaviver:integer-float
+                          (apply #'quaviver:triple-float
                                  client type base
                                  (random-float type)))
-                        *integer-float-tests*
-                        *integer-float-clients*)))
-    (write-results name `(quaviver:integer-float ,base) results)
-    (report/run-summary "integer-float" *integer-float-tests* results)))
+                        *triple-float-tests*
+                        *triple-float-clients*)))
+    (write-results name `(quaviver:triple-float ,base) results)
+    (report/run-summary "triple-float" *triple-float-tests* results)))

@@ -127,7 +127,7 @@
 (defclass client () ())
 
 #+clisp
-(defmethod quaviver:float-integer :around
+(defmethod quaviver:float-triple :around
     ((client client) (base (eql 10)) value)
   (typecase value
     #+quaviver/short-float
@@ -142,21 +142,21 @@
      (call-next-method))))
 
 #+(and (not clisp) quaviver/short-float)
-(defmethod quaviver:float-integer :around
+(defmethod quaviver:float-triple :around
     ((client client) (base (eql 10)) (value short-float))
   (remove-trailing-zeros short-float))
 
 #-clisp
-(defmethod quaviver:float-integer :around
+(defmethod quaviver:float-triple :around
     ((client client) (base (eql 10)) (value single-float))
   (remove-trailing-zeros single-float))
 
 #-clisp
-(defmethod quaviver:float-integer :around
+(defmethod quaviver:float-triple :around
     ((client client) (base (eql 10)) (value double-float))
   (remove-trailing-zeros double-float))
 
 #+(and (not clisp) quaviver/long-float)
-(defmethod quaviver:float-integer :around
+(defmethod quaviver:float-triple :around
     ((client client) (base (eql 10)) (value long-float))
   (remove-trailing-zeros long-float))

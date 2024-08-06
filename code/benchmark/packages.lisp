@@ -2,7 +2,7 @@
 
 (defpackage #:quaviver/benchmark
   (:use #:common-lisp)
-  (:export #:float-integer
-           #:integer-float
+  (:export #:float-triple
+           #:triple-float
            #:report
            #:report/float-traits))

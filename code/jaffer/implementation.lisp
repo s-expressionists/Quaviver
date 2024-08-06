@@ -9,7 +9,7 @@
       float-type
     `(if (or (keywordp ,exponent)
              (zerop ,significand))
-         ,(quaviver:internal-integer-float-form float-type
+         ,(quaviver:primitive-triple-float-form float-type
                                                 significand
                                                 exponent
                                                 sign)
@@ -18,18 +18,18 @@
                      ,(- significand-size))))
            ;; The following overflow and underflow checks are not
            ;; strict checks. Stricter checks will happen in
-           ;; integer-float/2. These are here to avoid excessible
+           ;; triple-float/2. These are here to avoid excessible
            ;; large bignum in the intermediate calculations.
            (cond ((> q ,(+ max-exponent
                            (quaviver.math:ceiling-log-expt 2 10 1)))
                   (quaviver.condition:floating-point-overflow
-                   'quaviver:integer-float
+                   'quaviver:triple-float
                    ,client ',float-type 10
                    ,significand ,exponent ,sign))
                  ((< q ,(- min-exponent
                            (quaviver.math:ceiling-log-expt 2 10 1)))
                   (quaviver.condition:floating-point-underflow
-                   'quaviver:integer-float
+                   'quaviver:triple-float
                    ,client ',float-type 10
                    ,significand ,exponent ,sign))
                  ((minusp ,exponent)
@@ -47,7 +47,7 @@
                       (when (> (integer-length quotient) mantlen)
                         (incf bex)
                         (setf quotient (round num (ash scale 1))))
-                      ,(quaviver:internal-integer-float-form float-type
+                      ,(quaviver:primitive-triple-float-form float-type
                                                              'quotient
                                                              `(+ bex ,exponent)
                                                              sign))))
@@ -55,33 +55,33 @@
                   (let* ((num (* ,significand (expt 5 ,exponent)))
                          (bex (- (integer-length num) ,significand-size)))
                     (if (plusp bex)
-                        ,(quaviver:internal-integer-float-form float-type
+                        ,(quaviver:primitive-triple-float-form float-type
                                                                `(round num (ash 1 bex))
                                                                `(+ bex ,exponent)
                                                                sign)
-                        ,(quaviver:internal-integer-float-form float-type
+                        ,(quaviver:primitive-triple-float-form float-type
                                                                'num
                                                                exponent
                                                                sign)))))))))
 
 #+quaviver/short-float
-(defmethod quaviver:integer-float
+(defmethod quaviver:triple-float
     ((client client) (float-type (eql 'short-float)) (base (eql 10))
      significand exponent sign)
   (%jaffer client short-float significand exponent sign))
 
-(defmethod quaviver:integer-float
+(defmethod quaviver:triple-float
     ((client client) (float-type (eql 'single-float)) (base (eql 10))
      significand exponent sign)
   (%jaffer client single-float significand exponent sign))
 
-(defmethod quaviver:integer-float
+(defmethod quaviver:triple-float
     ((client client) (float-type (eql 'double-float)) (base (eql 10))
      significand exponent sign)
   (%jaffer client double-float significand exponent sign))
 
 #+quaviver/long-float
-(defmethod quaviver:integer-float
+(defmethod quaviver:triple-float
     ((client client) (float-type (eql 'long-float)) (base (eql 10))
      significand exponent sign)
   (%jaffer client long-float significand exponent sign))

@@ -417,7 +417,7 @@
     (progn                              ; for future LET bindings
       `(block %dragonbox
          (multiple-value-bind (significand exponent sign)
-             ,(quaviver:float-internal-integer-form type value)
+             ,(quaviver:float-primitive-triple-form type value)
            (declare ((quaviver.math:arithmetic-word ,arithmetic-size) significand)
                     ((or quaviver:exponent-word keyword) exponent)
                     (fixnum sign))
@@ -590,7 +590,7 @@
     (progn                              ; for future LET bindings
       `(block %dragonbox
          (multiple-value-bind (significand exponent sign)
-             ,(quaviver:float-internal-integer-form type value)
+             ,(quaviver:float-primitive-triple-form type value)
            (declare ((quaviver.math:arithmetic-word ,arithmetic-size) significand)
                     ((or quaviver:exponent-word keyword) exponent)
                     (fixnum sign))
@@ -692,7 +692,7 @@
                   (values significand (+ -k ,kappa) sign))))))))))
 
 #+clisp
-(defmethod quaviver:float-integer
+(defmethod quaviver:float-triple
     ((client nearest-client) (base (eql 10)) value)
   (declare (optimize speed))
   (typecase value
@@ -716,7 +716,7 @@
      (call-next-method))))
 
 #+(and (not clisp) quaviver/short-float)
-(defmethod quaviver:float-integer
+(defmethod quaviver:float-triple
     ((client nearest-client) (base (eql 10)) (value short-float))
   (declare (optimize speed))
   (%nearest client short-float value
@@ -725,7 +725,7 @@
             quaviver.math:floor-multiply/evenp/32-64q64))
 
 #-clisp
-(defmethod quaviver:float-integer
+(defmethod quaviver:float-triple
     ((client nearest-client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
   (%nearest client single-float value
@@ -734,7 +734,7 @@
             quaviver.math:floor-multiply/evenp/32-64q64))
 
 #-clisp
-(defmethod quaviver:float-integer
+(defmethod quaviver:float-triple
     ((client nearest-client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
   (%nearest client double-float value
@@ -743,7 +743,7 @@
             quaviver.math:floor-multiply/evenp/64-128q128))
 
 #+clisp
-(defmethod quaviver:float-integer
+(defmethod quaviver:float-triple
     ((client directed-client) (base (eql 10)) value)
   (declare (optimize speed))
   (typecase value
@@ -767,7 +767,7 @@
      (call-next-method))))
 
 #+(and (not clisp) quaviver/short-float)
-(defmethod quaviver:float-integer
+(defmethod quaviver:float-triple
     ((client directed-client) (base (eql 10)) (value short-float))
   (declare (optimize speed))
   (%directed client short-float value
@@ -776,7 +776,7 @@
              quaviver.math:floor-multiply/evenp/32-64q64))
 
 #-clisp
-(defmethod quaviver:float-integer
+(defmethod quaviver:float-triple
     ((client directed-client) (base (eql 10)) (value single-float))
   (declare (optimize speed))
   (%directed client single-float value
@@ -785,7 +785,7 @@
              quaviver.math:floor-multiply/evenp/32-64q64))
 
 #-clisp
-(defmethod quaviver:float-integer
+(defmethod quaviver:float-triple
     ((client directed-client) (base (eql 10)) (value double-float))
   (declare (optimize speed))
   (%directed client double-float value

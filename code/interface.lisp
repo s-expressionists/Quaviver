@@ -8,13 +8,13 @@
 
 (defgeneric float-bits-form (type value))
 
-(defgeneric integer-float (client float-type base significand exponent sign))
+(defgeneric triple-float (client float-type base significand exponent sign))
 
-(defgeneric internal-integer-float-form (float-type significand exponent sign))
+(defgeneric primitive-triple-float-form (float-type significand exponent sign))
 
-(defgeneric float-integer (client base value))
+(defgeneric float-triple (client base value))
 
-(defgeneric float-internal-integer-form (float-type value))
+(defgeneric float-primitive-triple-form (float-type value))
 
 (defgeneric parse-number (client base sequence
                           &optional start end integerp ratiop floatp float-type))

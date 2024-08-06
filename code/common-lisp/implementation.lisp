@@ -105,7 +105,7 @@
 (defmethod quaviver:write-number ((client client) base (value float) stream)
   (declare (ignore base))
   (multiple-value-bind (significand exponent sign)
-      (quaviver:float-integer client 10 value)
+      (quaviver:float-triple client 10 value)
     (cond ((and (extended-exponent-sign-p client)
                 (eq exponent :infinity))
            (when (minusp sign)
