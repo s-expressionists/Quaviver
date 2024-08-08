@@ -39,7 +39,8 @@
                                         (:integral :integral-base)
                                         (:fractional :fractional-base)
                                         (:divisor :divisor-base)
-                                        (:exponent :exponent-base)))
+                                        (:exponent :exponent-base)
+                                        (:payload :payload-base)))
                          ,(expand-ref :stream)
                          :ignore ,(if (or (null ignore)
                                           (stringp ignore))
@@ -68,13 +69,15 @@
                           (:integral :integral-count)
                           (:fractional :fractional-count)
                           (:divisor :divisor-count)
-                          (:exponent :exponent-count))
+                          (:exponent :exponent-count)
+                          (:payload :payload-count))
                         count
                         (ecase name
                           (:integral :integral-leading-zero)
                           (:fractional :fractional-leading-zero)
                           (:divisor :divisor-leading-zero)
-                          (:exponent :exponent-leading-zero))
+                          (:exponent :exponent-leading-zero)
+                          (:payload :payload-leading-zero))
                         leading-zero)
           (go ,*next-tag*))))))
 
@@ -88,7 +91,8 @@
                                          (:integral :integral-base)
                                          (:fractional :fractional-base)
                                          (:divisor :divisor-base)
-                                         (:exponent :exponent-base)))
+                                         (:exponent :exponent-base)
+                                         (:payload :payload-base)))
                           ,(expand-ref :sequence)
                           :start ,(expand-ref :start)
                           :end ,(expand-ref :end)
@@ -123,13 +127,15 @@
                           (:integral :integral-count)
                           (:fractional :fractional-count)
                           (:divisor :divisor-count)
-                          (:exponent :exponent-count))
+                          (:exponent :exponent-count)
+                          (:payload :payload-count))
                         count
                         (ecase name
                           (:integral :integral-leading-zero)
                           (:fractional :fractional-leading-zero)
                           (:divisor :divisor-leading-zero)
-                          (:exponent :exponent-leading-zero))
+                          (:exponent :exponent-leading-zero)
+                          (:payload :payload-leading-zero))
                         leading-zero)
           (go ,*next-tag*))))))
 
@@ -143,7 +149,8 @@
                                         (:integral :integral-base)
                                         (:fractional :fractional-base)
                                         (:divisor :divisor-base)
-                                        (:exponent :exponent-base)))
+                                        (:exponent :exponent-base)
+                                        (:payload :payload-base)))
                          ,(expand-ref :stream)
                          :ignore ,(if (or (null ignore)
                                           (stringp ignore))
@@ -166,13 +173,15 @@
                           (:integral :integral-count)
                           (:fractional :fractional-count)
                           (:divisor :divisor-count)
-                          (:exponent :exponent-count))
+                          (:exponent :exponent-count)
+                          (:payload :payload-count))
                         count
                         (ecase name
                           (:integral :integral-leading-zero)
                           (:fractional :fractional-leading-zero)
                           (:divisor :divisor-leading-zero)
-                          (:exponent :exponent-leading-zero))
+                          (:exponent :exponent-leading-zero)
+                          (:payload :payload-leading-zero))
                         leading-zero)
           ,@(when *next-tag*
               `((go ,*next-tag*))))))))
@@ -187,7 +196,8 @@
                                          (:integral :integral-base)
                                          (:fractional :fractional-base)
                                          (:divisor :divisor-base)
-                                         (:exponent :exponent-base)))
+                                         (:exponent :exponent-base)
+                                         (:payload :payload-base)))
                           ,(expand-ref :sequence)
                           :start ,(expand-ref :start)
                           :end ,(expand-ref :end)
@@ -213,13 +223,15 @@
                           (:integral :integral-count)
                           (:fractional :fractional-count)
                           (:divisor :divisor-count)
-                          (:exponent :exponent-count))
+                          (:exponent :exponent-count)
+                          (:payload :payload-count))
                         count
                         (ecase name
                           (:integral :integral-leading-zero)
                           (:fractional :fractional-leading-zero)
                           (:divisor :divisor-leading-zero)
-                          (:exponent :exponent-leading-zero))
+                          (:exponent :exponent-leading-zero)
+                          (:payload :payload-leading-zero))
                         leading-zero)
           (go ,*next-tag*))))))
 
@@ -368,7 +380,8 @@
        fractional fractional-count fractional-leading-zero fractional-base
        divisor divisor-count divisor-leading-zero divisor-base
        exponent exponent-count exponent-leading-zero exponent-base
-       exponent-sign sign character code payload)
+       exponent-sign sign character code payload payload-count
+       payload-leading-zero payload-base)
     (let* ((*next-tag* (alexandria:make-gensym '#:next))
            (*back-tag* nil)
            (*variable-map* `(:integral ,integral
@@ -392,6 +405,9 @@
                              :character ,character
                              :code ,code
                              :payload ,payload
+                             :payload-count ,payload-count
+                             :payload-leading-zero ,payload-leading-zero
+                             :payload-base ,payload-base
                              ,@map))
            (*current-backp* nil)
            (*bindings* nil)
@@ -418,6 +434,9 @@
               (,character nil)
               (,code nil)
               (,payload 0)
+              (,payload-count 0)
+              (,payload-leading-zero 0)
+              (,payload-base base)
               ,@*bindings*)
           (declare (ignorable ,integral ,integral-count ,integral-leading-zero ,integral-base
                               ,fractional ,fractional-count ,fractional-leading-zero ,fractional-base
