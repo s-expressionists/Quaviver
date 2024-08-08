@@ -58,108 +58,139 @@
   (and (member (client-standard client) '(:c++23 :c++26))
        t))
 
+(defun nan-literals-p (client)
+  (and (member (client-standard client) '(:c99 :c11 :c17 :c23 :c++03 :c++11 :c++14
+                                          :c++17 :c++20 :c++23 :c++26))
+       t))
+
 (quaviver:define-number-parser
     (:client client :ratio nil :float-type 'double-float)
     ()
   (:alternate? #\+
                (:sequence #\-
                           (:set :sign -1)))
-  (:alternate (:sequence #\0
-                         (:alternate (:sequence (:assert 'binary-integer-literals-p)
-                                                (:assert :integer t)
-                                                #\b
-                                                (:set :integral-base 2
-                                                      :float nil)
-                                                (:digits :integral
-                                                         :ignore 'digit-separators))
-                                     (:sequence #\x
-                                                (:set :integral-base 16
-                                                      :fractional-base 16
-                                                      :exponent-base 10
-                                                      :base 2)
-                                                (:digits :integral
-                                                         :ignore 'digit-separators)
-                                                (:sequence? (:assert 'hexadecimal-float-literals-p)
-                                                            (:assert :float t)
-                                                            #\.
-                                                            (:set :integer nil)
-                                                            (:digits? :fractional
+  (:alternate (:sequence (:assert 'nan-literals-p)
+                         (:assert :float t)
+                         "inf"
+                         (:sequence? "inity")
+                         (:set :code :infinity))
+              (:sequence (:assert 'nan-literals-p)
+                         (:assert :float t)
+                         "nan"
+                         (:sequence? #\(
+                                     (:alternate (:sequence #\0
+                                                            (:alternate (:sequence (:assert 'binary-integer-literals-p)
+                                                                                   #\b
+                                                                                   (:set :payload-base 2)
+                                                                                   (:digits :payload
+                                                                                    :ignore 'digit-separators))
+                                                                        (:sequence #\x
+                                                                                   (:set :payload-base 16)
+                                                                                   (:digits :payload
+                                                                                    :ignore 'digit-separators))
+                                                                        (:sequence (:set :payload-base 8)
+                                                                                   (:digits :payload
+                                                                                    :ignore 'digit-separators))))
+                                                 (:digits? :payload
+                                                  :ignore 'digit-separators))
+                                     #\))
+                         (:set :code :quiet-nan))
+              (:alternate (:sequence #\0
+                                     (:alternate (:sequence (:assert 'binary-integer-literals-p)
+                                                            (:assert :integer t)
+                                                            #\b
+                                                            (:set :integral-base 2
+                                                                  :float nil)
+                                                            (:digits :integral
                                                              :ignore 'digit-separators))
-                                                (:sequence? (:assert 'hexadecimal-float-literals-p)
-                                                            (:assert :float t)
-                                                            #\p
-                                                            (:set :integer nil)
-                                                            (:alternate? #\+
-                                                                         (:sequence #\-
-                                                                                    (:set :exponent-sign -1)))
-                                                            (:digits :exponent
-                                                                     :ignore 'digit-separators)))
-                                     (:sequence (:assert :integer t)
-                                                (:set :integral-base 8
-                                                      :float nil)
-                                                (:digits :integral
-                                                         :ignore 'digit-separators))))
-              (:sequence (:digits :integral
-                                  :leading-zeros nil
-                                  :ignore 'digit-separators)
-                         (:sequence? (:assert :float t)
-                                     #\.
-                                     (:set :integer nil)
-                                     (:digits? :fractional
-                                               :ignore 'digit-separators))
-                         (:sequence? (:assert :float t)
-                                     #\e
-                                     (:set :integer nil)
-                                     (:alternate? #\+
-                                                  (:sequence #\-
-                                                             (:set :exponent-sign -1)))
-                                     (:digits :exponent
-                                              :ignore 'digit-separators))
-                         (:sequence? (:assert :integer t)
-                                     (:set :float nil))))
-  (:alternate? (:sequence (:assert :float t)
-                          #\f
-                          (:set :float-type 'single-float)
-                          (:sequence? (:assert 'float-size-suffix-p)
-                                      (:alternate? (:sequence #\1
-                                                              (:alternate (:sequence #\6
-                                                                                     #+quaviver/short-float
-                                                                                     (:set :float-type 'short-float))
-                                                                          (:sequence "28"
-                                                                                     (:set :float-type
-                                                                                           #+quaviver/long-float
-                                                                                           'long-float
-                                                                                           #-quaviver/long-float
-                                                                                           'double-float))))
-                                                   (:sequence "32")
-                                                   (:sequence "64"
-                                                              (:set :float-type 'double-float)))))
-               (:sequence (:assert :float t)
-                          #\l
-                          #+quaviver/long-float
-                          (:set :float-type 'long-float))
-               (:sequence (:assert 'float-size-suffix-p)
-                          (:assert :float t)
-                          "bf16"
-                          (:set :float-type
-                                #+quaviver/short-float 'short-float
-                                #-quaviver/short-float 'single-float))
-               (:sequence (:assert :integer t)
-                          #\l
-                          (:sequence? (:assert 'long-long-suffix-p)
-                                      #\l)
-                          (:sequence? #\u))
-               (:sequence (:assert 'size-suffix-p)
-                          (:assert :integer t)
-                          #\z
-                          (:sequence? #\u))
-               (:sequence (:assert :integer t)
-                          #\u
-                          (:alternate? (:sequence #\l
-                                                  (:sequence? (:assert 'long-long-suffix-p)
-                                                              #\l))
-                                       (:sequence (:assert 'size-suffix-p)
-                                                  #\z)))))
+                                                 (:sequence #\x
+                                                            (:set :integral-base 16
+                                                                  :fractional-base 16
+                                                                  :exponent-base 10
+                                                                  :base 2)
+                                                            (:digits :integral
+                                                             :ignore 'digit-separators)
+                                                            (:sequence? (:assert 'hexadecimal-float-literals-p)
+                                                                        (:assert :float t)
+                                                                        #\.
+                                                                        (:set :integer nil)
+                                                                        (:digits? :fractional
+                                                                         :ignore 'digit-separators))
+                                                            (:sequence? (:assert 'hexadecimal-float-literals-p)
+                                                                        (:assert :float t)
+                                                                        #\p
+                                                                        (:set :integer nil)
+                                                                        (:alternate? #\+
+                                                                                     (:sequence #\-
+                                                                                                (:set :exponent-sign -1)))
+                                                                        (:digits :exponent
+                                                                         :ignore 'digit-separators)))
+                                                 (:sequence (:assert :integer t)
+                                                            (:set :integral-base 8
+                                                                  :float nil)
+                                                            (:digits :integral
+                                                             :ignore 'digit-separators))))
+                          (:sequence (:digits :integral
+                                      :leading-zeros nil
+                                      :ignore 'digit-separators)
+                                     (:sequence? (:assert :float t)
+                                                 #\.
+                                                 (:set :integer nil)
+                                                 (:digits? :fractional
+                                                  :ignore 'digit-separators))
+                                     (:sequence? (:assert :float t)
+                                                 #\e
+                                                 (:set :integer nil)
+                                                 (:alternate? #\+
+                                                              (:sequence #\-
+                                                                         (:set :exponent-sign -1)))
+                                                 (:digits :exponent
+                                                  :ignore 'digit-separators))
+                                     (:sequence? (:assert :integer t)
+                                                 (:set :float nil))))
+              (:alternate? (:sequence (:assert :float t)
+                                      #\f
+                                      (:set :float-type 'single-float)
+                                      (:sequence? (:assert 'float-size-suffix-p)
+                                                  (:alternate? (:sequence #\1
+                                                                          (:alternate (:sequence #\6
+                                                                                                 #+quaviver/short-float
+                                                                                                 (:set :float-type 'short-float))
+                                                                                      (:sequence "28"
+                                                                                                 (:set :float-type
+                                                                                                       #+quaviver/long-float
+                                                                                                       'long-float
+                                                                                                       #-quaviver/long-float
+                                                                                                       'double-float))))
+                                                               (:sequence "32")
+                                                               (:sequence "64"
+                                                                          (:set :float-type 'double-float)))))
+                           (:sequence (:assert :float t)
+                                      #\l
+                                      #+quaviver/long-float
+                                      (:set :float-type 'long-float))
+                           (:sequence (:assert 'float-size-suffix-p)
+                                      (:assert :float t)
+                                      "bf16"
+                                      (:set :float-type
+                                            #+quaviver/short-float 'short-float
+                                            #-quaviver/short-float 'single-float))
+                           (:sequence (:assert :integer t)
+                                      #\l
+                                      (:sequence? (:assert 'long-long-suffix-p)
+                                                  #\l)
+                                      (:sequence? #\u))
+                           (:sequence (:assert 'size-suffix-p)
+                                      (:assert :integer t)
+                                      #\z
+                                      (:sequence? #\u))
+                           (:sequence (:assert :integer t)
+                                      #\u
+                                      (:alternate? (:sequence #\l
+                                                              (:sequence? (:assert 'long-long-suffix-p)
+                                                                          #\l))
+                                                   (:sequence (:assert 'size-suffix-p)
+                                                              #\z))))))
 
 (defmethod quaviver:write-number ((client client) (base (eql 2)) (value integer) stream)
   (unless (binary-integer-literals-p client)
