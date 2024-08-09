@@ -241,51 +241,72 @@
     (long-float
      (write-char #\l stream))))
 
+(defun write-nan-literal (client base payload code sign stream)
+  (let ((nan-literals-p (nan-literals-p client)))
+    (cond ((and nan-literals-p
+                (eq code :infinity))
+           (when (minusp sign)
+             (write-char #\- stream))
+           (write-string "INFINITY"))
+          ((and nan-literals-p
+                (eq code :quiet-nan))
+           (when (minusp sign)
+             (write-char #\- stream))
+           (write-string "NAN")
+           (unless (zerop payload)
+             (write-char #\( stream)
+             (quaviver:write-number client base payload stream)
+             (write-char #\) stream)))
+          (t
+           (error "Unable to represent ~a in ~a." code (client-standard client))))))
+
 (defmethod quaviver:write-number ((client client) (base (eql 10)) (value float) stream)
   (multiple-value-bind (significand exponent sign)
       (quaviver:float-triple client base value)
-    (when (keywordp exponent)
-      (error "Unable to represent ~a in ~a." exponent (client-standard client)))
-    (when (minusp sign)
-      (write-char #\- stream))
-    (let ((len (quaviver.math:ceiling-log-expt 10 2 (integer-length significand))))
-      (cond ((<= (- len) exponent -1)
-             (quaviver:write-digits base significand stream
-                                    :fractional-position (+ len exponent)
-                                    :fractional-marker #\.
-                                    :digit-grouping (decimal-grouping client)
-                                    :group-marker (group-marker client)))
-            (t
-             (quaviver:write-digits base significand stream
-                                    :digit-grouping (decimal-grouping client)
-                                    :group-marker (group-marker client))
-             (unless (zerop exponent)
-               (write-char #\e stream)
-               (when (minusp exponent)
-                 (write-char #\- stream))
-               (quaviver:write-digits base (abs exponent) stream
-                                      :digit-grouping (exponent-grouping client)
-                                      :group-marker (group-marker client))))))
-    (write-float-suffix client value stream))
+    (cond ((keywordp exponent)
+           (write-nan-literal client base significand exponent sign stream))
+          (t
+           (when (minusp sign)
+             (write-char #\- stream))
+           (let ((len (quaviver.math:ceiling-log-expt 10 2 (integer-length significand))))
+             (cond ((<= (- len) exponent -1)
+                    (quaviver:write-digits base significand stream
+                                           :fractional-position (+ len exponent)
+                                           :fractional-marker #\.
+                                           :digit-grouping (decimal-grouping client)
+                                           :group-marker (group-marker client)))
+                   (t
+                    (quaviver:write-digits base significand stream
+                                           :digit-grouping (decimal-grouping client)
+                                           :group-marker (group-marker client))
+                    (unless (zerop exponent)
+                      (write-char #\e stream)
+                      (when (minusp exponent)
+                        (write-char #\- stream))
+                      (quaviver:write-digits base (abs exponent) stream
+                                             :digit-grouping (exponent-grouping client)
+                                             :group-marker (group-marker client))))))
+           (write-float-suffix client value stream))))
   value)
 
 (defmethod quaviver:write-number ((client client) (base (eql 16)) (value float) stream)
   (multiple-value-bind (significand exponent sign)
       (quaviver:float-triple client 2 value)
-    (when (keywordp exponent)
-      (error "Unable to represent ~a in ~a." exponent (client-standard client)))
-    (when (minusp sign)
-      (write-char #\- stream))
-    (write-string "0x" stream)
-    (quaviver:write-digits 16 significand stream
-                           :digit-grouping (hexadecimal-grouping client)
-                           :group-marker (group-marker client))
-    (unless (zerop exponent)
-      (write-char #\p stream)
-      (when (minusp exponent)
-        (write-char #\- stream))
-      (quaviver:write-digits 10 (abs exponent) stream
-                             :digit-grouping (exponent-grouping client)
-                             :group-marker (group-marker client)))
-    (write-float-suffix client value stream))
+    (cond ((keywordp exponent)
+           (write-nan-literal client base significand exponent sign stream))
+          (t
+           (when (minusp sign)
+             (write-char #\- stream))
+           (write-string "0x" stream)
+           (quaviver:write-digits 16 significand stream
+                                  :digit-grouping (hexadecimal-grouping client)
+                                  :group-marker (group-marker client))
+           (unless (zerop exponent)
+             (write-char #\p stream)
+             (when (minusp exponent)
+               (write-char #\- stream))
+             (quaviver:write-digits 10 (abs exponent) stream
+                                    :digit-grouping (exponent-grouping client)
+                                    :group-marker (group-marker client)))
+           (write-float-suffix client value stream))))
   value)
