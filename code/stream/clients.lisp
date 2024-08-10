@@ -1,4 +1,4 @@
-(in-package #:quaviver/string)
+(in-package #:quaviver/stream)
 
 (defclass blub-impl (quaviver/blub:client
                      quaviver/dragonbox:nearest-client

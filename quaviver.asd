@@ -265,7 +265,7 @@
                 :components ((:file "packages")
                              (:file "implementation")))))
 
-(defsystem "quaviver/string"
+(defsystem "quaviver/stream"
   :description "Serialization/Deserialization for Quaviver"
   :license "MIT"
   :author ("Tarn W. Burton")
@@ -282,7 +282,7 @@
                "quaviver/dragonbox"
                "quaviver/liebler")
   :components ((:module "code"
-                :pathname "code/string/"
+                :pathname "code/stream/"
                 :serial t
                 :components ((:file "packages")
                              (:file "clients")

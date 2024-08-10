@@ -13,9 +13,9 @@ floating point numbers into formats like [binary32][]. Quaviver also
 includes a high-level interface to reading, writing and parsing
 numbers in various formats.
 
-## QUAVIVER/STRING system and package
+## QUAVIVER/STREAM system and package
 
-The QUAVIVER/STRING package includes three different functions for
+The QUAVIVER/STREAM package includes three different functions for
 parsing, reading and writing numbers. Each one of these functions take
 several keyword arguments which control the serialization method. All
 three functions include a keyword argument :STYLE which selects the
@@ -83,21 +83,21 @@ POSITION the index to the end of the number in STRING.
 #### Examples
 
 ```
-CL-USER> (asdf:load-system "quaviver/string")
+CL-USER> (asdf:load-system "quaviver/stream")
           
 T
-CL-USER> (quaviver/string:parse-number "  3.1415926535897932384626433832795028841971d0")
+CL-USER> (quaviver/stream:parse-number "  3.1415926535897932384626433832795028841971d0")
 3.141592653589793d0
 46
-CL-USER> (quaviver/string:parse-number "  314")
+CL-USER> (quaviver/stream:parse-number "  314")
 314
 5
-CL-USER> (quaviver/string:parse-number "  0xfa" :style :c99)
+CL-USER> (quaviver/stream:parse-number "  0xfa" :style :c99)
 250
 6
-CL-USER> (quaviver/string:parse-number "  0xfa.e10" :style :c99)
+CL-USER> (quaviver/stream:parse-number "  0xfa.e10" :style :c99)
 ; Evaluation aborted on #<QUAVIVER.CONDITION:INVALID-CHARACTER-ERROR {1002EF2FA3}>.
-CL-USER> (quaviver/string:parse-number "  0xfa.e10" :style :c++20)
+CL-USER> (quaviver/stream:parse-number "  0xfa.e10" :style :c++20)
 700.0d0
 10
 ```

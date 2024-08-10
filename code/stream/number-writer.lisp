@@ -1,4 +1,4 @@
-(in-package #:quaviver/string)
+(in-package #:quaviver/stream)
 
 (defun write-number (value stream
                      &key (base 10) (style :common-lisp))

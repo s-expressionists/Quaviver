@@ -1,4 +1,4 @@
-(in-package #:quaviver/string)
+(in-package #:quaviver/stream)
 
 (defun whitespace-char-p (x)
   (and (member x '(#\space #\tab #\page #\newline #\return))
