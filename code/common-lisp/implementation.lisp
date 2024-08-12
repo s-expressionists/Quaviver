@@ -42,27 +42,44 @@
                                                                 (:set :code :infinity))
                                                      (:sequence #\-
                                                                 (:set :code :quiet-nan))))
-                            (:digits :exponent)))
-  (:alternate? #\+
-               (:sequence #\-
-                          (:set :sign -1)))
-  (:alternate (:sequence (:assert :float t)
-                         #\.
-                         (:digits :fractional)
-                         (:set :ratio nil
-                               :integer nil)
-                         :exponent?)
-              (:sequence (:digits :integral)
-                         (:alternate (:sequence (:assert :ratio t)
-                                                #\/
-                                                (:set :integer nil :float nil)
-                                                (:digits :divisor))
-                                     (:sequence (:sequence? #\.
-                                                            (:sequence? (:assert :float t)
-                                                                        (:digits :fractional)
-                                                                        (:set :ratio nil
-                                                                              :integer nil)))
-                                                :exponent?)))))
+                            (:digits :exponent))
+     :sign? (:alternate? #\+
+                         (:sequence #\-
+                                    (:set :sign -1))))
+  (:alternate (:sequence #\#
+                         (:alternate (:sequence #\b
+                                                (:set :integral-base 2
+                                                      :divisor-base 2))
+                                     (:sequence #\o
+                                                (:set :integral-base 8
+                                                      :divisor-base 8))
+                                     (:sequence #\x
+                                                (:set :integral-base 16
+                                                      :divisor-base 16)))
+                         :sign?
+                         (:digits :integral)
+                         (:sequence? (:assert :ratio t)
+                                     #\/
+                                     (:set :integer nil :float nil)
+                                     (:digits :divisor)))
+              (:sequence :sign?
+                         (:alternate (:sequence (:assert :float t)
+                                                #\.
+                                                (:digits :fractional)
+                                                (:set :ratio nil
+                                                      :integer nil)
+                                                :exponent?)
+                                     (:sequence (:digits :integral)
+                                                (:alternate (:sequence (:assert :ratio t)
+                                                                       #\/
+                                                                       (:set :integer nil :float nil)
+                                                                       (:digits :divisor))
+                                                            (:sequence (:sequence? #\.
+                                                                                   (:sequence? (:assert :float t)
+                                                                                               (:digits :fractional)
+                                                                                               (:set :ratio nil
+                                                                                                     :integer nil)))
+                                                             :exponent?)))))))
 
 (defmethod quaviver:write-number ((client client) (base (eql 2)) (value integer) stream)
   (write-string "#b" stream)
