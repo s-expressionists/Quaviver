@@ -50,6 +50,14 @@
                    (setf (ldb ,nan-payload-byte-form ,bits-var)
                          (if (zerop ,significand-var) 1 ,significand-var)))))
                ((zerop ,significand-var))
+               ((not (typep ,exponent-var 'exponent-word))
+                (if (minusp ,exponent-var)
+                    (quaviver.condition:floating-point-underflow
+                     'triple-float
+                     ,significand-var ,exponent-var ,sign-var)
+                    (quaviver.condition:floating-point-overflow
+                     'triple-float
+                     ,significand-var ,exponent-var ,sign-var)))
                (t
                 (let ((shift (- ,significand-size
                                 (integer-length ,significand-var))))
