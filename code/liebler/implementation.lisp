@@ -19,14 +19,14 @@
          (cond ((or (keywordp ,exponent-var)
                     (zerop ,significand-var))
                 ,(quaviver:primitive-triple-float-form float-type significand-var exponent-var sign-var))
-               ((not (typep ,exponent-var 'quaviver:exponent-word))
-                (if (minusp ,exponent-var)
-                    (quaviver.condition:floating-point-underflow
-                     'triple-float
-                     ,significand-var ,exponent-var ,sign-var)
-                    (quaviver.condition:floating-point-overflow
-                     'triple-float
-                     ,significand-var ,exponent-var ,sign-var)))
+               ((< ,exponent-var ,(- (expt 2 21)))
+                (quaviver.condition:floating-point-underflow
+                 'triple-float
+                 ,significand-var ,exponent-var ,sign-var))
+               ((> ,exponent-var ,(1- (expt 2 21)))
+                (quaviver.condition:floating-point-overflow
+                 'triple-float
+                 ,significand-var ,exponent-var ,sign-var))
                (t
                 (let* ((shift (- ,significand-size (integer-length ,significand-var)))
                        (k (- (quaviver.math:floor-log-expt 2 10 ,exponent-var) -1 shift)))
