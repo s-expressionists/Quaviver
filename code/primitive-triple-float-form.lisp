@@ -52,11 +52,13 @@
                ((zerop ,significand-var))
                ((< ,exponent-var ,(- (expt 2 21)))
                 (quaviver.condition:floating-point-underflow
-                 'triple-float
+                 ',float-type ,sign-var
+                 'triple-float nil ',float-type 2
                  ,significand-var ,exponent-var ,sign-var))
                ((> ,exponent-var ,(1- (expt 2 21)))
                 (quaviver.condition:floating-point-overflow
-                 'triple-float
+                 ',float-type ,sign-var
+                 'triple-float nil ',float-type 2
                  ,significand-var ,exponent-var ,sign-var))
                (t
                 (let ((shift (- ,significand-size
@@ -65,11 +67,13 @@
                   (decf ,exponent-var shift))
                 (cond ((< ,exponent-var ,min-exponent)
                        (quaviver.condition:floating-point-underflow
-                        'triple-float
+                        ',float-type ,sign-var
+                        'triple-float nil ',float-type 2
                         ,significand-var ,exponent-var ,sign-var))
                       ((> ,exponent-var ,max-exponent)
                        (quaviver.condition:floating-point-overflow
-                        'triple-float
+                        ',float-type ,sign-var
+                        'triple-float nil ',float-type 2
                         ,significand-var ,exponent-var ,sign-var))
                       (t
                        (incf ,exponent-var ,exponent-bias)

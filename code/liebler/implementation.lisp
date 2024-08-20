@@ -21,11 +21,13 @@
                 ,(quaviver:primitive-triple-float-form float-type significand-var exponent-var sign-var))
                ((< ,exponent-var ,(- (expt 2 21)))
                 (quaviver.condition:floating-point-underflow
-                 'triple-float
+                 ',float-type ,sign-var
+                 'quaviver:triple-float ,client ',float-type 10
                  ,significand-var ,exponent-var ,sign-var))
                ((> ,exponent-var ,(1- (expt 2 21)))
                 (quaviver.condition:floating-point-overflow
-                 'triple-float
+                 ',float-type ,sign-var
+                 'quaviver:triple-float ,client ',float-type 10
                  ,significand-var ,exponent-var ,sign-var))
                (t
                 (let* ((shift (- ,significand-size (integer-length ,significand-var)))
@@ -39,13 +41,15 @@
                   (cond ((> k ,(+ max-exponent
                                   (quaviver.math:ceiling-log-expt 2 10 1)))
                          (quaviver.condition:floating-point-overflow
-                          'quaviver:triple-float
-                          ,client ',float-type 10 ,significand-var ,exponent-var ,sign-var))
+                          ',float-type ,sign-var
+                          'quaviver:triple-float ,client ',float-type 10
+                           ,significand-var ,exponent-var ,sign-var))
                         ((< k ,(- min-exponent
                                   (quaviver.math:ceiling-log-expt 2 10 1)))
                          (quaviver.condition:floating-point-underflow
-                          'quaviver:triple-float
-                          ,client ',float-type 10 ,significand-var ,exponent-var ,sign-var))
+                          ',float-type ,sign-var
+                          'quaviver:triple-float ,client ',float-type 10
+                           ,significand-var ,exponent-var ,sign-var))
                         (t
                          (setf ,significand-var (quaviver.math:round-to-odd
                                                  ,arithmetic-size

@@ -84,4 +84,5 @@
            #:invalid-character-error
            #:invalid-leading-zeros-error
            #:invalid-property-error
-           #:missing-digits-error))
+           #:missing-digits-error
+           #:recover))
