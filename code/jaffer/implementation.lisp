@@ -23,13 +23,13 @@
            (cond ((> q ,(+ max-exponent
                            (quaviver.math:ceiling-log-expt 2 10 1)))
                   (quaviver.condition:floating-point-overflow
-                   ',float-type ,sign-var
+                   ',float-type ,sign
                    'quaviver:triple-float ,client ',float-type 10
                    ,significand ,exponent ,sign))
                  ((< q ,(- min-exponent
                            (quaviver.math:ceiling-log-expt 2 10 1)))
                   (quaviver.condition:floating-point-underflow
-                   ',float-type ,sign-var
+                   ',float-type ,sign
                    'quaviver:triple-float ,client ',float-type 10
                    ,significand ,exponent ,sign))
                  ((minusp ,exponent)
