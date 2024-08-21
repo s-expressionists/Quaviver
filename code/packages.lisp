@@ -32,7 +32,8 @@
            #:hidden-bit-p
            #:subnormalp
            #:non-number-p
-           #:internal-base
+           #:infinityp
+           #:primitive-base
            #:exponent-bias
            #:max-exponent
            #:min-exponent

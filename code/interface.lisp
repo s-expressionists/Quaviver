@@ -66,7 +66,9 @@
 
 (defgeneric non-number-p (type))
 
-(defgeneric internal-base (type))
+(defgeneric infinityp (type))
+
+(defgeneric primitive-base (type))
 
 (defgeneric exponent-bias (type)
   (:method (type)
