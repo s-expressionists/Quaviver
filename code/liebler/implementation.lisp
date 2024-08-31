@@ -10,7 +10,7 @@
                    (max-exponent quaviver:max-exponent))
       float-type
     (let* ((extra 6)
-           (word-size (+ extra significand-size)))
+           #+(or)(word-size (+ extra significand-size)))
       `(locally
            (declare #+(or)(type (unsigned-byte ,word-size)
                           ,significand-var)

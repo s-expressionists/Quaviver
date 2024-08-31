@@ -90,7 +90,6 @@
          (fractional-position (or fractional-position power))
          (pos (- (min fractional-position 0)
                  leading-zeros))
-         digit
          digits-written-p
          (zero-char (funcall digit-char 0 base)))
     (labels ((write-digit (ch)

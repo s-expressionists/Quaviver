@@ -7,9 +7,11 @@
   (if (typep value *read-default-float-format*)
       #+(or ccl lispworks) #\E #-(or ccl lispworks) #\e
       (etypecase value
+        #+quaviver/short-float
         (short-float  #+(or ccl lispworks) #\S #-(or ccl lispworks) #\s)
         (single-float #+(or ccl lispworks) #\F #-(or ccl lispworks) #\f)
         (double-float #+(or ccl lispworks) #\D #-(or ccl lispworks) #\d)
+        #+quaviver/long-float
         (long-float   #+(or ccl lispworks) #\L #-(or ccl lispworks) #\l))))
 
 (defclass client ()

@@ -442,6 +442,7 @@
                               ,fractional ,fractional-count ,fractional-leading-zero ,fractional-base
                               ,divisor ,divisor-count, divisor-leading-zero ,divisor-base
                               ,exponent-sign ,exponent ,exponent-count ,exponent-leading-zero ,exponent-base
+                              ,payload-count ,payload-leading-zero ,payload-base
                               ,sign ,character))
           ,@expanded-clauses
         ,*next-tag*

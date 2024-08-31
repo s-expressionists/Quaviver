@@ -34,7 +34,7 @@
   (multiple-value-bind (significand exponent sign)
       (quaviver:float-triple client base value)
     (when (keywordp exponent)
-      (error "Unable to represent ~a in ~a." exponent (client-standard client)))
+      (error "Unable to represent ~a." exponent))
     (when (minusp sign)
       (write-char #\- stream))
     (let ((len (quaviver.math:ceiling-log-expt 10 2 (integer-length significand))))

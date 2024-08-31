@@ -26,6 +26,7 @@
 (defun float-triple (&key (base 10)
                           (name (uiop:implementation-identifier)))
   (let ((results (bench (lambda (client &key type limit)
+                          (declare (ignore type))
                           (quaviver:float-triple client
                                                  base
                                                  (* (1- (ash (random 2) 1))
