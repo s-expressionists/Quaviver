@@ -17,6 +17,8 @@
 
 #+quaviver/short-float
 (defmethod bits-float-form ((float-type (eql 'short-float)) value)
+  #+clasp
+  `(ext:bits-to-short-float ,value)
   #+clisp
   `(ffi:with-foreign-object (u '(ffi:c-union (value ffi:single-float)
                                              (bits  ffi:uint32)))
@@ -126,9 +128,11 @@
 
 #+quaviver/long-float
 (defmethod bits-float-form ((float-type (eql 'long-float)) value)
-  #-quaviver/long-float-fallback
+  #+clasp
+  `(ext:bits-to-long-float ,value)
+  #+(and ecl (not quaviver/long-float-fallback))
   `(system:bits-long-float ,value)
-  #+quaviver/long-float-fallback
+  #+(and ecl quaviver/long-float-fallback)
   (alexandria:with-gensyms
       (m n v)
     `(let ((,v ,value))

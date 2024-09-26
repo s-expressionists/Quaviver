@@ -42,10 +42,10 @@
            #:exponent-word
            #:define-number-parser))
 
-#+clisp
+#+(or clisp (and clasp short-float))
 (pushnew :quaviver/short-float *features*)
 
-#+(and ecl long-float)
+#+(and (or clasp ecl) long-float)
 (pushnew :quaviver/long-float *features*)
 
 (defpackage #:quaviver.math

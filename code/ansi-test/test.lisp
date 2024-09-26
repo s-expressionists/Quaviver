@@ -54,7 +54,7 @@
 (defvar *client-initargs*
   '((burger-dybvig)
     (schubfach)
-    #-ecl (dragonbox)))
+    #-(or ecl (and clasp long-float)) (dragonbox)))
 
 (defun test (&rest args &key exit &allow-other-keys)
   (setf args (remprop :exit args))
