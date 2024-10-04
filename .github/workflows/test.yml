@@ -37,19 +37,16 @@ jobs:
       with:
         repository: s-expressionists/Incless
         path: incless
-        ref: quaviver4
     - name: Checkout Inravina
       uses: actions/checkout@v4
       with:
         repository: s-expressionists/Inravina
         path: inravina
-        ref: quaviver4
     - name: Checkout Invistra
       uses: actions/checkout@v4
       with:
         repository: s-expressionists/Invistra
         path: invistra
-        ref: quaviver4
     - name: Checkout Repository
       uses: actions/checkout@v4
       with:
