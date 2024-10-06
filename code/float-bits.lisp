@@ -3,34 +3,25 @@
 (defmacro %float-bits (float-type value)
   (float-bits-form float-type value))
 
-#+clisp
-(defmethod float-bits (value)
-  (typecase value
-    #+quaviver/short-float
-    (short-float
-     (%float-bits short-float value))
-    (single-float
-     (%float-bits single-float value))
-    (double-float
-     (%float-bits double-float value))
-    #+quaviver/long-float
-    (long-float
-     (%float-bits long-float value))
-    (otherwise
-     (call-next-method))))
+#+quaviver/short-float
+(defmethod float-bits ((float-type (eql 'short-float)) value)
+  (%float-bits short-float (coerce value 'short-float)))
 
-#+(and (not clisp) quaviver/short-float)
-(defmethod float-bits ((value short-float))
-  (%float-bits short-float value))
+#-quaviver/short-float
+(defmethod float-bits ((float-type (eql 'short-float)) value)
+  (%float-bits single-float (coerce value 'single-float)))
 
-#-clisp
-(defmethod float-bits ((value single-float))
-  (%float-bits single-float value))
+(defmethod float-bits ((float-type (eql 'single-float)) value)
+  (%float-bits single-float (coerce value 'single-float)))
 
-#-clisp
-(defmethod float-bits ((value double-float))
-  (%float-bits double-float value))
+(defmethod float-bits ((float-type (eql 'double-float)) value)
+  (%float-bits double-float (coerce value 'double-float)))
 
-#+(and (not clisp) quaviver/long-float)
-(defmethod float-bits ((value long-float))
-  (%float-bits long-float value))
+#+quaviver/long-float
+(defmethod float-bits ((float-type (eql 'long-float)) value)
+  (%float-bits long-float (coerce value 'long-float)))
+
+#-quaviver/long-float
+(defmethod float-bits ((float-type (eql 'long-float)) value)
+  (%float-bits double-float (coerce value 'double-float)))
+

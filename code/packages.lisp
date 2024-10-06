@@ -1,46 +1,53 @@
 (defpackage #:quaviver
   (:use #:common-lisp)
-  (:export #:bits-float
+  (:export #:arithmetic-size
+           #:bits-float
            #:bits-float-form
+           #:bits-primitive-triple
+           #:bits-primitive-triple-form
+           #:compose-digits
+           #:define-number-parser
+           #:exact-implementation-type-p
+           #:exponent-bias
+           #:exponent-byte-form
+           #:exponent-bytespec
+           #:exponent-size
+           #:exponent-word
+           #:external-type
            #:float-bits
            #:float-bits-form
-           #:triple-float
-           #:primitive-triple-float-form
-           #:float-triple
            #:float-primitive-triple-form
-           #:parse-digits
-           #:compose-digits
-           #:parse-number
-           #:read-digits
-           #:write-digits
-           #:read-number
-           #:write-number
-           #:storage-size
-           #:significand-bytespec
-           #:significand-byte-form
-           #:significand-size
-           #:exponent-bytespec
-           #:exponent-byte-form
-           #:exponent-size
-           #:sign-bytespec
-           #:sign-byte-form
-           #:sign-size
-           #:nan-payload-bytespec
-           #:nan-payload-byte-form
-           #:nan-type-bytespec
-           #:nan-type-byte-form
+           #:float-triple
            #:hidden-bit-p
-           #:subnormalp
-           #:non-number-p
+           #:implementation-type
            #:infinityp
-           #:primitive-base
-           #:exponent-bias
            #:max-exponent
            #:min-exponent
-           #:arithmetic-size
+           #:nan-payload-byte-form
+           #:nan-payload-bytespec
+           #:nan-type-byte-form
+           #:nan-type-bytespec
+           #:non-number-p
+           #:parse-digits
+           #:parse-number
+           #:primitive-base
+           #:primitive-triple-bits
+           #:primitive-triple-bits-form
+           #:primitive-triple-float-form
+           #:read-digits
+           #:read-number
+           #:sign-byte-form
+           #:sign-bytespec
+           #:sign-size
+           #:significand-byte-form
+           #:significand-bytespec
+           #:significand-size
            #:significand-word
-           #:exponent-word
-           #:define-number-parser))
+           #:storage-size
+           #:subnormalp
+           #:triple-float
+           #:write-digits
+           #:write-number))
 
 #+(or clisp (and clasp short-float))
 (pushnew :quaviver/short-float *features*)
