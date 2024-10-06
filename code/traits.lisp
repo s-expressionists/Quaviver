@@ -100,7 +100,7 @@
 
          (defmethod arithmetic-size ((type (eql ',type)))
            ,(ash 1 (integer-length (+ 6 full-significand-size))))))))
-
+         
 #+quaviver/short-float
 (%traits short-float
          most-positive-short-float
