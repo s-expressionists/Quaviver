@@ -4,9 +4,9 @@
 
 (defgeneric bits-float-form (float-type bits))
 
-(defgeneric float-bits (value))
+(defgeneric float-bits (float-type value))
 
-(defgeneric float-bits-form (type value))
+(defgeneric float-bits-form (float-type value))
 
 (defgeneric triple-float (client float-type base significand exponent sign))
 
@@ -15,6 +15,14 @@
 (defgeneric float-triple (client base value))
 
 (defgeneric float-primitive-triple-form (float-type value))
+
+(defgeneric bits-primitive-triple-form (float-type value))
+
+(defgeneric bits-primitive-triple (float-type value))
+
+(defgeneric primitive-triple-bits-form (float-type significand exponent sign))
+
+(defgeneric primitive-triple-bits (float-type significand exponent sign))
 
 (defgeneric parse-number (client base sequence
                           &optional start end integerp ratiop floatp float-type))
@@ -95,6 +103,39 @@
 
 (defgeneric arithmetic-size (type))
 
+(defgeneric implementation-type (type)
+  (:method ((type (eql 'short-float)))
+    #+quaviver/short-float 'short-float
+    #-quaviver/short-float 'single-float)
+  (:method ((type (eql 'single-float)))
+    'single-float)
+  (:method ((type (eql 'double-float)))
+    'double-float)
+  (:method ((type (eql 'long-float)))
+    #+quaviver/long-float 'long-float
+    #-quaviver/long-float 'double-float))
+
+(defgeneric exact-implementation-type-p (type)
+  (:method ((type (eql 'short-float)))
+    t)
+  (:method ((type (eql 'single-float)))
+    t)
+  (:method ((type (eql 'double-float)))
+    t)
+  (:method ((type (eql 'long-float)))
+    t))
+            
+(defgeneric external-type (type)
+  (:method (type)
+    (declare (ignore type))
+     nil)
+  #-quaviver/short-float
+  (:method ((type (eql 'short-float)))
+    (external-type 'single-float))
+  #-quaviver/long-float
+  (:method ((type (eql 'long-float)))
+    (external-type 'long-float)))
+  
 (deftype significand-word (type &optional (extra 0))
   `(unsigned-byte ,(+ (significand-size type) extra)))
 
