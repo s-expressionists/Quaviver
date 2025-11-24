@@ -74,7 +74,7 @@ jobs:
       run: |
         lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/compare)" -e "(quaviver/compare:triple-float/j.l/f :coverage 0.001 :exit t :output \"failures-triple-float-j-l.sexp\")"
     - name: Upload comparison results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: failure()
       with:
         name: failures-${{ matrix.lisp }}
