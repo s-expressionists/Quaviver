@@ -57,22 +57,22 @@ jobs:
         asdf-add
     - name: Run Unit Tests
       run: |
-        lisp -i ${{ matrix.lisp }} -e "(defparameter cl-user::*exit-on-test-failures* t)" -e "(ql:quickload :quaviver/unit-test)" -e "(parachute:test :quaviver/unit-test)"
+        lisp -i ${{ matrix.lisp }} -e "(defparameter cl-user::*exit-on-test-failures* t)" -e "(asdf:load-system :quaviver/unit-test)" -e "(parachute:test :quaviver/unit-test)"
     - name: Run ANSI Tests
       run: |
-        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/ansi-test)" -e "(quaviver/ansi-test:test :exit t)"
+        lisp -i ${{ matrix.lisp }} -e "(asdf:load-system :quaviver/ansi-test)" -e "(quaviver/ansi-test:test :exit t)"
     - name: float-triple/Burger-Dybvig vs Schubfach
       if: ${{ matrix.lisp != 'cmucl' }}    
       run: |
-        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/compare)" -e "(quaviver/compare:float-triple/bd.s/f :coverage 0.001 :exit t :output \"failures-float-triple-bd-s.sexp\")"
+        lisp -i ${{ matrix.lisp }} -e "(asdf:load-system :quaviver/compare)" -e "(quaviver/compare:float-triple/bd.s/f :coverage 0.001 :exit t :output \"failures-float-triple-bd-s.sexp\")"
     - name: float-triple/Schubfach vs Dragonbox 
       if: ${{ matrix.lisp != 'cmucl' }}    
       run: |
-        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/compare)" -e "(quaviver/compare:float-triple/s.d/f :coverage 0.001 :exit t :output \"failures-float-triple-s-d.sexp\")"
+        lisp -i ${{ matrix.lisp }} -e "(asdf:load-system :quaviver/compare)" -e "(quaviver/compare:float-triple/s.d/f :coverage 0.001 :exit t :output \"failures-float-triple-s-d.sexp\")"
     - name: triple-float/Jaffer vs Liebler
       if: ${{ matrix.lisp != 'cmucl' }}    
       run: |
-        lisp -i ${{ matrix.lisp }} -e "(ql:quickload :quaviver/compare)" -e "(quaviver/compare:triple-float/j.l/f :coverage 0.001 :exit t :output \"failures-triple-float-j-l.sexp\")"
+        lisp -i ${{ matrix.lisp }} -e "(asdf:load-system :quaviver/compare)" -e "(quaviver/compare:triple-float/j.l/f :coverage 0.001 :exit t :output \"failures-triple-float-j-l.sexp\")"
     - name: Upload comparison results
       uses: actions/upload-artifact@v4
       if: failure()
