@@ -41,6 +41,10 @@
      quaviver/burger-dybvig:client)
   ())
 
+(defmethod make-load-form ((instance burger-dybvig) &optional environment)
+  (make-load-form-saving-slots instance
+                               :environment environment))
+
 (defclass schubfach
     (inravina-extrinsic:extrinsic-client
      quaviver/schubfach:client)
