@@ -151,7 +151,7 @@
                            digit-grouping group-marker
                            leading-zeros digit-char)
   (let* ((size (1- (integer-length base)))
-         (position (* size (ceiling (integer-length value) size)))
+         (position (* size (max 1 (ceiling (integer-length value) size))))
          (fractional-position (or fractional-position
                                (ceiling (integer-length value) size)))
          (pos (- (min fractional-position 0)
