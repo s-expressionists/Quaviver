@@ -37,7 +37,7 @@
     invistra-extrinsic:formatter))
 
 (defclass burger-dybvig
-    (inravina-extrinsic:extrinsic-client
+    (invistra-extrinsic:extrinsic-client
      quaviver/burger-dybvig:client)
   ())
 
@@ -46,12 +46,12 @@
                                :environment environment))
 
 (defclass schubfach
-    (inravina-extrinsic:extrinsic-client
+    (invistra-extrinsic:extrinsic-client
      quaviver/schubfach:client)
   ())
 
 (defclass dragonbox
-    (inravina-extrinsic:extrinsic-client
+    (invistra-extrinsic:extrinsic-client
      quaviver/dragonbox:nearest-client)
   ())
 
