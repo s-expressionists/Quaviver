@@ -31,13 +31,13 @@
                                     0 :infinity sign))
             ((minusp sign)
              (ecase float-type
-               (short-float most-negative-short-float)
-               (single-float most-negative-single-float)
-               (double-float most-negative-double-float)
-               (long-float most-negative-long-float)))
+               (short-float (symbol-value 'most-negative-short-float))
+               (single-float (symbol-value 'most-negative-single-float))
+               (double-float (symbol-value 'most-negative-double-float))
+               (long-float (symbol-value 'most-negative-long-float))))
             (t
              (ecase float-type
-               (short-float most-positive-short-float)
-               (single-float most-positive-single-float)
-               (double-float most-positive-double-float)
-               (long-float most-positive-long-float)))))))
+               (short-float (symbol-value 'most-positive-short-float))
+               (single-float (symbol-value 'most-positive-single-float))
+               (double-float (symbol-value 'most-positive-double-float))
+               (long-float (symbol-value 'most-positive-long-float))))))))

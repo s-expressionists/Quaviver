@@ -23,7 +23,6 @@
                                            (:file "parse-error")))
                              (:file "interface")
                              (:file "traits")
-                             (:file "external-traits")
                              (:module "math"
                               :serial t
                               :components ((:file "log-expt")
