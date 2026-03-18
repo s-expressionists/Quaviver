@@ -304,7 +304,7 @@
            `((defmethod external-type ((type (eql ',implementation-type)))
                ',type))))))
 
-#+quaviver/short-float (not quaviver/boot))
+#+(and quaviver/short-float (not quaviver/boot))
 (%traits short-float
          most-positive-short-float
          least-positive-short-float
