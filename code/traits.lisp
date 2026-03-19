@@ -101,10 +101,8 @@
          (defmethod arithmetic-size ((type (eql ',type)))
            ,(ash 1 (integer-length (+ 6 full-significand-size))))))))
 
-(defmacro %boot-traits (type)
-  (let* ((exponent-size (get type :exponent))
-         (significand-size (get type :significand))
-         (hidden-bit-p (= 1 (logcount (+ exponent-size significand-size))))
+(defun traits-from-sizes (type exponent-size significand-size)
+  (let* ((hidden-bit-p (= 1 (logcount (+ exponent-size significand-size))))
          (storage-size (if hidden-bit-p
                            (+ exponent-size significand-size)
                            (+ 1 exponent-size significand-size)))
@@ -117,49 +115,107 @@
          (internal-base 2)
          (exponent-bias (+ (ash 1 (1- exponent-size)) significand-size -2))
          (min-exponent (- 2 exponent-bias significand-size))
-         (max-exponent (- (ash 1 (1- exponent-size)) significand-size)))
+         (max-exponent (- (ash 1 (1- exponent-size)) significand-size))
+         (core-type-p (and (member type '(short-float single-float double-float long-float))))
+         (implementation-type (if core-type-p
+                                  type
+                                  (loop for (type . tail) on '(short-float
+                                                               single-float
+                                                               double-float
+                                                               long-float)
+                                        when (and (eq type (implementation-type type))
+                                                  (or (null tail)
+                                                      (and (>= (exponent-size type)
+                                                               exponent-size)
+                                                           (>= (significand-size type)
+                                                               significand-size))))
+                                          return type)))
+         (exactp (or core-type-p
+                     (loop for (type . tail) on '(short-float
+                                                  single-float
+                                                  double-float
+                                                  long-float)
+                           when (and (eq type (implementation-type type))
+                                     (or (null tail)
+                                         (and (>= (exponent-size type)
+                                                  exponent-size)
+                                              (>= (significand-size type)
+                                                  significand-size))))
+                             return (and (= (exponent-size type)
+                                            exponent-size)
+                                         (= (significand-size type)
+                                            significand-size))))))
+    `(:storage-size ,storage-size
+      :significand-byte-form ,(byte ,stored-significand-size 0)
+      :significand-size ,significand-size
+      :exponent-byte-form (byte ,exponent-size ,stored-significand-size)
+      :exponent-size ,exponent-size
+      :sign-byte-form (byte sign-size (+ exponent-size stored-significand-size))
+      :sign-size ,sign-size
+      :nan-payload-byte-form (byte ,(1- stored-significand-size) 0)
+      :nan-type-byte-form (byte 1 ,(1- stored-significand-size))
+      :hidden-bit-p ,hidden-bit-p
+      :subnormalp ,subnormalp
+      :non-number-p ,non-number-p
+      :internal-base ,internal-base
+      :exponent-bias ,exponent-bias
+      :max-exponent ,max-exponent
+      :min-exponent ,min-exponent
+      :arithmetic-size ,(ash 1 (integer-length (+ 6 significand-size)))
+      :exact-implementation-type-p exactp
+      :external-type ,type
+      :implementation-type ,implementation-type)))
+
+(defmacro %boot-traits (type)
+  (destructuring-bind (&key storage-size significand-byte-form significand-size
+                            exponent-byte-form exponent-size sign-byte-form sign-size
+                            nan-payload-byte-form nan-type-byte-form hidden-bit-p subnormalp
+                            non-number-p internal-base exponent-bias max-exponent min-exponent
+                            arithmetic-size exact-implementation-type-p external-type
+                            implementation-type)
+      (traits-from-sizes type (get type :exponent-size) (get type :significand-size))
     `(progn
        (defmethod storage-size ((type (eql ',type)))
          ,storage-size)
 
        (defmethod significand-bytespec ((type (eql ',type)))
-         (byte ,stored-significand-size 0))
+         ,significand-byte-form)
 
        (defmethod significand-byte-form ((type (eql ',type)))
-         '(byte ,stored-significand-size 0))
+         ',significand-byte-form)
 
        (defmethod significand-size ((type (eql ',type)))
          ,significand-size)
 
        (defmethod exponent-bytespec ((type (eql ',type)))
-         (byte ,exponent-size ,stored-significand-size))
+         ,exponent-byte-form)
 
        (defmethod exponent-byte-form ((type (eql ',type)))
-         '(byte ,exponent-size ,stored-significand-size))
+         ',exponent-byte-form)
 
        (defmethod exponent-size ((type (eql ',type)))
          ,exponent-size)
 
        (defmethod sign-bytespec ((type (eql ',type)))
-         (byte ,sign-size ,(+ exponent-size stored-significand-size)))
+         ,sign-byte-form)
 
        (defmethod sign-byte-form ((type (eql ',type)))
-         '(byte ,sign-size ,(+ exponent-size stored-significand-size)))
+         ',sign-byte-form)
 
        (defmethod sign-size ((type (eql ',type)))
          ,sign-size)
 
        (defmethod nan-payload-bytespec ((type (eql ',type)))
-         (byte ,(1- stored-significand-size) 0))
+         ,nan-payload-byte-form)
 
        (defmethod nan-payload-byte-form ((type (eql ',type)))
-         '(byte ,(1- stored-significand-size) 0))
+         ',nan-payload-byte-form)
 
        (defmethod nan-type-bytespec ((type (eql ',type)))
-         (byte 1 ,(1- stored-significand-size)))
+         ,nan-type-byte-form)
 
        (defmethod nan-type-byte-form ((type (eql ',type)))
-         '(byte 1 ,(1- stored-significand-size)))
+         ',nan-type-byte-form)
 
        (defmethod hidden-bit-p ((type (eql ',type)))
          ,hidden-bit-p)
@@ -183,8 +239,7 @@
          ,min-exponent)
 
        (defmethod arithmetic-size ((type (eql ',type)))
-         ,(ash 1 (integer-length (+ 6 significand-size)))))))
-
+         ,arithmetic-size))))
 
 #+(and quaviver/short-float (not quaviver/boot))
 (%traits short-float
