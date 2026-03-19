@@ -101,6 +101,30 @@
          (defmethod arithmetic-size ((type (eql ',type)))
            ,(ash 1 (integer-length (+ 6 full-significand-size))))))))
 
+(defun find-implementation-type (type exponent-size significand-size)
+  (if (and (member type '(short-float single-float double-float long-float))
+           t)
+      type
+      (let ((types (remove-if (lambda (type)
+                                (not (eq candidate-type (implementation-type candidate-type))))
+                              '(short-float single-float double-float long-float)))
+            (exact-type (find-if (lambda (type)
+                                   (and (= (exponent-size type)
+                                           exponent-size)
+                                        (= (significand-size type)
+                                           significand-size)))
+                                 types)))
+        (if exact-type
+            (values exact-type t)
+            (values (or (find-if (lambda (type)
+                                   (and (>= (exponent-size type)
+                                            exponent-size)
+                                        (>= (significand-size type)
+                                            significand-size)))
+                                 types)
+                        (car (last types)))
+                    nil)))))
+
 (defun traits-from-sizes (type exponent-size significand-size)
   (let* ((hidden-bit-p (= 1 (logcount (+ exponent-size significand-size))))
          (storage-size (if hidden-bit-p
@@ -117,55 +141,29 @@
          (min-exponent (- 2 exponent-bias significand-size))
          (max-exponent (- (ash 1 (1- exponent-size)) significand-size))
          (core-type-p (and (member type '(short-float single-float double-float long-float))
-                           t))
-         (implementation-type (if core-type-p
-                                  type
-                                  (loop for (type . tail) on '(short-float
-                                                               single-float
-                                                               double-float
-                                                               long-float)
-                                        when (and (eq type (implementation-type type))
-                                                  (or (null tail)
-                                                      (and (>= (exponent-size type)
-                                                               exponent-size)
-                                                           (>= (significand-size type)
-                                                               significand-size))))
-                                          return type)))
-         (exactp (or core-type-p
-                     (loop for (type . tail) on '(short-float
-                                                  single-float
-                                                  double-float
-                                                  long-float)
-                           when (and (eq type (implementation-type type))
-                                     (or (null tail)
-                                         (and (>= (exponent-size type)
-                                                  exponent-size)
-                                              (>= (significand-size type)
-                                                  significand-size))))
-                             return (and (= (exponent-size type)
-                                            exponent-size)
-                                         (= (significand-size type)
-                                            significand-size))))))
-    `(:storage-size ,storage-size
-      :significand-byte-form (byte ,stored-significand-size 0)
-      :significand-size ,significand-size
-      :exponent-byte-form (byte ,exponent-size ,stored-significand-size)
-      :exponent-size ,exponent-size
-      :sign-byte-form (byte ,sign-size ,(+ exponent-size stored-significand-size))
-      :sign-size ,sign-size
-      :nan-payload-byte-form (byte ,(1- stored-significand-size) 0)
-      :nan-type-byte-form (byte 1 ,(1- stored-significand-size))
-      :hidden-bit-p ,hidden-bit-p
-      :subnormalp ,subnormalp
-      :non-number-p ,non-number-p
-      :internal-base ,internal-base
-      :exponent-bias ,exponent-bias
-      :max-exponent ,max-exponent
-      :min-exponent ,min-exponent
-      :arithmetic-size ,(ash 1 (integer-length (+ 6 significand-size)))
-      :exact-implementation-type-p ,exactp
-      :external-type ,type
-      :implementation-type ,implementation-type)))
+                           t)))
+    (multiple-value-bind (implementation-type exactp)
+        (find-implementation-type type)
+      `(:storage-size ,storage-size
+        :significand-byte-form (byte ,stored-significand-size 0)
+        :significand-size ,significand-size
+        :exponent-byte-form (byte ,exponent-size ,stored-significand-size)
+        :exponent-size ,exponent-size
+        :sign-byte-form (byte ,sign-size ,(+ exponent-size stored-significand-size))
+        :sign-size ,sign-size
+        :nan-payload-byte-form (byte ,(1- stored-significand-size) 0)
+        :nan-type-byte-form (byte 1 ,(1- stored-significand-size))
+        :hidden-bit-p ,hidden-bit-p
+        :subnormalp ,subnormalp
+        :non-number-p ,non-number-p
+        :internal-base ,internal-base
+        :exponent-bias ,exponent-bias
+        :max-exponent ,max-exponent
+        :min-exponent ,min-exponent
+        :arithmetic-size ,(ash 1 (integer-length (+ 6 significand-size)))
+        :exact-implementation-type-p ,exactp
+        :external-type ,type
+        :implementation-type ,implementation-type))))
 
 (defmacro %boot-traits (type)
   (destructuring-bind (&key storage-size significand-byte-form significand-size
