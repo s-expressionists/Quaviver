@@ -146,7 +146,7 @@
                                          (= (significand-size type)
                                             significand-size))))))
     `(:storage-size ,storage-size
-      :significand-byte-form ,(byte ,stored-significand-size 0)
+      :significand-byte-form (byte ,stored-significand-size 0)
       :significand-size ,significand-size
       :exponent-byte-form (byte ,exponent-size ,stored-significand-size)
       :exponent-size ,exponent-size
