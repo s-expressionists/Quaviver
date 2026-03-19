@@ -33,7 +33,7 @@
                  count
                  (1+ count)))))))
 
-(define-compiler-macro count-digits (&whole whole base value)
+#+(or)(define-compiler-macro count-digits (&whole whole base value)
   (cond ((not (constantp base))
          whole)
         ((eql base 2)
