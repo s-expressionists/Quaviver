@@ -116,7 +116,8 @@
          (exponent-bias (+ (ash 1 (1- exponent-size)) significand-size -2))
          (min-exponent (- 2 exponent-bias significand-size))
          (max-exponent (- (ash 1 (1- exponent-size)) significand-size))
-         (core-type-p (and (member type '(short-float single-float double-float long-float))))
+         (core-type-p (and (member type '(short-float single-float double-float long-float))
+                           t))
          (implementation-type (if core-type-p
                                   type
                                   (loop for (type . tail) on '(short-float
@@ -150,7 +151,7 @@
       :significand-size ,significand-size
       :exponent-byte-form (byte ,exponent-size ,stored-significand-size)
       :exponent-size ,exponent-size
-      :sign-byte-form (byte sign-size (+ exponent-size stored-significand-size))
+      :sign-byte-form (byte ,sign-size ,(+ exponent-size stored-significand-size))
       :sign-size ,sign-size
       :nan-payload-byte-form (byte ,(1- stored-significand-size) 0)
       :nan-type-byte-form (byte 1 ,(1- stored-significand-size))
@@ -162,7 +163,7 @@
       :max-exponent ,max-exponent
       :min-exponent ,min-exponent
       :arithmetic-size ,(ash 1 (integer-length (+ 6 significand-size)))
-      :exact-implementation-type-p exactp
+      :exact-implementation-type-p ,exactp
       :external-type ,type
       :implementation-type ,implementation-type)))
 
