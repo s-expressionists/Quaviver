@@ -106,7 +106,7 @@
            t)
       type
       (let ((types (remove-if (lambda (type)
-                                (not (eq candidate-type (implementation-type candidate-type))))
+                                (not (eq type (implementation-type type))))
                               '(short-float single-float double-float long-float)))
             (exact-type (find-if (lambda (type)
                                    (and (= (exponent-size type)
