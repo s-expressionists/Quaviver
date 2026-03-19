@@ -143,7 +143,7 @@
          (core-type-p (and (member type '(short-float single-float double-float long-float))
                            t)))
     (multiple-value-bind (implementation-type exactp)
-        (find-implementation-type type)
+        (find-implementation-type type exponent-size significand-size)
       `(:storage-size ,storage-size
         :significand-byte-form (byte ,stored-significand-size 0)
         :significand-size ,significand-size
