@@ -67,7 +67,7 @@
        (256
         (expt/256-10 power))))))
 
-(define-compiler-macro expt (&whole whole arithmetic-size base power)
+#+(or)(define-compiler-macro expt (&whole whole arithmetic-size base power)
   (case base
     (10
      (case arithmetic-size

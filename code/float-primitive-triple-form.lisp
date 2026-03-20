@@ -54,9 +54,10 @@
                                  exponent (- exponent ,exponent-bias)))
                        (values significand exponent sign)))))))))
 
-#+quaviver/short-float
 (defun float-primitive-triple/short-float (value)
-  (%float-primitive-triple-form short-float value))
+  (%float-primitive-triple-form #+quaviver/short-float short-float
+                                #-quaviver/short-float single-float
+                                value))
 
 (defun float-primitive-triple/single-float (value)
   (%float-primitive-triple-form single-float value))
@@ -64,17 +65,13 @@
 (defun float-primitive-triple/double-float (value)
   (%float-primitive-triple-form double-float value))
 
-#+quaviver/long-float
 (defun float-primitive-triple/long-float (value)
-  (%float-primitive-triple-form long-float value))
+  (%float-primitive-triple-form #+quaviver/long-float long-float
+                                #-quaviver/long-float double-float
+                                value))
 
-#+quaviver/short-float
 (defmethod float-primitive-triple-form ((float-type (eql 'short-float)) value)
   `(float-primitive-triple/short-float ,value))
-
-#-quaviver/short-float
-(defmethod float-primitive-triple-form ((float-type (eql 'short-float)) value)
-  `(float-primitive-triple/single-float ,value))
 
 (defmethod float-primitive-triple-form ((float-type (eql 'single-float)) value)
   `(float-primitive-triple/single-float ,value))
@@ -82,13 +79,8 @@
 (defmethod float-primitive-triple-form ((float-type (eql 'double-float)) value)
   `(float-primitive-triple/double-float ,value))
 
-#+quaviver/long-float
 (defmethod float-primitive-triple-form ((float-type (eql 'long-float)) value)
   `(float-primitive-triple/long-float ,value))
-
-#-quaviver/long-float
-(defmethod float-primitive-triple-form ((float-type (eql 'long-float)) value)
-  `(float-primitive-triple/double-float ,value))
 
 (defmethod float-primitive-triple-form (float-type value)
   (declare (ignore float-type))

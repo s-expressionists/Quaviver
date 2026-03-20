@@ -79,8 +79,8 @@
            #:ceiling-log-expt
            #:count-digits))
 
-#+sbcl
-(pushnew :quaviver.math/smallnum *features*)
+;#+sbcl
+;(pushnew :quaviver.math/smallnum *features*)
 
 (defpackage #:quaviver.condition
   (:use #:common-lisp)

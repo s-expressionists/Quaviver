@@ -51,7 +51,7 @@
               0))
        (- +log-expt-shift+)))
 
-(define-compiler-macro floor-log-expt
+#+(or)(define-compiler-macro floor-log-expt
     (&whole whole log-base expt-base exp &optional three-quarters-p)
   (if (or (not (constantp log-base))
           (not (constantp expt-base)))
@@ -85,7 +85,7 @@
                           0))
                    (ash 1 +log-expt-shift+))))
 
-(define-compiler-macro ceiling-log-expt
+#+(or)(define-compiler-macro ceiling-log-expt
     (&whole whole log-base expt-base exp &optional three-quarters-p)
   (if (or (not (constantp log-base))
           (not (constantp expt-base)))
@@ -118,7 +118,7 @@
       (values q
               (< r (- multiplier))))))
 
-(define-compiler-macro ceiling-log-expt/far
+#+(or)(define-compiler-macro ceiling-log-expt/far
     (&whole whole log-base expt-base exp)
   (if (or (not (constantp log-base))
           (not (constantp expt-base)))

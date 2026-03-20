@@ -69,7 +69,7 @@
     (256
      (round-to-odd/256 cp g))))
 
-(define-compiler-macro round-to-odd (&whole whole arithmetic-size cp g)
+#+(or)(define-compiler-macro round-to-odd (&whole whole arithmetic-size cp g)
   (case arithmetic-size
     (32
      `(round-to-odd/32 ,cp ,g))

@@ -175,7 +175,7 @@
 (defun hi/64 (x count)
   (ash x (- count 64)))
 
-(define-compiler-macro hi/64 (&whole whole x count)
+#+(or)(define-compiler-macro hi/64 (&whole whole x count)
   (case count
     (0 0)
     (64 `(the (arithmetic-word 64) ,x))
@@ -187,7 +187,7 @@
   #-quaviver.math/smallnum
   (ash x (- count 128)))
 
-(define-compiler-macro hi/hi64/128 (&whole whole x count)
+#+(or)(define-compiler-macro hi/hi64/128 (&whole whole x count)
   #-quaviver.math/smallnum
   (declare (ignore x))
   (case count
