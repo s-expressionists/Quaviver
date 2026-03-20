@@ -94,7 +94,6 @@
                                          ,significand-var))))))))
          ,(bits-float-form float-type bits-var)))))
 
-#+quaviver/short-float
 (defun primitive-triple-float/short-float (significand exponent sign)
   (%primitive-triple-float-form short-float significand exponent sign))
 
@@ -104,17 +103,11 @@
 (defun primitive-triple-float/double-float (significand exponent sign)
   (%primitive-triple-float-form double-float significand exponent sign))
 
-#+quaviver/long-float
 (defun primitive-triple-float/long-float (significand exponent sign)
   (%primitive-triple-float-form long-float significand exponent sign))
 
-#+quaviver/short-float
 (defmethod primitive-triple-float-form ((float-type (eql 'short-float)) significand exponent sign)
   `(primitive-triple-float/short-float ,significand ,exponent ,sign))
-
-#-quaviver/short-float
-(defmethod primitive-triple-float-form ((float-type (eql 'short-float)) significand exponent sign)
-  `(primitive-triple-float/single-float ,significand ,exponent ,sign))
 
 (defmethod primitive-triple-float-form ((float-type (eql 'single-float)) significand exponent sign)
   `(primitive-triple-float/single-float ,significand ,exponent ,sign))
@@ -122,10 +115,6 @@
 (defmethod primitive-triple-float-form ((float-type (eql 'double-float)) significand exponent sign)
   `(primitive-triple-float/double-float ,significand ,exponent ,sign))
 
-#+quaviver/long-float
 (defmethod primitive-triple-float-form ((float-type (eql 'long-float)) significand exponent sign)
   `(primitive-triple-float/long-float ,significand ,exponent ,sign))
 
-#-quaviver/long-float
-(defmethod primitive-triple-float-form ((float-type (eql 'long-float)) significand exponent sign)
-  `(primitive-triple-float/double-float ,significand ,exponent ,sign))

@@ -240,13 +240,13 @@
        (defmethod arithmetic-size ((type (eql ',type)))
          ,arithmetic-size))))
 
-#+(and quaviver/short-float (not quaviver/boot))
+#-quaviver/boot
 (%traits short-float
          most-positive-short-float
          least-positive-short-float
          least-positive-normalized-short-float)
 
-#+(and quaviver/short-float quaviver/boot)
+#+quaviver/boot
 (%boot-traits short-float)
 
 #-quaviver/boot
@@ -267,11 +267,11 @@
 #+quaviver/boot
 (%boot-traits double-float)
 
-#+(and quaviver/long-float (not quaviver/boot))
+#-quaviver/boot
 (%traits long-float
          most-positive-long-float
          least-positive-long-float
          least-positive-normalized-long-float)
 
-#+(and quaviver/long-float quaviver/boot)
+#+quaviver/boot
 (%boot-traits long-float)

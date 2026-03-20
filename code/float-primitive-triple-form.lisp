@@ -1,10 +1,8 @@
 (in-package #:quaviver)
 
-(declaim (inline #+quaviver/short-float
-                 float-primitive-triple/short-float
+(declaim (inline float-primitive-triple/short-float
                  float-primitive-triple/single-float
                  float-primitive-triple/double-float
-                 #+quaviver/long-float
                  float-primitive-triple/long-float))
 
 (defmacro %float-primitive-triple-form (float-type value)
