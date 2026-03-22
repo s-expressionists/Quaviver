@@ -4,46 +4,56 @@
 (in-package #:quaviver.math)
 
 (defmacro define-expt (&key arithmetic-sizes types (base 10))
-  `(progn
-     ,@(loop for arithmetic-size in arithmetic-sizes
-             for bound = (or (loop for type in types
-                                   when (= arithmetic-size (quaviver:arithmetic-size type))
-                                     maximize (+ (ceiling-log-expt base 2
-                                                                   (max (quaviver:max-exponent type)
-                                                                        (- (quaviver:min-exponent type))))
-                                                 (ceiling-log-expt base 2
-                                                                   (- (quaviver:arithmetic-size type)
-                                                                      (quaviver:significand-size type)
-                                                                      1))))
-                             0)
-             for fun-name = (symbolicate
-                             '#:expt/ (write-to-string arithmetic-size)
-                             "-" (write-to-string base))
-             for bound-name = (symbolicate
-                               '#:+expt/ (write-to-string arithmetic-size)
-                               "-" (write-to-string base)
-                               '#:/bound+)
-             for values-name = (symbolicate
-                                '#:*expt/ (write-to-string arithmetic-size)
-                                "-" (write-to-string base)
-                                '#:/values*)
-             nconc `((declaim (ftype (function (fixnum) (arithmetic-word ,arithmetic-size 2))
-                                     ,fun-name)
-                              (type (simple-vector ,(1+ (* 2 bound)))
-                                    ,values-name)
-                              (inline ,fun-name))
+  (flet ((symbolicate (&rest things)
+           (let* ((length (reduce #'+ things
+                                  :key (lambda (x) (length (string x)))))
+                  (name (make-array length :element-type 'character)))
+             (let ((index 0))
+               (dolist (thing things (values (intern name)))
+                 (let* ((x (string thing))
+                        (len (length x)))
+                   (replace name x :start1 index)
+                   (incf index len)))))))
+    `(progn
+       ,@(loop for arithmetic-size in arithmetic-sizes
+               for bound = (or (loop for type in types
+                                     when (= arithmetic-size (quaviver:arithmetic-size type))
+                                       maximize (+ (ceiling-log-expt base 2
+                                                                     (max (quaviver:max-exponent type)
+                                                                          (- (quaviver:min-exponent type))))
+                                                   (ceiling-log-expt base 2
+                                                                     (- (quaviver:arithmetic-size type)
+                                                                        (quaviver:significand-size type)
+                                                                        1))))
+                               0)
+               for fun-name = (symbolicate
+                               '#:expt/ (write-to-string arithmetic-size)
+                               "-" (write-to-string base))
+               for bound-name = (symbolicate
+                                 '#:+expt/ (write-to-string arithmetic-size)
+                                 "-" (write-to-string base)
+                                 '#:/bound+)
+               for values-name = (symbolicate
+                                  '#:*expt/ (write-to-string arithmetic-size)
+                                  "-" (write-to-string base)
+                                  '#:/values*)
+               nconc `((declaim (ftype (function (fixnum) (arithmetic-word ,arithmetic-size 2))
+                                       ,fun-name)
+                                (type (simple-vector ,(1+ (* 2 bound)))
+                                      ,values-name)
+                                (inline ,fun-name))
 
-                     (defconstant ,bound-name ,bound)
+                       (defconstant ,bound-name ,bound)
 
-                     (#-sbcl defvar #+sbcl sb-ext:defglobal
-                         ,values-name ,(compute-expt (- bound) bound
-                                                         (* 2 arithmetic-size)
-                                                         base))
-                     #+sbcl (declaim (sb-ext:always-bound ,values-name))
+                       (#-sbcl defvar #+sbcl sb-ext:defglobal
+                        ,values-name ,(compute-expt (- bound) bound
+                                                    (* 2 arithmetic-size)
+                                                    base))
+                       #+sbcl (declaim (sb-ext:always-bound ,values-name))
 
-                     (defun ,fun-name (power)
-                       (svref ,values-name
-                              (- ,bound-name power)))))))
+                       (defun ,fun-name (power)
+                         (svref ,values-name
+                                (- ,bound-name power))))))))
 
 (define-expt
   :arithmetic-sizes (32 64 128 256)

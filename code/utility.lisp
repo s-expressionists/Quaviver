@@ -1,4 +1,4 @@
-(cl:in-package #:quaviver)
+(in-package #:quaviver)
 
 (defun unique-name (&rest args)
   (gensym (apply #'concatenate 'string

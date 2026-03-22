@@ -16,6 +16,7 @@
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")
+                             (:file "utility")
                              (:module "condition"
                               :serial t
                               :components ((:file "utility")
