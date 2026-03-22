@@ -16,14 +16,14 @@
                                                                       (quaviver:significand-size type)
                                                                       1))))
                              0)
-             for fun-name = (alexandria:symbolicate
+             for fun-name = (symbolicate
                              '#:expt/ (write-to-string arithmetic-size)
                              "-" (write-to-string base))
-             for bound-name = (alexandria:symbolicate
+             for bound-name = (symbolicate
                                '#:+expt/ (write-to-string arithmetic-size)
                                "-" (write-to-string base)
                                '#:/bound+)
-             for values-name = (alexandria:symbolicate
+             for values-name = (symbolicate
                                 '#:*expt/ (write-to-string arithmetic-size)
                                 "-" (write-to-string base)
                                 '#:/values*)

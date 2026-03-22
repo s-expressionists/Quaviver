@@ -30,7 +30,7 @@
   (expand-clause variant (car key) (cdr key)))
 
 (defmethod expand-clause ((variant (eql 'read-number)) (key (eql :digits)) &optional items)
-  (alexandria:with-gensyms
+  (with-unique-names
       (value count leading-zero)
     (destructuring-bind (name &key ignore ((:leading-zeros leading-zeros-p) t))
         items
@@ -82,7 +82,7 @@
           (go ,*next-tag*))))))
 
 (defmethod expand-clause ((variant (eql 'parse-number)) (key (eql :digits)) &optional items)
-  (alexandria:with-gensyms
+  (with-unique-names
       (value start count leading-zero)
     (destructuring-bind (name &key ignore ((:leading-zeros leading-zeros-p) t))
         items
@@ -140,7 +140,7 @@
           (go ,*next-tag*))))))
 
 (defmethod expand-clause ((variant (eql 'read-number)) (key (eql :digits?)) &optional items)
-  (alexandria:with-gensyms
+  (with-unique-names
       (value count leading-zero)
     (destructuring-bind (name &key ignore ((:leading-zeros leading-zeros-p) t))
         items
@@ -187,7 +187,7 @@
               `((go ,*next-tag*))))))))
 
 (defmethod expand-clause ((variant (eql 'parse-number)) (key (eql :digits?)) &optional items)
-  (alexandria:with-gensyms
+  (with-unique-names
       (value start count leading-zero)
     (destructuring-bind (name &key ignore ((:leading-zeros leading-zeros-p) t))
         items
@@ -240,21 +240,21 @@
             for (item . rest) on items
             for pos from 0
             for *next-tag* = (if rest
-                                 (alexandria:make-gensym '#:next)
+                                 (unique-name '#:next)
                                  outer-next-tag)
             nconc (expand-clause variant item)
             when rest
               collect *next-tag*)))
 
 (defmethod expand-clause (variant (key (eql :sequence?)) &optional items)
-  (let ((backp (alexandria:make-gensym '#:backp))
+  (let ((backp (unique-name '#:backp))
         (outer-next-tag *next-tag*)
-        (next-tag (alexandria:make-gensym '#:next)))
+        (next-tag (unique-name '#:next)))
     (push `(,backp ,t) *bindings*)
     `(,@(loop with *back-tag* = *next-tag*
               with *current-backp* = (list* backp *current-backp*)
               for (item . rest) on items
-              for *next-tag* = (if rest (alexandria:make-gensym '#:next) next-tag)
+              for *next-tag* = (if rest (unique-name '#:next) next-tag)
               nconc (expand-clause variant item)
               when rest
                 collect *next-tag*)
@@ -265,14 +265,14 @@
         (go ,outer-next-tag))))
 
 (defmethod expand-clause (variant (key (eql :alternate)) &optional items)
-  (let ((backp (alexandria:make-gensym '#:backp))
+  (let ((backp (unique-name '#:backp))
         (outer-next-tag *next-tag*)
-        (next-tag (alexandria:make-gensym '#:next)))
+        (next-tag (unique-name '#:next)))
     (push `(,backp ,t) *bindings*)
     `(,@(loop with *next-tag* = next-tag
               with *current-backp* = (list* backp *current-backp*)
               for (item . rest) on items
-              for *back-tag* = (alexandria:make-gensym '#:back)
+              for *back-tag* = (unique-name '#:back)
               while rest
               nconc (expand-clause variant item)
               collect *back-tag*
@@ -286,12 +286,12 @@
         (go ,outer-next-tag))))
 
 (defmethod expand-clause (variant (key (eql :alternate?)) &optional items)
-  (let ((*current-backp* (list* (alexandria:make-gensym '#:backp) *current-backp*))
+  (let ((*current-backp* (list* (unique-name '#:backp) *current-backp*))
         (outer-next-tag *next-tag*)
-        (*next-tag* (alexandria:make-gensym '#:next)))
+        (*next-tag* (unique-name '#:next)))
     (push `(,(car *current-backp*) ,t) *bindings*)
     `(,@(loop for (item . rest) on items
-              for *back-tag* = (if rest (alexandria:make-gensym '#:back) outer-next-tag)
+              for *back-tag* = (if rest (unique-name '#:back) outer-next-tag)
               nconc (expand-clause variant item)
               when rest
                 collect *back-tag*
@@ -375,14 +375,14 @@
   (expand-clause variant (getf *definitions* name)))
 
 (defun expand-parser (variant definitions items integerp ratiop floatp &rest map)
-  (alexandria:with-gensyms
+  (with-unique-names
       (integral integral-count integral-leading-zero integral-base
        fractional fractional-count fractional-leading-zero fractional-base
        divisor divisor-count divisor-leading-zero divisor-base
        exponent exponent-count exponent-leading-zero exponent-base
        exponent-sign sign character code payload payload-count
        payload-leading-zero payload-base)
-    (let* ((*next-tag* (alexandria:make-gensym '#:next))
+    (let* ((*next-tag* (unique-name '#:next))
            (*back-tag* nil)
            (*variable-map* `(:integral ,integral
                              :integral-count ,integral-count

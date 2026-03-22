@@ -12,8 +12,7 @@
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
   :if-feature (:or :abcl :allegro :ccl :clasp :clisp :cmucl :ecl :lispworks
                    :mezzano :sbcl)
-  :depends-on ("alexandria"
-               "trivial-features")
+  :depends-on ("trivial-features")
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")

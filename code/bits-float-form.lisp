@@ -35,7 +35,7 @@
   #+abcl
   `(system:make-single-float ,value)
   #+allegro
-  (alexandria:with-gensyms
+  (with-unique-names
       (v)
     `(let ((,v ,value))
        (excl:shorts-to-single-float (ldb (byte 16 16) ,v)
@@ -54,7 +54,7 @@
   #+ecl
   `(system:bits-single-float ,value)
   #+lispworks
-  (alexandria:with-gensyms
+  (with-unique-names
       (m)
     `(let ((,m (sys:make-typed-aref-vector 4)))
        (declare (optimize (speed 3) (float 0) (safety 0))
@@ -70,7 +70,7 @@
   #+abcl
   `(system:make-double-float ,value)
   #+allegro
-  (alexandria:with-gensyms
+  (with-unique-names
       (v)
     `(let ((,v ,value))
        (excl:shorts-to-double-float (ldb (byte 16 48) ,v)
@@ -78,7 +78,7 @@
                                     (ldb (byte 16 16) ,v)
                                     (ldb (byte 16  0) ,v))))
   #+ccl
-  (alexandria:with-gensyms
+  (with-unique-names
       (v)
     `(let ((,v ,value))
        (ccl::double-float-from-bits (ldb (byte 32 32) ,v)
@@ -91,7 +91,7 @@
      (setf (ffi:slot (ffi:foreign-value u) 'bits) ,value)
      (ffi:slot (ffi:foreign-value u) 'value))
   #+cmucl
-  (alexandria:with-gensyms
+  (with-unique-names
       (v)
     `(let ((,v ,value))
        (kernel:make-double-float (ub32-sb32 (ldb (byte 32 32) ,v))
@@ -99,7 +99,7 @@
   #+ecl
   `(system:bits-double-float ,value)
   #+lispworks
-  (alexandria:with-gensyms
+  (with-unique-names
       (m v)
     `(let ((,m (sys:make-typed-aref-vector 8))
            (,v ,value))
@@ -115,7 +115,7 @@
   #+mezzano
   `(mezzano.extensions:ieee-binary64-to-double-float ,value)
   #+sbcl
-  (alexandria:with-gensyms
+  (with-unique-names
       (v)
     `(let ((,v ,value))
        (sb-kernel:make-double-float (ub32-sb32 (ldb (byte 32 32) ,v))
@@ -133,7 +133,7 @@
   #+(and ecl (not quaviver/long-float-fallback))
   `(system:bits-long-float ,value)
   #+(and ecl quaviver/long-float-fallback)
-  (alexandria:with-gensyms
+  (with-unique-names
       (m n v)
     `(let ((,v ,value))
        (ffi:with-foreign-object (,m 'long-float/uint128)

@@ -15,7 +15,7 @@
                    (max-exponent max-exponent)
                    (significand-size significand-size))
       float-type
-    (alexandria:with-gensyms
+    (with-unique-names
         (exponent-var significand-var bits-var)
       `(let ((,bits-var 0))
          (declare (type (unsigned-byte ,storage-size)

@@ -1,10 +1,8 @@
 (in-package #:quaviver)
 
-(declaim (inline #+quaviver/short-float
-                 primitive-triple-float/short-float
+(declaim (inline primitive-triple-float/short-float
                  primitive-triple-float/single-float
                  primitive-triple-float/double-float
-                 #+quaviver/long-float
                  primitive-triple-float/long-float))
 
 (defmacro %primitive-triple-float-form (float-type significand exponent sign)
@@ -22,7 +20,7 @@
                    (max-exponent max-exponent)
                    (significand-size significand-size))
       float-type
-    (alexandria:with-gensyms
+    (with-unique-names
         (exponent-var significand-var sign-var bits-var)
       `(let ((,bits-var 0)
              (,exponent-var ,exponent)
@@ -95,7 +93,9 @@
          ,(bits-float-form float-type bits-var)))))
 
 (defun primitive-triple-float/short-float (significand exponent sign)
-  (%primitive-triple-float-form short-float significand exponent sign))
+  (%primitive-triple-float-form #+quaviver/short-float short-float
+                                #-quaviver/short-float single-float
+                                significand exponent sign))
 
 (defun primitive-triple-float/single-float (significand exponent sign)
   (%primitive-triple-float-form single-float significand exponent sign))

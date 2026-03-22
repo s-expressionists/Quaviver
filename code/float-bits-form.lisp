@@ -20,7 +20,7 @@
   #+abcl
   `(system:single-float-bits ,value)
   #+allegro
-  (alexandria:with-gensyms
+  (with-unique-names
       (us1 us0)
     `(multiple-value-bind (,us1 ,us0)
          (excl:single-float-to-shorts ,value)
@@ -39,7 +39,7 @@
   #+ecl
   `(system:single-float-bits ,value)
   #+lispworks
-  (alexandria:with-gensyms
+  (with-unique-names
       (m)
     `(let ((,m (sys:make-typed-aref-vector 4)))
        (declare (optimize (speed 3) (float 0) (safety 0))
@@ -53,19 +53,19 @@
 
 (defmethod float-bits-form ((float-type (eql 'double-float)) value)
   #+abcl
-  (alexandria:with-gensyms
+  (with-unique-names
       (v)
     `(let ((,v ,value))
        (logior (ash (system:double-float-high-bits ,v) 32)
                (system:double-float-low-bits ,v))))
   #+allegro
-  (alexandria:with-gensyms
+  (with-unique-names
       (us3 us2 us1 us0)
     `(multiple-value-bind (,us3 ,us2 ,us1 ,us0)
          (excl:double-float-to-shorts ,value)
        (logior (ash ,us3 48) (ash ,us2 32) (ash ,us1 16) ,us0)))
   #+ccl
-  (alexandria:with-gensyms
+  (with-unique-names
       (upper lower)
     `(multiple-value-bind (,upper ,lower)
          (ccl::double-float-bits ,value)
@@ -78,7 +78,7 @@
      (setf (ffi:slot (ffi:foreign-value u) 'value) ,value)
      (ffi:slot (ffi:foreign-value u) 'bits))
   #+cmucl
-  (alexandria:with-gensyms
+  (with-unique-names
       (v)
     `(let ((,v ,value))
        (logior (ash (ldb (byte 32 0) (kernel:double-float-high-bits ,v)) 32)
@@ -86,7 +86,7 @@
   #+ecl
   `(system:double-float-bits ,value)
   #+lispworks
-  (alexandria:with-gensyms
+  (with-unique-names
       (m)
     `(let ((,m (sys:make-typed-aref-vector 8)))
        (declare (optimize (speed 3) (float 0) (safety 0))
@@ -101,7 +101,7 @@
   #+mezzano
   `(mezzano.extensions:double-float-to-ieee-binary64 ,value)
   #+sbcl
-  (alexandria:with-gensyms
+  (with-unique-names
       (v)
     `(let ((,v ,value))
        (logior (ash (ldb (byte 32 0) (sb-kernel:double-float-high-bits ,v)) 32)
@@ -114,7 +114,7 @@
   #+(and ecl (not quaviver/long-float-fallback))
   `(system:long-float-bits ,value)
   #+(and ecl quaviver/long-float-fallback)
-  (alexandria:with-gensyms
+  (with-unique-names
       (m n)
     `(ffi:with-foreign-object (,m 'long-float/uint128)
        (setf (ffi:get-slot-value ,m 'long-float/uint128 'f) ,value)
