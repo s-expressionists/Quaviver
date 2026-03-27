@@ -66,16 +66,22 @@
            ,sign-size)
 
          (defmethod nan-payload-bytespec ((type (eql ',type)))
-           (byte ,(1- significand-size) 0))
+           (byte ,(- significand-size
+                     (if hidden-bit-p 1 2))
+                 0))
 
          (defmethod nan-payload-byte-form ((type (eql ',type)))
-           '(byte ,(1- significand-size) 0))
+           '(byte ,(- significand-size
+                      (if hidden-bit-p 1 2))
+                  0))
 
          (defmethod nan-type-bytespec ((type (eql ',type)))
-           (byte 1 ,(1- significand-size)))
+           (byte 1 ,(- significand-size
+                       (if hidden-bit-p 1 2))))
 
          (defmethod nan-type-byte-form ((type (eql ',type)))
-           '(byte 1 ,(1- significand-size)))
+           '(byte 1 ,(- significand-size
+                      (if hidden-bit-p 1 2))))
 
          (defmethod hidden-bit-p ((type (eql ',type)))
            ,hidden-bit-p)
@@ -151,8 +157,11 @@
         :exponent-size ,exponent-size
         :sign-byte-form (byte ,sign-size ,(+ exponent-size stored-significand-size))
         :sign-size ,sign-size
-        :nan-payload-byte-form (byte ,(1- stored-significand-size) 0)
-        :nan-type-byte-form (byte 1 ,(1- stored-significand-size))
+        :nan-payload-byte-form (byte ,(- stored-significand-size
+                                         (if hidden-bit-p 1 2))
+                                     0)
+        :nan-type-byte-form (byte 1 ,(- stored-significand-size
+                                        (if hidden-bit-p 1 2)))
         :hidden-bit-p ,hidden-bit-p
         :subnormalp ,subnormalp
         :non-number-p ,non-number-p

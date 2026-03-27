@@ -25,15 +25,7 @@
        (declare (type (unsigned-byte ,storage-size) bits)
                 (type exponent-word exponent)
                 (type fixnum sign))
-       (cond ((= exponent ,(1- (ash 1 (byte-size exponent-bytespec))))
-              (if (ldb-test ,significand-byte-form bits) ; nan
-                  (values (ldb ,nan-payload-byte-form bits)
-                          (if (ldb-test ,nan-type-byte-form bits)
-                              :quiet-nan
-                              :signaling-nan)
-                          sign)
-                  (values 0 :infinity sign)))
-             (t
+       (cond ((/= exponent ,(1- (ash 1 (byte-size exponent-bytespec))))
               (let ((significand (ldb ,significand-byte-form bits)))
                 (declare (type (unsigned-byte ,(+ 6 significand-size))
                                significand))
@@ -50,7 +42,17 @@
                                      `(significand (logior significand
                                                            ,(ash 1 (byte-size significand-bytespec)))))
                                  exponent (- exponent ,exponent-bias)))
-                       (values significand exponent sign)))))))))
+                       (values significand exponent sign)))))
+             ((ldb-test ,nan-type-byte-form bits)
+              (values (ldb ,nan-payload-byte-form bits)
+                      :quiet-nan
+                      sign))
+             ((ldb-test ,nan-payload-byte-form bits)
+              (values (ldb ,nan-payload-byte-form bits)
+                      :signaling-nan
+                      sign))
+             (t
+              (values 0 :infinity sign))))))
 
 (defun float-primitive-triple/short-float (value)
   (%float-primitive-triple-form #+quaviver/short-float short-float

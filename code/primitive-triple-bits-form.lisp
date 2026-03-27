@@ -28,7 +28,9 @@
            (setf (ldb ,sign-byte-form ,bits-var) 1))
          (cond ((keywordp ,exponent)                
                 (setf (ldb ,exponent-byte-form ,bits-var)
-                      ,(1- (ash 1 (byte-size exponent-bytespec))))
+                      ,(1- (ash 1 (byte-size exponent-bytespec)))
+                      ,@(unless hidden-bit-p
+                          `((ldb (byte 1 ,(1- (byte-size significand-bytespec))) ,bits-var) 1)))
                 (ecase ,exponent
                   (:infinity)
                   (:quiet-nan

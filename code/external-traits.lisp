@@ -71,16 +71,22 @@
          ,sign-size)
 
        (defmethod nan-payload-bytespec ((type (eql ',type)))
-         (byte ,(1- stored-significand-size) 0))
+         (byte ,(- stored-significand-size
+                   (if hidden-bit-p 1 2))
+               0))
 
        (defmethod nan-payload-byte-form ((type (eql ',type)))
-         '(byte ,(1- stored-significand-size) 0))
+         '(byte ,(- stored-significand-size
+                  (if hidden-bit-p 1 2))
+                0))
 
        (defmethod nan-type-bytespec ((type (eql ',type)))
-         (byte 1 ,(1- stored-significand-size)))
+         (byte 1 ,(- stored-significand-size
+                     (if hidden-bit-p 1 2))))
 
        (defmethod nan-type-byte-form ((type (eql ',type)))
-         '(byte 1 ,(1- stored-significand-size)))
+         '(byte 1 ,(- stored-significand-size
+                      (if hidden-bit-p 1 2))))
 
        (defmethod hidden-bit-p ((type (eql ',type)))
          ,hidden-bit-p)

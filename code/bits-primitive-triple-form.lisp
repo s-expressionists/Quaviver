@@ -19,15 +19,7 @@
        (declare (type (unsigned-byte ,storage-size) ,bits-var)
                 (type exponent-word exponent)
                 (type fixnum sign))
-       (cond ((= exponent ,(1- (ash 1 (byte-size exponent-bytespec))))
-              (if (ldb-test ,significand-byte-form ,bits-var) ; nan
-                  (values (ldb ,nan-payload-byte-form ,bits-var)
-                          (if (ldb-test ,nan-type-byte-form ,bits-var)
-                              :quiet-nan
-                              :signaling-nan)
-                          sign)
-                  (values 0 :infinity sign)))
-             (t
+       (cond ((/= exponent ,(1- (ash 1 (byte-size exponent-bytespec))))
               (let ((significand (ldb ,significand-byte-form ,bits-var)))
                 (declare (type (unsigned-byte ,(+ 6 significand-size))
                                significand))
@@ -44,4 +36,14 @@
                                      `(significand (logior significand
                                                            ,(ash 1 (byte-size significand-bytespec)))))
                                  exponent (- exponent ,exponent-bias)))
-                       (values significand exponent sign)))))))))
+                       (values significand exponent sign)))))
+             ((ldb-test ,nan-type-byte-form ,bits-var)
+              (values (ldb ,nan-payload-byte-form ,bits-var)
+                      :quiet-nan
+                      sign))
+             ((ldb-test ,nan-payload-byte-form ,bits-var)
+              (values (ldb ,nan-payload-byte-form ,bits-var)
+                      :signaling-nan
+                      sign))
+             (t
+              (values 0 :infinity sign))))))
