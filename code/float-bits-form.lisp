@@ -36,6 +36,8 @@
      (ffi:slot (ffi:foreign-value u) 'bits))
   #+cmucl
   `(ldb (byte 32 0) (kernel:single-float-bits ,value))
+  #+dotcl
+  `(dotcl-float:single-float-bits ,value)
   #+ecl
   `(system:single-float-bits ,value)
   #+lispworks
@@ -83,6 +85,8 @@
     `(let ((,v ,value))
        (logior (ash (ldb (byte 32 0) (kernel:double-float-high-bits ,v)) 32)
                (kernel:double-float-low-bits ,v))))
+  #+dotcl
+  `(dotcl-float:double-float-bits ,value)
   #+ecl
   `(system:double-float-bits ,value)
   #+lispworks

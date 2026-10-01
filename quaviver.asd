@@ -10,10 +10,11 @@
   :homepage "https://github.com/s-expressionists/Quaviver"
   :bug-tracker "https://github.com/s-expressionists/Quaviver/issues"
   :source-control (:git "https://github.com/s-expressionists/Quaviver.git")
-  :if-feature (:or :abcl :allegro :ccl :clasp :clisp :cmucl :ecl :lispworks
+  :if-feature (:or :abcl :allegro :ccl :clasp :clisp :cmucl :dotcl :ecl :lispworks
                    :mezzano :sbcl)
   :depends-on ("alexandria"
-               "trivial-features")
+               "trivial-features"
+               (:feature :dotcl (:require "dotcl-float")))
   :components ((:module "code"
                 :serial t
                 :components ((:file "packages")

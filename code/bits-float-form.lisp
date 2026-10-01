@@ -51,6 +51,8 @@
      (ffi:slot (ffi:foreign-value u) 'value))
   #+cmucl
   `(kernel:make-single-float (ub32-sb32 ,value))
+  #+dotcl
+  `(dotcl-float:bits-single-float ,value)
   #+ecl
   `(system:bits-single-float ,value)
   #+lispworks
@@ -96,6 +98,8 @@
     `(let ((,v ,value))
        (kernel:make-double-float (ub32-sb32 (ldb (byte 32 32) ,v))
                                  (ldb (byte 32 0) ,v))))
+  #+dotcl
+  `(dotcl-float:bits-double-float ,value)
   #+ecl
   `(system:bits-double-float ,value)
   #+lispworks
